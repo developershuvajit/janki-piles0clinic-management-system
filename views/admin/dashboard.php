@@ -4,11 +4,12 @@ $activePage = 'dashboard';
 include VIEWS_PATH . '/layout/admin_header.php';
 ?>
 
-<!-- ===== CLEAN DASHBOARD - MINIMAL CODE ===== -->
+<!-- ===== CLEAN DASHBOARD - 3 CARDS PER ROW ===== -->
 <style>
     /* minimal inline styles */
-    .stat-card{background:#fff;border-radius:14px;padding:1rem 1.2rem;box-shadow:0 2px 8px rgba(0,0,0,.04);display:flex;align-items:center;gap:1rem;border:1px solid #f0f2f5;transition:.15s}
-    .stat-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.06)}
+    .stat-card{background:#fff;border-radius:14px;padding:1rem 1.2rem;box-shadow:0 2px 8px rgba(0,0,0,.04);display:flex;align-items:center;gap:1rem;border:1px solid #f0f2f5;transition:.2s;cursor:pointer;text-decoration:none;color:inherit}
+    .stat-card:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,.08);border-color:#2563eb}
+    .stat-card:active{transform:scale(0.97)}
     .stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0}
     .stat-icon.green{background:#e6f5ed;color:#0f7b4a}
     .stat-icon.blue{background:#e6f0ff;color:#1a6bc4}
@@ -28,40 +29,86 @@ include VIEWS_PATH . '/layout/admin_header.php';
     .table-clean th{font-size:.6rem;text-transform:uppercase;color:#6b7a8f;font-weight:600;padding:.4rem .8rem;border-bottom:1px solid #edf2f7}
     .table-clean td{padding:.4rem .8rem;border:none;background:#fafcfe;border-radius:8px}
     .upload-area{border:1.5px dashed #e2e8f0;border-radius:16px;padding:1rem;background:#fafdff}
-    .lib-tag{background:#f1f4f8;padding:.2rem 1rem;border-radius:40px;font-size:.7rem;color:#1e293b}
 </style>
 
-<!-- ===== STATS ===== -->
-<div class="row g-2 mb-3">
-    <div class="col-xl-2 col-lg-4 col-md-6"><div class="stat-card">
-        <div class="stat-icon green"><i class="bi bi-people-fill"></i></div>
-        <div><div class="stat-label">Total Patients</div><div class="stat-value"><?= esc((string)($totalPatients ?? 0)) ?></div><div class="stat-sub">Registered</div></div>
-    </div></div>
-    <div class="col-xl-2 col-lg-4 col-md-6"><div class="stat-card">
-        <div class="stat-icon blue"><i class="bi bi-calendar-check-fill"></i></div>
-        <div><div class="stat-label">Today OPD</div><div class="stat-value"><?= esc((string)($todayOpd ?? 0)) ?></div><div class="stat-sub">Consultations</div></div>
-    </div></div>
-    <div class="col-xl-2 col-lg-4 col-md-6"><div class="stat-card">
-        <div class="stat-icon orange"><i class="bi bi-hospital-fill"></i></div>
-        <div><div class="stat-label">IPD Active</div><div class="stat-value"><?= esc((string)($activeIpd ?? 0)) ?></div><div class="stat-sub">Admitted</div></div>
-    </div></div>
-    <div class="col-xl-2 col-lg-4 col-md-6"><div class="stat-card">
-        <div class="stat-icon green"><i class="bi bi-currency-rupee"></i></div>
-        <div><div class="stat-label">Today Revenue</div><div class="stat-value">₹<?= number_format($todayRevenue ?? 0) ?></div><div class="stat-sub">Collected</div></div>
-    </div></div>
-    <div class="col-xl-2 col-lg-4 col-md-6"><div class="stat-card">
-        <div class="stat-icon red"><i class="bi bi-capsule-pill"></i></div>
-        <div><div class="stat-label">Low Stock</div><div class="stat-value"><?= esc((string)($lowStockCount ?? 0)) ?></div><div class="stat-sub">Medicines</div></div>
-    </div></div>
-    <div class="col-xl-2 col-lg-4 col-md-6"><div class="stat-card">
-        <div class="stat-icon teal"><i class="bi bi-journal-text"></i></div>
-        <div><div class="stat-label">Audit Logs</div><div class="stat-value"><?= esc((string)($logCount ?? 0)) ?></div><div class="stat-sub">Events today</div></div>
-    </div></div>
+<!-- ===== STATS - 3 CARDS PER ROW ===== -->
+<div class="row g-3 mb-4">
+    <!-- Total Patients -->
+    <div class="col-xl-4 col-lg-4 col-md-6">
+        <a href="<?= site_url('/admin/patients') ?>" class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-label">Total Patients</div>
+                <div class="stat-value"><?= esc((string)($totalPatients ?? 0)) ?></div>
+                <div class="stat-sub">Registered</div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Today OPD -->
+    <div class="col-xl-4 col-lg-4 col-md-6">
+        <a href="<?= site_url('/admin/appointments') ?>" class="stat-card">
+            <div class="stat-icon blue"><i class="bi bi-calendar-check-fill"></i></div>
+            <div>
+                <div class="stat-label">Today OPD</div>
+                <div class="stat-value"><?= esc((string)($todayOpd ?? 0)) ?></div>
+                <div class="stat-sub">Consultations</div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- IPD Active -->
+    <div class="col-xl-4 col-lg-4 col-md-6">
+        <a href="<?= site_url('/admin/ipd') ?>" class="stat-card">
+            <div class="stat-icon orange"><i class="bi bi-hospital-fill"></i></div>
+            <div>
+                <div class="stat-label">IPD Active</div>
+                <div class="stat-value"><?= esc((string)($activeIpd ?? 0)) ?></div>
+                <div class="stat-sub">Admitted</div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Today Revenue -->
+    <div class="col-xl-4 col-lg-4 col-md-6">
+        <a href="<?= site_url('/admin/billing') ?>" class="stat-card">
+            <div class="stat-icon green"><i class="bi bi-currency-rupee"></i></div>
+            <div>
+                <div class="stat-label">Today Revenue</div>
+                <div class="stat-value">₹<?= number_format($todayRevenue ?? 0) ?></div>
+                <div class="stat-sub">Collected</div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Low Stock -->
+    <div class="col-xl-4 col-lg-4 col-md-6">
+        <a href="<?= site_url('/admin/inventory/low-stock') ?>" class="stat-card">
+            <div class="stat-icon red"><i class="bi bi-capsule-pill"></i></div>
+            <div>
+                <div class="stat-label">Low Stock</div>
+                <div class="stat-value"><?= esc((string)($lowStockCount ?? 0)) ?></div>
+                <div class="stat-sub">Medicines</div>
+            </div>
+        </a>
+    </div>
+    
+    <!-- Audit Logs -->
+    <div class="col-xl-4 col-lg-4 col-md-6">
+        <a href="<?= site_url('/admin/logs') ?>" class="stat-card">
+            <div class="stat-icon teal"><i class="bi bi-journal-text"></i></div>
+            <div>
+                <div class="stat-label">Audit Logs</div>
+                <div class="stat-value"><?= esc((string)($logCount ?? 0)) ?></div>
+                <div class="stat-sub">Events today</div>
+            </div>
+        </a>
+    </div>
 </div>
 
 <!-- ===== LOW STOCK ALERT ===== -->
 <?php if (!empty($lowStockItems)): ?>
-<div class="alert alert-warning alert-dismissible fade show mb-3" style="border-radius:12px;background:#fef7e8;border:1px solid #fae6c3;color:#7a5d2b;padding:.6rem 1rem">
+<div class="alert alert-warning alert-dismissible fade show mb-4" style="border-radius:12px;background:#fef7e8;border:1px solid #fae6c3;color:#7a5d2b;padding:.6rem 1rem">
     <i class="bi bi-exclamation-triangle-fill me-1"></i>
     <strong><?= count($lowStockItems) ?> medicines</strong> low stock.
     <a href="<?= site_url('/admin/inventory/low-stock') ?>" style="color:#8b5f1e;font-weight:600">View &rarr;</a>
@@ -70,7 +117,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <?php endif; ?>
 
 <!-- ===== QUICK ACTIONS + RECENT ===== -->
-<div class="row g-3 mb-3">
+<div class="row g-4 mb-4">
     <div class="col-lg-4">
         <div class="card-clean">
             <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6b7a8f;margin-bottom:.6rem">
@@ -113,7 +160,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 </div>
 
 <!-- ===== UTILITIES ===== -->
-<div class="row g-3">
+<div class="row g-4">
     <div class="col-lg-6">
         <div class="card-clean">
             <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6b7a8f;margin-bottom:.5rem">
