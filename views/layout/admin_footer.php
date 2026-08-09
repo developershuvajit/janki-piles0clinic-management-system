@@ -24,8 +24,8 @@ if ($roleSlug === 'doctor') {
 ?>
             </div><!-- /.admin-content-inner -->
 
-            <!-- ===== CLEAN ADMIN FOOTER ===== -->
-            <footer class="mt-4 pt-3 border-top" style="font-size:0.78rem; color:#6b7a8f; padding: 0.8rem 1.8rem; background: transparent; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+            <!-- ===== CLEAN ADMIN FOOTER - STICKY BOTTOM ===== -->
+            <footer class="admin-footer" style="font-size:0.78rem; color:#6b7a8f; padding: 0.8rem 1.8rem; background: #fff; border-top: 1px solid #eef2f6; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; flex-shrink: 0;">
                 <div>
                     &copy; <?= date('Y') ?> <span style="font-weight:600; color:#0b1a2b;">Janki Piles Clinic</span> 
                     <span style="color:#94a3b8;">&mdash;</span> Advanced Proctology Management System
