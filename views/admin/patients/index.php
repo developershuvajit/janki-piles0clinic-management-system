@@ -13,7 +13,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
      ============================================ -->
 <div class="datatable-wrapper mt-4">
     <div class="datatable-header">
-        <h5>Patient Directory <small><?= count($patients ?? []) ?> registered</small></h5>
+        <h5>Patient List <small><?= count($patients ?? []) ?> registered</small></h5>
         <a href="<?= site_url('/admin/patients/create') ?>" class="btn-register">
             <i class="bi bi-person-plus-fill"></i> Register
         </a>

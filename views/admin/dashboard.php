@@ -32,7 +32,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 </style>
 
 <!-- ===== STATS - 3 CARDS PER ROW ===== -->
-<div class="row g-3 mb-4">
+<div class="row g-3 ">
     <!-- Total Patients -->
     <div class="col-xl-4 col-lg-4 col-md-6">
         <a href="<?= site_url('/admin/patients') ?>" class="stat-card">
