@@ -197,7 +197,11 @@ $router->post('/admin/ipd/discharge-summary/save', 'DischargeController@saveSumm
 $router->get('/admin/ipd/discharge-summary/print/{id}', 'DischargeController@printSummary');
 $router->get('/admin/ipd/discharge-summary/pdf/{id}', 'DischargeController@pdfSummary');
 
+
+
+
 // Employee Leaves & Attendance Upgrades (Phase 14) Routes
+// Attendance Routes
 // Attendance Routes
 $router->get('/admin/employees/attendance', 'AttendanceController@register');
 $router->post('/admin/employees/attendance/save', 'AttendanceController@saveAttendance');
@@ -211,6 +215,9 @@ $router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
 $router->get('/admin/attendance/fetch-employee', 'AttendanceController@fetchEmployee');
 $router->post('/admin/attendance/mark', 'AttendanceController@markAttendance');
 $router->get('/admin/attendance/today', 'AttendanceController@todayAttendance');
+
+// Attendance Report
+$router->get('/admin/attendance/report', 'AttendanceController@attendanceReport');
 
 // Employee ID Cards
 $router->get('/admin/employees/id-cards', 'AttendanceController@idCards');

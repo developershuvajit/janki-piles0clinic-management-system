@@ -20,7 +20,7 @@ class ReportsController
      */
     public function dashboard()
     {
-        Permission::check('view_logs'); // Auditing/administration privilege
+        Permission::check('view_logs');
         
         $branchId = Session::get('role') !== 'super_admin' ? (int)Session::get('branch_id') : null;
         
@@ -34,7 +34,7 @@ class ReportsController
             $revSql .= " AND bi.branch_id = :branch_id";
             $revParams['branch_id'] = $branchId;
         }
-        $revSql .= " GROUP BY bi.branch_id";
+        $revSql .= " GROUP BY b.id, b.name";
         $revenueData = Database::all($revSql, $revParams);
 
         // 2. Patient visits grouped by doctor
@@ -46,7 +46,7 @@ class ReportsController
             $docSql .= " WHERE a.branch_id = :branch_id";
             $docParams['branch_id'] = $branchId;
         }
-        $docSql .= " GROUP BY a.doctor_id ORDER BY value DESC LIMIT 5";
+        $docSql .= " GROUP BY u.id, u.username ORDER BY value DESC LIMIT 5";
         $doctorStats = Database::all($docSql, $docParams);
 
         // 3. Medicine issues / Outflow
@@ -54,18 +54,21 @@ class ReportsController
                    FROM medicine_transactions t
                    JOIN medicines m ON t.medicine_id = m.id
                    WHERE t.type = 'stock_out'
-                   GROUP BY t.medicine_id ORDER BY value DESC LIMIT 5";
+                   GROUP BY m.id, m.name ORDER BY value DESC LIMIT 5";
         $medicineStats = Database::all($medSql);
 
-        // 4. Monthly patient registry counts
-        $patSql = "SELECT DATE_FORMAT(created_at, '%b %Y') as label, COUNT(id) as value 
+        // 4. Monthly patient registry counts - FIXED
+        $patSql = "SELECT 
+                    DATE_FORMAT(created_at, '%b %Y') as label, 
+                    COUNT(id) as value 
                    FROM patients";
         $patParams = [];
         if ($branchId !== null) {
             $patSql .= " WHERE branch_id = :branch_id";
             $patParams['branch_id'] = $branchId;
         }
-        $patSql .= " GROUP BY DATE_FORMAT(created_at, '%Y-%m') ORDER BY created_at ASC LIMIT 6";
+        $patSql .= " GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b %Y') 
+                     ORDER BY DATE_FORMAT(created_at, '%Y-%m') ASC LIMIT 6";
         $patientStats = Database::all($patSql, $patParams);
 
         include VIEWS_PATH . '/admin/reports/dashboard.php';

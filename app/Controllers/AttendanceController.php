@@ -334,4 +334,47 @@ class AttendanceController
         header('Location: ' . $qrUrl);
         exit;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /**
+ * Attendance Report
+ */
+        public function attendanceReport()
+        {
+            Permission::check('view_logs');
+            
+            $date = $_GET['date'] ?? date('Y-m-d');
+            $branchId = Session::get('role') !== 'super_admin' ? (int)Session::get('branch_id') : null;
+            
+            // Get attendance data for the date
+            $attendanceData = Attendance::getDailyRoster($date, $branchId);
+            
+            // Calculate statistics
+            $totalStaff = count($attendanceData);
+            $present = 0;
+            $absent = 0;
+            $late = 0;
+            $leave = 0;
+            
+            foreach ($attendanceData as $row) {
+                $status = $row['status'] ?? 'not_marked';
+                if ($status === 'present') $present++;
+                elseif ($status === 'absent') $absent++;
+                elseif ($status === 'late') $late++;
+                elseif ($status === 'leave') $leave++;
+            }
+            
+            include VIEWS_PATH . '/admin/attendance/report.php';
+        }
 }
