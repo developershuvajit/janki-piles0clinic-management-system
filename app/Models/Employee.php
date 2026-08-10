@@ -61,6 +61,33 @@ class Employee
     }
 
     /**
+     * Get multiple employees by their IDs (for ID card generation, etc.)
+     * 
+     * @param array $ids Array of employee IDs
+     * @return array
+     */
+    public static function getByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+        
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        
+        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, 
+                       r.name as role_name, r.slug as role_slug, 
+                       b.name as branch_name 
+                FROM employees e
+                JOIN users u ON e.user_id = u.id
+                LEFT JOIN roles r ON u.role_id = r.id
+                LEFT JOIN branches b ON u.branch_id = b.id
+                WHERE e.id IN ($placeholders)
+                ORDER BY e.id DESC";
+        
+        return Database::all($sql, $ids);
+    }
+
+    /**
      * Atomic transaction to register a user account and construct employee profiles.
      */
     public static function create(array $data): ?int

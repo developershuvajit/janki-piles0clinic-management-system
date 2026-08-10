@@ -35,6 +35,7 @@ $router->post('/verify-otp', 'AuthController@verifyOtp');
 $router->get('/reset-password', 'AuthController@showResetPassword');
 $router->post('/reset-password', 'AuthController@resetPassword');
 
+
 // Admin Panel Core Routes
 $router->get('/admin/dashboard', 'AdminController@dashboard');
 $router->get('/admin/settings', 'AdminController@settings');
@@ -197,10 +198,34 @@ $router->get('/admin/ipd/discharge-summary/print/{id}', 'DischargeController@pri
 $router->get('/admin/ipd/discharge-summary/pdf/{id}', 'DischargeController@pdfSummary');
 
 // Employee Leaves & Attendance Upgrades (Phase 14) Routes
+// Attendance Routes
+$router->get('/admin/employees/attendance', 'AttendanceController@register');
+$router->post('/admin/employees/attendance/save', 'AttendanceController@saveAttendance');
 $router->get('/admin/employees/attendance/leaves', 'AttendanceController@leavesList');
 $router->post('/admin/employees/attendance/leaves/apply', 'AttendanceController@applyLeave');
 $router->get('/admin/employees/attendance/leaves/approve/{id}', 'AttendanceController@approveLeave');
 $router->get('/admin/employees/attendance/leaves/reject/{id}', 'AttendanceController@rejectLeave');
+
+// QR Code Attendance
+$router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
+$router->get('/admin/attendance/fetch-employee', 'AttendanceController@fetchEmployee');
+$router->post('/admin/attendance/mark', 'AttendanceController@markAttendance');
+$router->get('/admin/attendance/today', 'AttendanceController@todayAttendance');
+
+// Employee ID Cards
+$router->get('/admin/employees/id-cards', 'AttendanceController@idCards');
+$router->post('/admin/employees/generate-id-cards', 'AttendanceController@generateIDCards');
+
+// QR Code Generation
+$router->get('/admin/qr/generate', 'AttendanceController@generateQR');
+
+// HR Reports
+$router->get('/admin/hr/reports', 'AttendanceController@hrReports');
+
+
+
+
+
 
 // Salary Payroll Module (Phase 15) Routes
 $router->get('/admin/salary', 'SalaryController@index');

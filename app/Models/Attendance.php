@@ -5,6 +5,7 @@ namespace App\Models;
 
 use App\Helpers\Database;
 use App\Helpers\Security;
+use App\Helpers\Logger;
 
 class Attendance
 {
@@ -164,5 +165,179 @@ class Attendance
         $sql = "UPDATE employee_leaves SET status = :status WHERE id = :id";
         return Database::execute($sql, ['status' => $status, 'id' => $id]);
     }
-}
 
+    // ============================================
+    // NEW METHODS FOR QR CODE ATTENDANCE
+    // ============================================
+
+    /**
+     * Get today's attendance for a specific employee
+     * 
+     * @param int $employeeId
+     * @param string $date
+     * @return array|null
+     */
+    public static function getToday(int $employeeId, string $date): ?array
+    {
+        return Database::row(
+            "SELECT * FROM employee_attendance 
+             WHERE employee_id = :id AND date = :date",
+            ['id' => $employeeId, 'date' => $date]
+        );
+    }
+
+    /**
+     * Get all today's attendance with employee details
+     * 
+     * @param string $date
+     * @return array
+     */
+    public static function getTodayAll(string $date): array
+    {
+        return Database::all(
+            "SELECT a.*, u.username, e.photo 
+             FROM employee_attendance a
+             LEFT JOIN employees e ON a.employee_id = e.id
+             LEFT JOIN users u ON e.user_id = u.id
+             WHERE a.date = :date 
+             ORDER BY a.check_in DESC",
+            ['date' => $date]
+        );
+    }
+
+    /**
+     * Update check-out time for an employee
+     * 
+     * @param int $employeeId
+     * @param string $date
+     * @param string $time
+     * @return bool
+     */
+    public static function updateCheckOut(int $employeeId, string $date, string $time): bool
+    {
+        return Database::execute(
+            "UPDATE employee_attendance 
+             SET check_out = :time, updated_at = NOW() 
+             WHERE employee_id = :id AND date = :date",
+            ['time' => $time, 'id' => $employeeId, 'date' => $date]
+        );
+    }
+
+    /**
+     * Get attendance by date range
+     * 
+     * @param int $employeeId
+     * @param string $startDate
+     * @param string $endDate
+     * @return array
+     */
+    public static function getByDateRange(int $employeeId, string $startDate, string $endDate): array
+    {
+        return Database::all(
+            "SELECT * FROM employee_attendance 
+             WHERE employee_id = :id 
+             AND date BETWEEN :start AND :end 
+             ORDER BY date DESC",
+            ['id' => $employeeId, 'start' => $startDate, 'end' => $endDate]
+        );
+    }
+
+    /**
+     * Get attendance statistics for an employee
+     * 
+     * @param int $employeeId
+     * @param string $month
+     * @return array
+     */
+    public static function getMonthlyStats(int $employeeId, string $month): array
+    {
+        $startDate = $month . '-01';
+        $endDate = date('Y-m-t', strtotime($startDate));
+        
+        $records = self::getByDateRange($employeeId, $startDate, $endDate);
+        
+        $stats = [
+            'total_days' => date('t', strtotime($startDate)),
+            'present' => 0,
+            'absent' => 0,
+            'late' => 0,
+            'half_day' => 0,
+            'leave' => 0
+        ];
+        
+        foreach ($records as $record) {
+            if (isset($stats[$record['status']])) {
+                $stats[$record['status']]++;
+            }
+        }
+        
+        $stats['absent'] = $stats['total_days'] - $stats['present'] - $stats['leave'];
+        
+        return $stats;
+    }
+
+    /**
+     * Check if employee is already checked in today
+     * 
+     * @param int $employeeId
+     * @param string $date
+     * @return bool
+     */
+    public static function isCheckedIn(int $employeeId, string $date): bool
+    {
+        $record = self::getToday($employeeId, $date);
+        return $record !== null && !empty($record['check_in']);
+    }
+
+    /**
+     * Get all employees who are currently checked in
+     * 
+     * @param string $date
+     * @return array
+     */
+    public static function getCurrentlyCheckedIn(string $date): array
+    {
+        return Database::all(
+            "SELECT a.*, u.username, e.photo 
+             FROM employee_attendance a
+             LEFT JOIN employees e ON a.employee_id = e.id
+             LEFT JOIN users u ON e.user_id = u.id
+             WHERE a.date = :date 
+             AND a.check_in IS NOT NULL 
+             AND a.check_out IS NULL
+             ORDER BY a.check_in DESC",
+            ['date' => $date]
+        );
+    }
+
+    /**
+     * Get today's attendance with status counts
+     * 
+     * @param string $date
+     * @return array
+     */
+    public static function getTodayWithStats(string $date): array
+    {
+        $attendance = self::getTodayAll($date);
+        
+        $stats = [
+            'total' => count($attendance),
+            'present' => 0,
+            'absent' => 0,
+            'late' => 0,
+            'half_day' => 0,
+            'leave' => 0
+        ];
+        
+        foreach ($attendance as $record) {
+            if (isset($stats[$record['status']])) {
+                $stats[$record['status']]++;
+            }
+        }
+        
+        return [
+            'stats' => $stats,
+            'records' => $attendance
+        ];
+    }
+}

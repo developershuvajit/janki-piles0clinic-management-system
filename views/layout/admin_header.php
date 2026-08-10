@@ -307,39 +307,73 @@ if ($roleSlug === 'doctor') {
 
         <!-- 4. HR & Operations -->
         <div style="margin-bottom: 0.3rem;">
-            <button style="width: 100%; background: <?= $isHrActive ? 'rgba(59,130,246,0.15)' : 'transparent'; ?>; border: none; color: <?= $isHrActive ? '#60a5fa' : '#94a3b8'; ?>; padding: 0.6rem 0.8rem; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s;" 
-                    type="button" data-bs-toggle="collapse" data-bs-target="#menu-hr" aria-expanded="<?= $isHrActive ? 'true' : 'false' ?>">
-                <span><i class="bi bi-people-fill" style="color: #3b82f6; margin-right: 0.6rem;"></i> HR & Operations</span>
-                <i class="bi bi-chevron-down" style="font-size: 0.7rem; transition: transform 0.2s; transform: <?= $isHrActive ? 'rotate(180deg)' : 'rotate(0)'; ?>;"></i>
-            </button>
-            <div class="collapse <?= $isHrActive ? 'show' : '' ?>" id="menu-hr" style="padding: 0.2rem 0.5rem 0.2rem 0;">
-                <div style="display: flex; flex-direction: column; gap: 0.1rem;">
-                    <?php if (\App\Helpers\Permission::has('manage_branches')): ?>
-                    <a class="nav-link <?= $currentPage === 'branches' ? 'active' : '' ?>" href="<?= site_url('/admin/branches') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'branches' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'branches' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'branches' ? '500' : '400'; ?>;">
-                        <i class="bi bi-building" style="font-size: 1rem; color: #22c55e;"></i> Branches
-                    </a>
-                    <?php endif; ?>
-                    <?php if (\App\Helpers\Permission::has('manage_employees')): ?>
-                    <a class="nav-link <?= $currentPage === 'employees' ? 'active' : '' ?>" href="<?= site_url('/admin/employees') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'employees' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'employees' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'employees' ? '500' : '400'; ?>;">
-                        <i class="bi bi-person-gear" style="font-size: 1rem; color: #8b5cf6;"></i> Employee Directory
-                    </a>
-                    <?php endif; ?>
-                    <?php if (\App\Helpers\Permission::has('record_attendance')): ?>
-                    <a class="nav-link <?= $currentPage === 'attendance' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'attendance' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'attendance' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'attendance' ? '500' : '400'; ?>;">
-                        <i class="bi bi-calendar-check" style="font-size: 1rem; color: #06b6d4;"></i> Attendance Roster
-                    </a>
-                    <a class="nav-link <?= $currentPage === 'leaves' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance/leaves') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'leaves' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'leaves' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'leaves' ? '500' : '400'; ?>;">
-                        <i class="bi bi-calendar-minus" style="font-size: 1rem; color: #f59e0b;"></i> Leaves Panel
-                    </a>
-                    <?php endif; ?>
-                    <?php if (\App\Helpers\Permission::has('manage_employees')): ?>
-                    <a class="nav-link <?= $currentPage === 'salary' ? 'active' : '' ?>" href="<?= site_url('/admin/salary') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'salary' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'salary' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'salary' ? '500' : '400'; ?>;">
-                        <i class="bi bi-cash-stack" style="font-size: 1rem; color: #22c55e;"></i> Salary Payrolls
-                    </a>
-                    <?php endif; ?>
-                </div>
-            </div>
+    <button style="width: 100%; background: <?= $isHrActive ? 'rgba(59,130,246,0.15)' : 'transparent'; ?>; border: none; color: <?= $isHrActive ? '#60a5fa' : '#94a3b8'; ?>; padding: 0.6rem 0.8rem; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s;" 
+        type="button" data-bs-toggle="collapse" data-bs-target="#menu-hr" aria-expanded="<?= $isHrActive ? 'true' : 'false' ?>">
+        <span><i class="bi bi-people-fill" style="color: #3b82f6; margin-right: 0.6rem;"></i> HR & Operations</span>
+        <i class="bi bi-chevron-down" style="font-size: 0.7rem; transition: transform 0.2s; transform: <?= $isHrActive ? 'rotate(180deg)' : 'rotate(0)'; ?>;"></i>
+    </button>
+    <div class="collapse <?= $isHrActive ? 'show' : '' ?>" id="menu-hr" style="padding: 0.2rem 0.5rem 0.2rem 0;">
+        <div style="display: flex; flex-direction: column; gap: 0.1rem;">
+            
+            <!-- Employee Management -->
+            <?php if (\App\Helpers\Permission::has('manage_employees')): ?>
+            <a class="nav-link <?= $currentPage === 'employees' ? 'active' : '' ?>" href="<?= site_url('/admin/employees') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'employees' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'employees' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'employees' ? '500' : '400'; ?>;">
+                <i class="bi bi-person-gear" style="font-size: 1rem; color: #8b5cf6;"></i> Employee Directory
+            </a>
+            <?php endif; ?>
+
+            <!-- Employee ID Cards -->
+            <?php if (\App\Helpers\Permission::has('manage_employees')): ?>
+            <a class="nav-link <?= $currentPage === 'id_cards' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/id-cards') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'id_cards' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'id_cards' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'id_cards' ? '500' : '400'; ?>;">
+                <i class="bi bi-id-card" style="font-size: 1rem; color: #3b82f6;"></i> ID Cards Generator
+            </a>
+            <?php endif; ?>
+
+            <!-- Branch Management -->
+            <?php if (\App\Helpers\Permission::has('manage_branches')): ?>
+            <a class="nav-link <?= $currentPage === 'branches' ? 'active' : '' ?>" href="<?= site_url('/admin/branches') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'branches' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'branches' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'branches' ? '500' : '400'; ?>;">
+                <i class="bi bi-building" style="font-size: 1rem; color: #22c55e;"></i> Branches
+            </a>
+            <?php endif; ?>
+
+            <!-- Attendance -->
+            <?php if (\App\Helpers\Permission::has('record_attendance')): ?>
+            <a class="nav-link <?= $currentPage === 'attendance' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'attendance' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'attendance' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'attendance' ? '500' : '400'; ?>;">
+                <i class="bi bi-calendar-check" style="font-size: 1rem; color: #06b6d4;"></i> Attendance Roster
+            </a>
+            <?php endif; ?>
+
+            <!-- QR Code Attendance Scanner -->
+            <?php if (\App\Helpers\Permission::has('record_attendance')): ?>
+            <a class="nav-link <?= $currentPage === 'attendance_scan' ? 'active' : '' ?>" href="<?= site_url('/admin/attendance/scan') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'attendance_scan' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'attendance_scan' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'attendance_scan' ? '500' : '400'; ?>;">
+                <i class="bi bi-qr-code-scan" style="font-size: 1rem; color: #8b5cf6;"></i> QR Attendance Scanner
+            </a>
+            <?php endif; ?>
+
+            <!-- Leaves -->
+            <?php if (\App\Helpers\Permission::has('record_attendance')): ?>
+            <a class="nav-link <?= $currentPage === 'leaves' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance/leaves') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'leaves' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'leaves' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'leaves' ? '500' : '400'; ?>;">
+                <i class="bi bi-calendar-minus" style="font-size: 1rem; color: #f59e0b;"></i> Leaves Panel
+            </a>
+            <?php endif; ?>
+
+            <!-- Salary -->
+            <?php if (\App\Helpers\Permission::has('manage_employees')): ?>
+            <a class="nav-link <?= $currentPage === 'salary' ? 'active' : '' ?>" href="<?= site_url('/admin/salary') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'salary' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'salary' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'salary' ? '500' : '400'; ?>;">
+                <i class="bi bi-cash-stack" style="font-size: 1rem; color: #22c55e;"></i> Salary Payrolls
+            </a>
+            <?php endif; ?>
+
+            <!-- Reports -->
+            <?php if (\App\Helpers\Permission::has('view_logs')): ?>
+            <a class="nav-link <?= $currentPage === 'hr_reports' ? 'active' : '' ?>" href="<?= site_url('/admin/hr/reports') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'hr_reports' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'hr_reports' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'hr_reports' ? '500' : '400'; ?>;">
+                <i class="bi bi-graph-up" style="font-size: 1rem; color: #f59e0b;"></i> HR Reports
+            </a>
+            <?php endif; ?>
+
         </div>
+    </div>
+</div>
 
         <!-- 5. Website CMS & CRM -->
         <?php if (\App\Helpers\Permission::has('manage_settings')): ?>
