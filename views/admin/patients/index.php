@@ -8,6 +8,14 @@ include VIEWS_PATH . '/layout/admin_header.php';
      ============================================ -->
 <link rel="stylesheet" href="<?= asset('css/datatable.css') ?>">
 
+<style>
+    /* Hide QR column */
+    .qr-column,
+    .qr-column-cell {
+        display: none !important;
+    }
+</style>
+
 <!-- ============================================
      PAGE HTML
      ============================================ -->
@@ -25,7 +33,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                 <tr>
                     <th class="sno">#</th>
                     <th>Patient ID</th>
-                    <th style="width:44px;">QR</th>
+                    <th class="qr-column" style="width:44px;">QR</th>
                     <th>Name</th>
                     <th style="min-width:80px;">Gender</th>
                     <th>Phone</th>
@@ -42,49 +50,45 @@ include VIEWS_PATH . '/layout/admin_header.php';
                         <tr>
                             <td class="sno"><?= $sn++ ?></td>
                             <td class="patient-id"><?= esc($pat['patient_id']) ?></td>
-                            <td>
+                            <td class="qr-column-cell">
                                 <?php if (!empty($pat['qr_code_url'])): ?>
                                     <a href="<?= site_url($pat['qr_code_url']) ?>" target="_blank">
                                         <img src="<?= site_url($pat['qr_code_url']) ?>" class="qr-img">
                                     </a>
-                                        <?php else: ?>
+                                <?php else: ?>
                                     <i class="bi bi-qr-code" style="font-size:1.2rem;color:#94a3b8;"></i>
-                                     <?php endif; ?>
+                                <?php endif; ?>
                             </td>
                             <td class="name"><?= esc($pat['name']) ?></td>
                             <td class="gender">
-                                       <?= esc(ucfirst($pat['gender'] ?? 'N/A')) ?>
-                                   <?php if (!empty($pat['dob'])): ?>
+                                <?= esc(ucfirst($pat['gender'] ?? 'N/A')) ?>
+                                <?php if (!empty($pat['dob'])): ?>
                                     <span class="dob"><?= esc($pat['dob']) ?></span>
-                                       <?php endif; ?>
+                                <?php endif; ?>
                             </td>
                             <td class="phone"><?= esc($pat['phone']) ?></td>
                             <td class="email"><?= esc($pat['email']) ?></td>
                             <td><span class="blood"><?= esc($pat['blood_group'] ?: '—') ?></span></td>
                             <td>
-                                <span
-                                    class="badge-status <?= ($pat['status'] ?? 'inactive') === 'active' ? 'active' : 'inactive' ?>">
-                                      <?= esc($pat['status'] ?? 'inactive') ?>
+                                <span class="badge-status <?= ($pat['status'] ?? 'inactive') === 'active' ? 'active' : 'inactive' ?>">
+                                    <?= esc($pat['status'] ?? 'inactive') ?>
                                 </span>
                             </td>
                             <td>
                                 <div class="action-group">
-                                    <a href="<?= site_url('/admin/patients/history/' . $pat['patient_id']) ?>"
-                                        class="btn-action history" title="History">
+                                    <a href="<?= site_url('/admin/patients/history/' . $pat['patient_id']) ?>" class="btn-action history" title="History">
                                         <i class="bi bi-clock-history"></i>
                                     </a>
-                                    <a href="<?= site_url('/admin/patients/edit/' . $pat['id']) ?>" class="btn-action"
-                                        title="Edit">
+                                    <a href="<?= site_url('/admin/patients/edit/' . $pat['id']) ?>" class="btn-action" title="Edit">
                                         <i class="bi bi-pencil-fill"></i>
                                     </a>
-                                    <a href="<?= site_url('/admin/patients/delete/' . $pat['id']) ?>" class="btn-action delete"
-                                        onclick="return confirm('Delete this patient?')" title="Delete">
+                                    <a href="<?= site_url('/admin/patients/delete/' . $pat['id']) ?>" class="btn-action delete" onclick="return confirm('Delete this patient?')" title="Delete">
                                         <i class="bi bi-trash-fill"></i>
                                     </a>
                                 </div>
                             </td>
                         </tr>
-                        <?php endforeach;
+                    <?php endforeach;
                 else: ?>
                     <tr>
                         <td colspan="10" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
