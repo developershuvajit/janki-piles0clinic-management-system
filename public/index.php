@@ -69,14 +69,53 @@ $router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
 $router->post('/appointments/book/otp', 'AppointmentController@sendBookingOtp');
 $router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
 
+
+
+
+
+
+
+
 // Core Appointments Management Routes
+ // ============================================
+// APPOINTMENT ROUTES
+// ============================================
+
+// Admin Appointment Management
+ // ============================================
+// APPOINTMENT ROUTES
+// ============================================
+
+// IMPORTANT: Specific routes must come BEFORE wildcard/parameter routes
+
+// Public Online Booking (ORDER MATTERS!)
+$router->get('/appointments/book/success', 'AppointmentController@bookingSuccess');  // MUST come first
+$router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
+$router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
+
+// Admin Appointment Routes
 $router->get('/admin/appointments', 'AppointmentController@index');
 $router->get('/admin/appointments/pending', 'AppointmentController@pendingList');
 $router->get('/admin/appointments/approve/{id}', 'AppointmentController@approve');
 $router->get('/admin/appointments/cancel/{id}', 'AppointmentController@cancel');
-$router->get('/admin/appointments/slots', 'AppointmentController@getSlotsAjax');
+
+// Doctor Schedule Management
 $router->get('/admin/appointments/schedule', 'AppointmentController@schedule');
 $router->post('/admin/appointments/schedule/save', 'AppointmentController@saveSchedule');
+
+// Get Available Slots (AJAX - Public)
+$router->get('/admin/appointments/slots', 'AppointmentController@getSlotsAjax');
+
+
+
+
+
+
+
+
+
+
+
 
 // Patient Management (Phase 7) Routes
 $router->get('/admin/patients', 'PatientController@index');

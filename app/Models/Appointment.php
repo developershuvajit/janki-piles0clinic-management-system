@@ -195,45 +195,172 @@ class Appointment
     }
 
     /**
-     * Dynamic slots compiler calculating booked status against a date.
+     * Get available time slots for a doctor on a specific date.
+     * Uses doctor_schedules table for slot generation.
      */
-    public static function getTimeSlots(int $doctorId, string $date): array
+    public static function getAvailableSlots(int $doctorId, string $date): array
     {
-        $dayOfWeek = date('l', strtotime($date)); // e.g. Monday
+        $dayOfWeek = date('l', strtotime($date));
         
-        // Find if doctor has a schedule for this day
+        // Get doctor's schedule for this day from doctor_schedules table
         $schedule = Database::row(
-            "SELECT * FROM doctor_schedules WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active' LIMIT 1",
+            "SELECT * FROM doctor_schedules 
+             WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
             ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
         );
 
+        // If no schedule found, doctor is not available on this day
         if (!$schedule) {
-            return []; // No schedule set for this day
+            return [];
         }
 
         $startTime = strtotime($schedule['start_time']);
         $endTime = strtotime($schedule['end_time']);
-        $duration = (int)$schedule['slot_duration'] * 60; // in seconds
-
-        // Fetch existing bookings for this doctor on this day
-        $bookings = Database::all(
-            "SELECT time_slot FROM appointments WHERE doctor_id = :doctor_id AND date = :date AND status != 'cancelled'",
-            ['doctor_id' => $doctorId, 'date' => $date]
-        );
-        $bookedSlots = array_map(function($b) {
-            return date('H:i', strtotime($b['time_slot']));
-        }, $bookings);
-
+        $duration = (int)($schedule['slot_duration'] ?? 30) * 60;
+        
+        if ($endTime <= $startTime) {
+            $endTime = strtotime('+1 day', $endTime);
+        }
+        
+        // Get booked slots for this doctor on this date
+        $bookedSlots = self::getBookedSlots($doctorId, $date);
+        
+        // Generate slots
         $slots = [];
-        for ($t = $startTime; $t < $endTime; $t += $duration) {
-            $slotTime = date('H:i', $t);
+        $current = $startTime;
+        while ($current < $endTime) {
+            $slotTime = date('H:i:s', $current);
+            $slotTimeFormatted = date('h:i A', $current);
+            
+            $isBooked = in_array(date('H:i', $current), $bookedSlots);
+            
             $slots[] = [
                 'time' => $slotTime,
-                'time_formatted' => date('h:i A', $t),
-                'booked' => in_array($slotTime, $bookedSlots, true)
+                'time_formatted' => $slotTimeFormatted,
+                'booked' => $isBooked
             ];
+            
+            $current += $duration;
+        }
+        
+        return $slots;
+    }
+
+    /**
+     * Check if a time slot is available
+     */
+    public static function checkSlotAvailability(int $doctorId, string $date, string $timeSlot): bool
+    {
+        $existing = Database::row(
+            "SELECT id FROM appointments 
+             WHERE doctor_id = :doctor_id 
+             AND date = :date 
+             AND time_slot = :time_slot 
+             AND status != 'cancelled'",
+            [
+                'doctor_id' => $doctorId, 
+                'date' => $date, 
+                'time_slot' => $timeSlot
+            ]
+        );
+        
+        return $existing === null;
+    }
+
+    /**
+     * Get all booked slots for a doctor on a specific date
+     */
+    public static function getBookedSlots(int $doctorId, string $date): array
+    {
+        $bookings = Database::all(
+            "SELECT time_slot FROM appointments 
+             WHERE doctor_id = :doctor_id AND date = :date AND status != 'cancelled'",
+            ['doctor_id' => $doctorId, 'date' => $date]
+        );
+        return array_map(function($b) {
+            return date('H:i', strtotime($b['time_slot']));
+        }, $bookings);
+    }
+
+    /**
+     * Get doctor's schedule for a specific day
+     */
+    public static function getDoctorSchedule(int $doctorId, string $dayOfWeek): ?array
+    {
+        return Database::row(
+            "SELECT * FROM doctor_schedules 
+             WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
+            ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
+        );
+    }
+
+    /**
+     * Get appointment count for a doctor on a specific date
+     */
+    public static function getAppointmentCount(int $doctorId, string $date): int
+    {
+        $result = Database::row(
+            "SELECT COUNT(*) as count FROM appointments 
+             WHERE doctor_id = :doctor_id AND date = :date AND status != 'cancelled'",
+            ['doctor_id' => $doctorId, 'date' => $date]
+        );
+        return (int)($result['count'] ?? 0);
+    }
+
+    /**
+     * Get upcoming appointments for a patient
+     */
+    public static function getPatientAppointments(int $patientId): array
+    {
+        return Database::all(
+            "SELECT a.*, u.username as doctor_name, b.name as branch_name 
+             FROM appointments a
+             JOIN users u ON a.doctor_id = u.id
+             JOIN branches b ON a.branch_id = b.id
+             WHERE a.patient_id = :patient_id 
+             ORDER BY a.date DESC, a.time_slot ASC",
+            ['patient_id' => $patientId]
+        );
+    }
+
+    /**
+     * Get today's appointments for a doctor
+     */
+    public static function getTodayAppointments(int $doctorId): array
+    {
+        $today = date('Y-m-d');
+        return self::getDoctorQueue($doctorId, $today);
+    }
+
+    /**
+     * Cancel appointment and free up the slot
+     */
+    public static function cancelAppointment(int $apptId): bool
+    {
+        return self::updateStatus($apptId, 'cancelled');
+    }
+
+    /**
+     * Reschedule appointment
+     */
+    public static function rescheduleAppointment(int $apptId, string $newDate, string $newTimeSlot): bool
+    {
+        $appointment = self::find($apptId);
+        if (!$appointment) {
+            return false;
         }
 
-        return $slots;
+        if (!self::checkSlotAvailability($appointment['doctor_id'], $newDate, $newTimeSlot)) {
+            return false;
+        }
+
+        return Database::execute(
+            "UPDATE appointments SET date = :date, time_slot = :time_slot, updated_at = NOW() WHERE id = :id",
+            [
+                'id' => $apptId,
+                'date' => $newDate,
+                'time_slot' => $newTimeSlot
+            ]
+        );
     }
 }

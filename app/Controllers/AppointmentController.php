@@ -10,7 +10,6 @@ use App\Helpers\Session;
 use App\Helpers\Security;
 use App\Helpers\Permission;
 use App\Helpers\Database;
-use App\Helpers\Email;
 use App\Helpers\ActivityLogger;
 
 class AppointmentController
@@ -66,28 +65,8 @@ class AppointmentController
         }
 
         if (Appointment::updateStatus($id, 'approved')) {
-            // Trigger simulated alerts
             ActivityLogger::log('Appointment Approved', "Approved appointment token #{$appt['token_number']} for patient {$appt['patient_name']}");
-            
-            // Simulated Email Confirmation
-            if (!empty($appt['patient_email'])) {
-                $emailBody = "<h3>Appointment Confirmed</h3>"
-                           . "<p>Dear {$appt['patient_name']},</p>"
-                           . "<p>Your appointment with Dr. {$appt['doctor_name']} has been confirmed!</p>"
-                           . "<p><strong>Date:</strong> {$appt['date']}<br><strong>Time:</strong> " . date('h:i A', strtotime($appt['time_slot'])) . "<br><strong>Token:</strong> #{$appt['token_number']}</p>";
-                try {
-                    Email::send($appt['patient_email'], "Appointment Confirmed - MedClinic", $emailBody);
-                } catch (\Throwable $e) {
-                    // Ignore email failures in local verification
-                }
-            }
-
-            // Simulated WhatsApp Notification
-            $whatsappMsg = "Hi {$appt['patient_name']}, your appointment with Dr. {$appt['doctor_name']} on {$appt['date']} at " 
-                         . date('h:i A', strtotime($appt['time_slot'])) . " is CONFIRMED. Token: #{$appt['token_number']}.";
-            ActivityLogger::log('WhatsApp Simulation Dispatch', "WhatsApp sent to {$appt['patient_phone']}: '{$whatsappMsg}'");
-
-            Session::setFlash('success', 'Appointment successfully approved and notifications sent.');
+            Session::setFlash('success', 'Appointment successfully approved.');
         } else {
             Session::setFlash('error', 'Unable to approve appointment.');
         }
@@ -133,7 +112,6 @@ class AppointmentController
         
         $doctorId = $userId;
         
-        // If administrator is setting doctor schedule
         if (($role === 'super_admin' || $role === 'admin') && !empty($_GET['doctor_id'])) {
             $doctorId = (int)$_GET['doctor_id'];
         }
@@ -146,7 +124,6 @@ class AppointmentController
 
         $schedules = Database::all("SELECT * FROM doctor_schedules WHERE doctor_id = :id", ['id' => $doctorId]);
         
-        // Get list of all doctors for dropdown
         $doctors = Database::all(
             "SELECT u.id, u.username FROM users u 
              JOIN roles r ON u.role_id = r.id 
@@ -203,31 +180,84 @@ class AppointmentController
     /**
      * JSON API Endpoint: Fetch available slots of a doctor on a specific date.
      */
-    public function getSlotsAjax(): void
-    {
-        $doctorId = (int)($_GET['doctor_id'] ?? 0);
-        $date = Security::sanitize($_GET['date'] ?? '');
+     /**
+ * JSON API Endpoint: Fetch available slots of a doctor on a specific date.
+ */
+public function getSlotsAjax(): void
+{
+    header('Content-Type: application/json');
+    
+    $doctorId = (int)($_GET['doctor_id'] ?? 0);
+    $date = Security::sanitize($_GET['date'] ?? '');
 
-        if ($doctorId === 0 || empty($date)) {
-            jsonResponse(['success' => false, 'slots' => []], 400);
-        }
+    // Debug logging
+    error_log("=== getSlotsAjax called ===");
+    error_log("Doctor ID: " . $doctorId);
+    error_log("Date: " . $date);
 
-        $slots = Appointment::getTimeSlots($doctorId, $date);
-        jsonResponse(['success' => true, 'slots' => $slots]);
+    if ($doctorId === 0 || empty($date)) {
+        echo json_encode(['success' => false, 'slots' => [], 'message' => 'Doctor ID and date required']);
+        return;
     }
+
+    // Get day of week
+    $dayOfWeek = date('l', strtotime($date));
+    error_log("Day of week: " . $dayOfWeek);
+
+    // Direct database query to check schedule
+    $schedule = Database::row(
+        "SELECT * FROM doctor_schedules 
+         WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
+        ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
+    );
+    
+    error_log("Schedule found: " . ($schedule ? 'Yes' : 'No'));
+    if ($schedule) {
+        error_log("Schedule: " . print_r($schedule, true));
+    }
+
+    // If no schedule found, return empty
+    if (!$schedule) {
+        echo json_encode([
+            'success' => true, 
+            'slots' => [], 
+            'message' => 'No schedule found for this doctor on ' . $dayOfWeek
+        ]);
+        return;
+    }
+
+    // Get slots using the model
+    $slots = Appointment::getAvailableSlots($doctorId, $date);
+    
+    error_log("Slots generated: " . count($slots));
+    
+    echo json_encode([
+        'success' => true,
+        'slots' => $slots,
+        'debug' => [
+            'day' => $dayOfWeek,
+            'schedule' => $schedule,
+            'slots_count' => count($slots)
+        ]
+    ]);
+}
 
     /**
      * Guest/Patient facing online booking panel.
      */
     public function showOnlineBooking(): void
     {
-        // Fetch active doctors and branches
+        // Clear session data for fresh booking
+        Session::remove('last_booking');
+        Session::remove('last_booking_id');
+        
         $doctors = Database::all(
             "SELECT u.id, u.username, b.name as branch_name 
              FROM users u
              JOIN roles r ON u.role_id = r.id
              LEFT JOIN branches b ON u.branch_id = b.id
-             WHERE r.slug = 'doctor' AND u.status = 'active'"
+             WHERE r.slug = 'doctor' AND u.status = 'active'
+             ORDER BY u.username ASC"
         );
         $branches = Branch::all();
 
@@ -239,37 +269,7 @@ class AppointmentController
     }
 
     /**
-     * Dispatch OTP code to verify guest booking.
-     */
-    public function sendBookingOtp(): void
-    {
-        $email = Security::sanitize($_POST['email'] ?? '');
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            jsonResponse(['success' => false, 'message' => 'Please enter a valid email address.'], 400);
-        }
-
-        // Generate 6-digit verification code
-        $otp = sprintf("%06d", mt_rand(0, 999999));
-        
-        // Save in session context
-        Session::set('booking_verification_otp', $otp);
-        Session::set('booking_verification_email', $email);
-
-        // Send simulated verification email
-        $subject = "MedClinic Appointment Booking Verification";
-        $body = "<h3>Verification Code</h3><p>Your OTP verification code for booking an online appointment is: <strong>{$otp}</strong></p>";
-        try {
-            Email::send($email, $subject, $body);
-        } catch (\Throwable $e) {
-            // Log local failure
-        }
-
-        ActivityLogger::log('Booking OTP Sent', "Appointment OTP verification code sent to {$email}.");
-        jsonResponse(['success' => true, 'message' => 'Verification code sent to email.']);
-    }
-
-    /**
-     * Verify booking OTP and submit appointment reservation.
+     * Submit appointment reservation.
      */
     public function submitOnlineBooking(): void
     {
@@ -278,35 +278,53 @@ class AppointmentController
             redirect('/appointments/book');
         }
 
-        $email = Security::sanitize($_POST['email'] ?? '');
-        $otp = trim($_POST['otp_code'] ?? '');
-        
-        $sessionOtp = Session::get('booking_verification_otp');
-        $sessionEmail = Session::get('booking_verification_email');
-
-        if (empty($otp) || $otp !== $sessionOtp || $email !== $sessionEmail) {
-            Session::setFlash('error', 'Invalid verification code or email mismatch.');
-            redirect('/appointments/book');
-        }
-
-        // OTP verified, check/register patient profile
+        // Get all form data
         $name = Security::sanitize($_POST['name'] ?? '');
+        $email = Security::sanitize($_POST['email'] ?? '');
         $phone = Security::sanitize($_POST['phone'] ?? '');
         $gender = Security::sanitize($_POST['gender'] ?? 'male');
         $dob = Security::sanitize($_POST['dob'] ?? '');
         $address = Security::sanitize($_POST['address'] ?? '');
+        $doctorId = (int)($_POST['doctor_id'] ?? 0);
+        $branchId = (int)($_POST['branch_id'] ?? 0);
+        $date = Security::sanitize($_POST['date'] ?? '');
+        $timeSlot = Security::sanitize($_POST['time_slot'] ?? '');
 
-        if (empty($name) || empty($phone) || empty($dob)) {
-            Session::setFlash('error', 'Please fill in all patient profile fields.');
+        // Validate required fields
+        $errors = [];
+        if (empty($name)) $errors[] = 'Name is required';
+        if (empty($email)) $errors[] = 'Email is required';
+        if (empty($phone)) $errors[] = 'Phone is required';
+        if (empty($dob)) $errors[] = 'Date of birth is required';
+        if (empty($doctorId)) $errors[] = 'Doctor selection is required';
+        if (empty($date)) $errors[] = 'Date is required';
+        if (empty($timeSlot)) $errors[] = 'Time slot is required';
+        
+        if (!empty($errors)) {
+            Session::setFlash('error', implode(', ', $errors));
             redirect('/appointments/book');
         }
 
-        // Locate existing patient by phone
-        $patient = Database::row("SELECT id FROM patients WHERE phone = :phone", ['phone' => $phone]);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            Session::setFlash('error', 'Please enter a valid email address.');
+            redirect('/appointments/book');
+        }
+
+        // Check if slot is still available
+        if (!Appointment::checkSlotAvailability($doctorId, $date, $timeSlot)) {
+            Session::setFlash('error', 'Selected time slot is no longer available. Please choose another slot.');
+            redirect('/appointments/book');
+        }
+
+        // Find or create patient
+        $patient = Database::row(
+            "SELECT id FROM patients WHERE phone = :phone OR email = :email",
+            ['phone' => $phone, 'email' => $email]
+        );
+        
         if ($patient) {
             $patientId = (int)$patient['id'];
         } else {
-            // Register patient profile
             $patientData = [
                 'name' => $name,
                 'email' => $email,
@@ -314,23 +332,24 @@ class AppointmentController
                 'gender' => $gender,
                 'dob' => $dob,
                 'address' => $address,
-                'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null
+                'branch_id' => $branchId ?: null,
+                'status' => 'active'
             ];
             $patientId = Patient::create($patientData);
         }
 
         if (!$patientId) {
-            Session::setFlash('error', 'Database error registering patient profile.');
+            Session::setFlash('error', 'Unable to register patient profile.');
             redirect('/appointments/book');
         }
 
-        // Save Appointment Reservation (Status: pending approval)
+        // Create appointment
         $apptData = [
             'patient_id' => $patientId,
-            'doctor_id' => (int)$_POST['doctor_id'],
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1,
-            'date' => Security::sanitize($_POST['date'] ?? ''),
-            'time_slot' => Security::sanitize($_POST['time_slot'] ?? ''),
+            'doctor_id' => $doctorId,
+            'branch_id' => $branchId ?: 1,
+            'date' => $date,
+            'time_slot' => $timeSlot,
             'status' => 'pending',
             'type' => 'online',
             'queue_status' => 'waiting'
@@ -339,16 +358,35 @@ class AppointmentController
         $apptId = Appointment::create($apptData);
 
         if ($apptId) {
-            // Clear verification codes
-            Session::remove('booking_verification_otp');
-            Session::remove('booking_verification_email');
-
-            ActivityLogger::log('Online Booking Submission', "Patient {$name} submitted appointment request online (Appt ID: {$apptId}).");
-            Session::setFlash('success', 'Appointment request submitted successfully! It is pending administrator approval.');
-            redirect('/login');
+            $appointment = Appointment::find($apptId);
+            
+            Session::set('last_booking', [
+                'patient_name' => $name,
+                'doctor_name' => $appointment['doctor_name'] ?? 'Doctor',
+                'date' => $date,
+                'time_slot' => $timeSlot,
+                'token_number' => $appointment['token_number'] ?? 'Pending'
+            ]);
+            
+            ActivityLogger::log('Online Booking Submission', "Patient {$name} submitted appointment request (Appt ID: {$apptId}).");
+            Session::setFlash('success', '✅ Appointment request submitted successfully!');
+            redirect('/appointments/book/success');
         } else {
-            Session::setFlash('error', 'Doctor schedule slots unavailable for selected date.');
+            Session::setFlash('error', 'Unable to book appointment. Please try again.');
             redirect('/appointments/book');
         }
+    }
+
+    /**
+     * Booking success page
+     */
+    public function bookingSuccess(): void
+    {
+        $appointmentDetails = Session::get('last_booking') ?? [];
+        
+        view('website.booking_success', [
+            'title' => 'Booking Confirmed',
+            'appointmentDetails' => $appointmentDetails
+        ]);
     }
 }

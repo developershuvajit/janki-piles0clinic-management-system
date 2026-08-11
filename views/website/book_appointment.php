@@ -2,118 +2,139 @@
 include VIEWS_PATH . '/layout/header.php'; 
 ?>
 
-<!-- Booking Container -->
-<div class="row justify-content-center py-5">
-    <div class="col-md-8">
-        <div class="card p-4 border-0 shadow-lg">
+<style>
+    .slot-btn {
+        transition: all 0.15s;
+        min-width: 80px;
+    }
+    .slot-btn:hover:not(.booked) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .slot-btn.selected {
+        background: #0f7b4a !important;
+        color: #fff !important;
+        border-color: #0f7b4a !important;
+    }
+    .slot-btn.booked {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .btn-emerald {
+        background: #0f7b4a;
+        color: #fff;
+        border: none;
+        transition: all 0.15s;
+    }
+    .btn-emerald:hover {
+        background: #0b6e44;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(15,123,74,0.2);
+    }
+</style>
+
+<div class="row justify-content-center py-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="card border-0 shadow-lg rounded-4 p-4">
             
             <!-- Header -->
             <div class="text-center mb-4">
-                <i class="bi bi-calendar-plus text-success display-4"></i>
+                <i class="bi bi-calendar-plus text-success" style="font-size:2.5rem;"></i>
                 <h3 class="fw-bold mt-2 text-slate">Book Appointment Online</h3>
-                <p class="text-muted small">Verify your email to explore doctor availability schedules and book slots.</p>
+                <p class="text-muted small">Fill in your details and select a convenient time slot.</p>
             </div>
 
-            <!-- Alerts Container -->
+            <!-- Alerts -->
             <div id="booking-alert" class="alert d-none"></div>
+            
+            <?php if ($flashError = \App\Helpers\Session::getFlash('error')): ?>
+                <div class="alert alert-danger py-2 small"><?= esc($flashError) ?></div>
+            <?php endif; ?>
+
+            <?php if ($flashSuccess = \App\Helpers\Session::getFlash('success')): ?>
+                <div class="alert alert-success py-2 small"><?= esc($flashSuccess) ?></div>
+            <?php endif; ?>
 
             <form action="<?= site_url('/appointments/book/submit') ?>" method="POST" id="booking-form">
                 <?= csrf_field() ?>
 
-                <!-- Step 1: Email Verification -->
-                <div class="card bg-light border-0 p-3 mb-4" id="otp-section">
-                    <h6 class="fw-bold text-slate mb-2">Step 1: Contact Verification</h6>
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-8">
-                            <label for="email" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control form-control-sm" id="email" name="email" required placeholder="e.g. name@email.com">
-                        </div>
-                        <div class="col-md-4">
-                            <button type="button" class="btn btn-success btn-sm w-100 py-2 fw-semibold" id="btn-send-otp">
-                                Send OTP Code
-                            </button>
-                        </div>
+                <!-- Patient Details -->
+                <h6 class="fw-bold text-slate mb-3"><i class="bi bi-person-badge text-success me-1"></i>Patient Details</h6>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" name="name" required placeholder="Enter full name">
                     </div>
-
-                    <!-- OTP Code Input (hidden by default) -->
-                    <div class="mt-3 d-none" id="otp-input-wrapper">
-                        <label for="otp_code" class="form-label small fw-semibold text-success">Enter 6-Digit OTP Sent to Email <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm text-center fw-bold fs-5" id="otp_code" name="otp_code" maxlength="6" placeholder="000000" style="letter-spacing: 5px;">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control form-control-sm" name="email" required placeholder="name@email.com">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Phone Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" name="phone" required placeholder="+91 98765 43210">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Gender <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" name="gender" required>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Date of Birth <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control form-control-sm" name="dob" required max="<?= date('Y-m-d') ?>">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Address <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" name="address" required placeholder="Street, City, Pincode">
                     </div>
                 </div>
 
-                <!-- Step 2: Patient Demographics & Slot (hidden by default until OTP is sent) -->
-                <div id="booking-details-wrapper" class="d-none">
-                    <h6 class="fw-bold text-slate mb-3"><i class="bi bi-person-badge text-success me-1"></i>Step 2: Patient Registration Info</h6>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label for="name" class="form-label small fw-semibold">Full Patient Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="name" name="name" required placeholder="Enter full name">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="phone" class="form-label small fw-semibold">Contact Phone Number <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="phone" name="phone" required placeholder="e.g. +91 98765 43210">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="gender" class="form-label small fw-semibold">Gender <span class="text-danger">*</span></label>
-                            <select class="form-control form-control-sm form-select" id="gender" name="gender" required>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="dob" class="form-label small fw-semibold">Date of Birth <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control form-control-sm" id="dob" name="dob" required max="<?= date('Y-m-d') ?>">
-                        </div>
-                        <div class="col-md-12">
-                            <label for="address" class="form-label small fw-semibold">Full Address <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="address" name="address" required placeholder="Street name, City, Pincode">
-                        </div>
+                <!-- Schedule -->
+                <h6 class="fw-bold text-slate mb-3"><i class="bi bi-calendar-check text-success me-1"></i>Select Schedule</h6>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Clinic Branch <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" id="branch_id" name="branch_id" required>
+                            <option value="">Choose Branch</option>
+                            <?php foreach ($branches as $br): ?>
+                                <option value="<?= $br['id'] ?>"><?= esc($br['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-
-                    <h6 class="fw-bold text-slate mb-3"><i class="bi bi-calendar-check text-success me-1"></i>Step 3: Select Schedule & Slots</h6>
-                    
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label for="branch_id" class="form-label small fw-semibold">Select Clinic Branch</label>
-                            <select class="form-control form-control-sm form-select" id="branch_id" name="branch_id">
-                                <?php foreach ($branches as $br): ?>
-                                    <option value="<?= $br['id'] ?>"><?= esc($br['name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="doctor_id" class="form-label small fw-semibold">Select Doctor <span class="text-danger">*</span></label>
-                            <select class="form-control form-control-sm form-select" id="doctor_id" name="doctor_id" required>
-                                <option value="" disabled selected>Choose Doctor</option>
-                                <?php foreach ($doctors as $doc): ?>
-                                    <option value="<?= $doc['id'] ?>">Dr. <?= esc($doc['username']) ?> (<?= esc($doc['branch_name'] ?? 'General') ?>)</option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-12">
-                            <label for="date" class="form-label small fw-semibold">Select Visit Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control form-control-sm" id="date" name="date" required min="<?= date('Y-m-d') ?>">
-                        </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Select Doctor <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" id="doctor_id" name="doctor_id" required>
+                            <option value="">Choose Doctor</option>
+                            <?php foreach ($doctors as $doc): ?>
+                                <option value="<?= $doc['id'] ?>">Dr. <?= esc($doc['username']) ?> (<?= esc($doc['branch_name'] ?? 'General') ?>)</option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-
-                    <!-- Available Slots Dynamic Rendering Area -->
-                    <div class="mb-4">
-                        <label class="form-label small fw-semibold d-block">Available Time Slots</label>
-                        <div class="alert alert-light border small text-muted text-center py-3" id="slots-placeholder">
-                            Please select a doctor and date to view available time slots.
-                        </div>
-                        <div class="row g-2" id="slots-container">
-                            <!-- JS will inject slots radio cards here -->
-                        </div>
+                    <div class="col-md-12">
+                        <label class="form-label small fw-semibold">Visit Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control form-control-sm" id="date" name="date" required min="<?= date('Y-m-d') ?>">
                     </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-2.5 fw-semibold shadow-sm">
-                        <i class="bi bi-calendar-check-fill me-1"></i> Confirm Appointment Booking
-                    </button>
                 </div>
+
+                <!-- Time Slots -->
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold d-block">Available Time Slots <span class="text-danger">*</span></label>
+                    <div class="alert alert-light border small text-muted text-center py-3" id="slots-placeholder">
+                        Please select a doctor and date to view available time slots.
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" id="slots-container">
+                        <!-- JS will inject slots here -->
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-emerald w-100 py-2 fw-semibold shadow-sm" id="submit-btn">
+                    <i class="bi bi-calendar-check-fill me-1"></i> Confirm Appointment
+                </button>
             </form>
             
             <div class="text-center mt-3 pt-3 border-top">
@@ -125,113 +146,106 @@ include VIEWS_PATH . '/layout/header.php';
     </div>
 </div>
 
-<!-- JavaScript Ajax Handlers -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const btnSendOtp = document.getElementById('btn-send-otp');
-    const otpInputWrapper = document.getElementById('otp-input-wrapper');
-    const bookingDetailsWrapper = document.getElementById('booking-details-wrapper');
-    const emailInput = document.getElementById('email');
-    const alertDiv = document.getElementById('booking-alert');
-    
     const doctorSelect = document.getElementById('doctor_id');
     const dateInput = document.getElementById('date');
     const slotsContainer = document.getElementById('slots-container');
     const slotsPlaceholder = document.getElementById('slots-placeholder');
+    const alertDiv = document.getElementById('booking-alert');
 
     function showAlert(msg, isSuccess = false) {
         alertDiv.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'} py-2 small`;
-        alertDiv.innerText = msg;
+        alertDiv.textContent = msg;
+        alertDiv.classList.remove('d-none');
     }
 
-    // 1. Send OTP Code AJAX
-    btnSendOtp.addEventListener('click', function() {
-        const email = emailInput.value.trim();
-        if (!email || !email.includes('@')) {
-            showAlert('Please enter a valid email address.');
-            return;
-        }
+    function hideAlert() {
+        alertDiv.classList.add('d-none');
+    }
 
-        btnSendOtp.disabled = true;
-        btnSendOtp.innerText = 'Sending...';
-
-        const formData = new FormData();
-        formData.append('email', email);
-
-        fetch('<?= site_url("/appointments/book/otp") ?>', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert(data.message, true);
-                otpInputWrapper.classList.remove('d-none');
-                bookingDetailsWrapper.classList.remove('d-none');
-                btnSendOtp.innerText = 'Resend Code';
-                btnSendOtp.disabled = false;
-            } else {
-                showAlert(data.message || 'OTP dispatch failed.');
-                btnSendOtp.disabled = false;
-                btnSendOtp.innerText = 'Send OTP Code';
-            }
-        })
-        .catch(err => {
-            showAlert('Failed connecting to OTP services.');
-            btnSendOtp.disabled = false;
-            btnSendOtp.innerText = 'Send OTP Code';
-        });
-    });
-
-    // 2. Fetch Time Slots AJAX
     function fetchAvailableSlots() {
         const doctorId = doctorSelect.value;
         const date = dateInput.value;
 
         if (!doctorId || !date) {
+            slotsPlaceholder.textContent = 'Please select a doctor and date to view available time slots.';
+            slotsPlaceholder.classList.remove('d-none');
+            slotsContainer.innerHTML = '';
             return;
         }
 
-        slotsPlaceholder.innerText = 'Checking availability slots...';
+        slotsPlaceholder.textContent = 'Checking availability...';
         slotsPlaceholder.classList.remove('d-none');
         slotsContainer.innerHTML = '';
 
-        fetch(`<?= site_url("/admin/appointments/slots") ?>?doctor_id=${doctorId}&date=${date}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.success && data.slots.length > 0) {
-                slotsPlaceholder.classList.add('d-none');
-                data.slots.forEach(slot => {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-3 col-sm-4 col-6';
+        const url = '<?= site_url("/admin/appointments/slots") ?>?doctor_id=' + encodeURIComponent(doctorId) + '&date=' + encodeURIComponent(date);
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.slots && data.slots.length > 0) {
+                    slotsPlaceholder.classList.add('d-none');
                     
-                    const disabledAttr = slot.booked ? 'disabled' : '';
-                    const labelClass = slot.booked ? 'btn-outline-secondary opacity-50' : 'btn-outline-primary';
-                    const activeText = slot.booked ? 'Booked' : slot.time_formatted;
-
-                    col.innerHTML = `
-                        <input type="radio" class="btn-check" name="time_slot" id="slot-${slot.time}" value="${slot.time}" required ${disabledAttr}>
-                        <label class="btn btn-sm ${labelClass} w-100 py-2.5 fw-semibold" for="slot-${slot.time}">
-                            <i class="bi bi-clock me-1"></i> ${activeText}
-                        </label>
-                    `;
-                    slotsContainer.appendChild(col);
-                });
-            } else {
-                slotsPlaceholder.innerText = 'No consultation shift slots configured for selected doctor on this day.';
+                    data.slots.forEach(slot => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = `btn btn-sm btn-outline-primary slot-btn ${slot.booked ? 'booked' : ''}`;
+                        btn.style.minWidth = '80px';
+                        btn.innerHTML = `<i class="bi bi-clock me-1"></i> ${slot.time_formatted}`;
+                        btn.dataset.value = slot.time;
+                        
+                        if (!slot.booked) {
+                            btn.onclick = function() {
+                                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                                this.classList.add('selected');
+                                // Set hidden input
+                                let hiddenInput = document.getElementById('selected-slot');
+                                if (!hiddenInput) {
+                                    hiddenInput = document.createElement('input');
+                                    hiddenInput.type = 'hidden';
+                                    hiddenInput.name = 'time_slot';
+                                    hiddenInput.id = 'selected-slot';
+                                    document.getElementById('booking-form').appendChild(hiddenInput);
+                                }
+                                hiddenInput.value = slot.time;
+                                hideAlert();
+                            };
+                        } else {
+                            btn.title = 'Slot already booked';
+                        }
+                        
+                        slotsContainer.appendChild(btn);
+                    });
+                } else {
+                    slotsPlaceholder.textContent = data.message || 'No available slots for this date.';
+                    slotsPlaceholder.classList.remove('d-none');
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                slotsPlaceholder.textContent = '❌ Unable to check availability. Please try again.';
                 slotsPlaceholder.classList.remove('d-none');
-            }
-        })
-        .catch(err => {
-            slotsPlaceholder.innerText = 'Unable to check availability slots.';
-        });
+            });
     }
+
+    // Form validation
+    document.getElementById('booking-form').addEventListener('submit', function(e) {
+        const selectedSlot = document.querySelector('.slot-btn.selected');
+        if (!selectedSlot) {
+            e.preventDefault();
+            showAlert('Please select a time slot.', false);
+            return false;
+        }
+        hideAlert();
+    });
 
     doctorSelect.addEventListener('change', fetchAvailableSlots);
     dateInput.addEventListener('change', fetchAvailableSlots);
+
+    if (doctorSelect.value && dateInput.value) {
+        fetchAvailableSlots();
+    }
 });
 </script>
 
