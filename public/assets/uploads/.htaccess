@@ -1,0 +1,6 @@
+# Disable script execution for security
+<FilesMatch "\.(php|php3|php4|php5|phtml|phps|phar|pl|py|jsp|asp|aspx|sh|cgi|svg)$">
+    ForceType text/plain
+    Deny from all
+</FilesMatch>
+Options -ExecCGI
