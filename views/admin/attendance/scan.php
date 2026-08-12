@@ -309,7 +309,7 @@ function fetchEmployee(employeeId) {
     setStatus('info', `<i class="bi bi-person-check me-2"></i> Detected: <strong>${employee.username}</strong> - Processing...`);
     fetch('<?= site_url('/admin/attendance/mark') ?>', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '<?= esc(csrf_token()) ?>' },
         body: JSON.stringify({ employee_id: employee.id })
     })
     .then(res => res.json())

@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Helpers\Session;
 use App\Helpers\Permission;
 use App\Helpers\Database;
+use App\Helpers\Security;
 
 class AttendanceController
 {
@@ -39,8 +40,13 @@ class AttendanceController
     public function saveAttendance()
     {
         Permission::check('record_attendance');
-        
-        $date = $_POST['date'];
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/employees/attendance');
+        }
+
+        $date = $_POST['date'] ?? date('Y-m-d');
         $attendanceData = $_POST['attendance'] ?? [];
 
         foreach ($attendanceData as $empId => $att) {
@@ -101,13 +107,18 @@ class AttendanceController
     public function applyLeave()
     {
         Permission::check('record_attendance');
-        
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/employees/attendance/leaves');
+        }
+
         $data = [
             'employee_id' => (int)Session::get('user_id'),
-            'leave_type' => $_POST['leave_type'],
-            'start_date' => $_POST['start_date'],
-            'end_date' => $_POST['end_date'],
-            'reason' => trim($_POST['reason'])
+            'leave_type' => Security::sanitize($_POST['leave_type'] ?? ''),
+            'start_date' => Security::sanitize($_POST['start_date'] ?? ''),
+            'end_date' => Security::sanitize($_POST['end_date'] ?? ''),
+            'reason' => Security::sanitize(trim($_POST['reason'] ?? ''))
         ];
 
         $success = Attendance::applyLeave($data);
@@ -171,6 +182,8 @@ class AttendanceController
  */
 public function fetchEmployee()
 {
+    Permission::check('record_attendance');
+
     $id = (int)($_GET['id'] ?? 0);
     if (!$id) {
         echo json_encode(['success' => false, 'message' => 'Invalid employee ID']);
@@ -219,7 +232,17 @@ public function fetchEmployee()
  */
 public function markAttendance()
 {
+    Permission::check('record_attendance');
+
     $input = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        $input = [];
+    }
+
+    if (!Security::verifyRequestToken($input)) {
+        jsonResponse(['success' => false, 'message' => 'Security validation failed.'], 403);
+    }
+
     $employeeId = (int)($input['employee_id'] ?? 0);
     
     if (!$employeeId) {
@@ -344,6 +367,8 @@ public function markAttendance()
  */
 public function todayAttendance()
 {
+    Permission::check('record_attendance');
+
     $date = date('Y-m-d');
     
     $sql = "SELECT 
@@ -422,6 +447,8 @@ public function todayAttendance()
      */
     public function generateQR()
     {
+        Permission::check('manage_employees');
+
         $data = $_GET['data'] ?? '';
         if (empty($data)) {
             header('Content-Type: image/png');

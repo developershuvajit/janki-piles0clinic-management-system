@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Salary;
 use App\Helpers\Session;
 use App\Helpers\Permission;
+use App\Helpers\Security;
 
 class SalaryController
 {
@@ -39,8 +40,13 @@ class SalaryController
     public function settleSalary()
     {
         Permission::check('manage_employees');
-        
-        $id = (int)$_POST['salary_id'];
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/salary');
+        }
+
+        $id = (int)($_POST['salary_id'] ?? 0);
         $adjustments = [
             'advance' => (float)($_POST['advance'] ?? 0.00),
             'bonus' => (float)($_POST['bonus'] ?? 0.00),

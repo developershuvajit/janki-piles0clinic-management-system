@@ -159,42 +159,4 @@ include VIEWS_PATH . '/layout/admin_header.php';
     </div>
 </div>
 
-<!-- ===== UTILITIES ===== -->
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class="card-clean">
-            <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6b7a8f;margin-bottom:.5rem">
-                <i class="bi bi-cloud-arrow-up-fill text-success me-1"></i> Secure Upload Test
-            </div>
-            <p style="font-size:.78rem;color:#6b7a8f;margin-bottom:.8rem">MIME validation, whitelist, 2MB limit, double-extension blocking.</p>
-            <form action="<?= site_url('/admin/upload-test') ?>" method="POST" enctype="multipart/form-data" class="upload-area">
-                <?= csrf_field() ?>
-                <div class="mb-2">
-                    <label style="font-size:.8rem;font-weight:500">Choose File (PDF, Word, Images)</label>
-                    <input class="form-control form-control-sm" type="file" name="test_file" required style="border-radius:40px;border:1px solid #e2e8f0;font-size:.8rem;padding:.3rem .8rem">
-                </div>
-                <button type="submit" class="btn btn-sm btn-primary" style="border-radius:40px;background:#1a6bc4;border:none;padding:.25rem 1.5rem;font-size:.8rem"><i class="bi bi-upload me-1"></i> Test</button>
-            </form>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card-clean">
-            <div style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6b7a8f;margin-bottom:.5rem">
-                <i class="bi bi-patch-check-fill text-success me-1"></i> Library Integrations
-            </div>
-            <p style="font-size:.78rem;color:#6b7a8f;margin-bottom:.8rem">FPDF PDF engine & PHPQRCode library with live output.</p>
-            <div class="d-flex gap-2 flex-wrap mb-2">
-                <a href="<?= site_url('/admin/pdf-test') ?>" class="btn-soft" target="_blank" style="border-color:#f1d7d7;color:#b33c3c"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
-                <a href="<?= site_url('/admin/qr-test') ?>" class="btn-soft" style="border-color:#d1e8df;color:#0f7b4a"><i class="bi bi-qr-code"></i> QR</a>
-                <a href="<?= site_url('/admin/reports') ?>" class="btn-soft" style="border-color:#d0e2ff;color:#1a6bc4"><i class="bi bi-bar-chart-line"></i> Analytics</a>
-            </div>
-            <div style="padding:.5rem 1rem;border-radius:12px;background:#f6faff;font-size:.72rem;border:1px solid #eaf0f8">
-                <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>PHP <?= phpversion() ?></span>
-                &bull; <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Env: <?= esc(ucfirst($_ENV['APP_ENV'] ?? 'development')) ?></span>
-                &bull; <span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Session Active</span>
-            </div>
-        </div>
-    </div>
-</div>
-
 <?php include VIEWS_PATH . '/layout/admin_footer.php'; ?>

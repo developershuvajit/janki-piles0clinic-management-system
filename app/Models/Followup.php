@@ -101,7 +101,8 @@ class Followup
         $due = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE next_visit_date = :today AND status != 'completed'" . $branchClause, $params)['c'] ?? 0;
         $upcoming = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE next_visit_date > :today AND status != 'completed'" . $branchClause, $params)['c'] ?? 0;
         $missed = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE next_visit_date < :today AND status != 'completed'" . $branchClause, $params)['c'] ?? 0;
-        $completed = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE status = 'completed'" . ($branchId ? " AND (branch_id = {$branchId} OR branch_id IS NULL)" : ""), [])['c'] ?? 0;
+        $completedParams = $branchId !== null ? ['branch_id' => $branchId] : [];
+        $completed = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE status = 'completed'" . $branchClause, $completedParams)['c'] ?? 0;
 
         return [
             'due' => (int)$due,

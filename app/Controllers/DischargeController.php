@@ -7,6 +7,8 @@ use App\Models\Ipd;
 use App\Helpers\Session;
 use App\Helpers\Permission;
 use App\Helpers\PDFHelper;
+use App\Helpers\Security;
+use App\Helpers\Upload;
 
 class DischargeController
 {
@@ -41,30 +43,47 @@ class DischargeController
     public function saveSummary()
     {
         Permission::check('manage_ipd');
-        
-        $admId = (int)$_POST['ipd_admission_id'];
-        
+
+        $admId = (int)($_POST['ipd_admission_id'] ?? 0);
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/ipd/discharge-summary/' . $admId);
+        }
+
         // Handle files uploads for doctor signature & hospital seal
+        $uploader = new Upload([
+            'allowedExtensions' => ['jpg', 'jpeg', 'png'],
+            'allowedMimeTypes' => ['image/jpeg', 'image/png']
+        ]);
         $sigPath = null;
         $sealPath = null;
 
         if (isset($_FILES['doctor_signature']) && $_FILES['doctor_signature']['error'] === UPLOAD_ERR_OK) {
-            $sigPath = '/uploads/' . time() . '_sig_' . basename($_FILES['doctor_signature']['name']);
-            move_uploaded_file($_FILES['doctor_signature']['tmp_name'], PUBLIC_PATH . $sigPath);
+            $result = $uploader->file($_FILES['doctor_signature'], 'discharge_signatures');
+            if (!$result['success']) {
+                Session::setFlash('error', 'Signature upload failed: ' . $result['error']);
+                redirect('/admin/ipd/discharge-summary/' . $admId);
+            }
+            $sigPath = $result['path'];
         }
 
         if (isset($_FILES['hospital_seal']) && $_FILES['hospital_seal']['error'] === UPLOAD_ERR_OK) {
-            $sealPath = '/uploads/' . time() . '_seal_' . basename($_FILES['hospital_seal']['name']);
-            move_uploaded_file($_FILES['hospital_seal']['tmp_name'], PUBLIC_PATH . $sealPath);
+            $result = $uploader->file($_FILES['hospital_seal'], 'discharge_seals');
+            if (!$result['success']) {
+                Session::setFlash('error', 'Seal upload failed: ' . $result['error']);
+                redirect('/admin/ipd/discharge-summary/' . $admId);
+            }
+            $sealPath = $result['path'];
         }
 
         $data = [
             'ipd_admission_id' => $admId,
-            'diagnosis' => trim($_POST['diagnosis']),
-            'treatment_summary' => trim($_POST['treatment_summary']),
-            'advice' => trim($_POST['advice']),
-            'diet' => trim($_POST['diet']),
-            'follow_up_instructions' => trim($_POST['follow_up_instructions']),
+            'diagnosis' => Security::sanitize(trim($_POST['diagnosis'] ?? '')),
+            'treatment_summary' => Security::sanitize(trim($_POST['treatment_summary'] ?? '')),
+            'advice' => Security::sanitize(trim($_POST['advice'] ?? '')),
+            'diet' => Security::sanitize(trim($_POST['diet'] ?? '')),
+            'follow_up_instructions' => Security::sanitize(trim($_POST['follow_up_instructions'] ?? '')),
             'doctor_signature' => $sigPath,
             'hospital_seal' => $sealPath
         ];

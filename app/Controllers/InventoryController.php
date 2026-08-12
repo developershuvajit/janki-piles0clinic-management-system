@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Inventory;
 use App\Helpers\Session;
 use App\Helpers\Permission;
+use App\Helpers\Security;
 
 class InventoryController
 {
@@ -60,15 +61,20 @@ class InventoryController
     public function savePurchase()
     {
         Permission::check('manage_reception_dashboard');
-        
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/inventory/purchase');
+        }
+
         $data = [
-            'medicine_id' => (int)$_POST['medicine_id'],
-            'batch_number' => trim($_POST['batch_number']),
-            'expiry_date' => $_POST['expiry_date'],
-            'quantity' => (int)$_POST['quantity'],
+            'medicine_id' => (int)($_POST['medicine_id'] ?? 0),
+            'batch_number' => Security::sanitize(trim($_POST['batch_number'] ?? '')),
+            'expiry_date' => Security::sanitize($_POST['expiry_date'] ?? ''),
+            'quantity' => (int)($_POST['quantity'] ?? 0),
             'supplier_id' => !empty($_POST['supplier_id']) ? (int)$_POST['supplier_id'] : null,
-            'purchase_price' => (float)$_POST['purchase_price'],
-            'selling_price' => (float)$_POST['selling_price'],
+            'purchase_price' => (float)($_POST['purchase_price'] ?? 0),
+            'selling_price' => (float)($_POST['selling_price'] ?? 0),
             'created_by' => (int)Session::get('user_id')
         ];
 
@@ -88,12 +94,17 @@ class InventoryController
     public function saveSupplier()
     {
         Permission::check('manage_reception_dashboard');
-        
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/inventory');
+        }
+
         $data = [
-            'name' => trim($_POST['name']),
-            'phone' => trim($_POST['phone']),
-            'email' => trim($_POST['email']),
-            'address' => trim($_POST['address'])
+            'name' => Security::sanitize(trim($_POST['name'] ?? '')),
+            'phone' => Security::sanitize(trim($_POST['phone'] ?? '')),
+            'email' => Security::sanitize(trim($_POST['email'] ?? '')),
+            'address' => Security::sanitize(trim($_POST['address'] ?? ''))
         ];
 
         if (empty($data['name']) || empty($data['phone'])) {

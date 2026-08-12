@@ -228,6 +228,7 @@
                     <p class="text-muted small mb-4">Our medical coordinator will call or WhatsApp you within 15 minutes.</p>
                     
                     <form action="<?= site_url('/contact/enquiry/save') ?>" method="POST">
+                        <?= csrf_field() ?>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-semibold text-slate">Full Name *</label>

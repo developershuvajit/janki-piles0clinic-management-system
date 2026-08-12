@@ -48,7 +48,13 @@ class ReceptionController
         }
         $apptsCount = Database::row($apptSql, $aParams)['count'] ?? 0;
 
-        $opdCount = Database::row("SELECT COUNT(*) as count FROM appointments WHERE date = :date AND type = 'walk-in'" . ($branchId ? " AND branch_id = {$branchId}" : ""), ['date' => $date])['count'] ?? 0;
+        $opdSql = "SELECT COUNT(*) as count FROM appointments WHERE date = :date AND type = 'walk-in'";
+        $opdParams = ['date' => $date];
+        if ($branchId) {
+            $opdSql .= " AND branch_id = :branch_id";
+            $opdParams['branch_id'] = $branchId;
+        }
+        $opdCount = Database::row($opdSql, $opdParams)['count'] ?? 0;
         
         $ipdCount = count(Ipd::getActiveAdmissions($branchId));
 
@@ -63,7 +69,13 @@ class ReceptionController
         $revRow = Database::row($revSql, $rParams);
         $revenue = (float)($revRow['total'] ?? 0.00);
 
-        $pendingBillsCount = Database::row("SELECT COUNT(*) as count FROM billing WHERE payment_status IN ('unpaid', 'partial')" . ($branchId ? " AND branch_id = {$branchId}" : ""))['count'] ?? 0;
+        $billSql = "SELECT COUNT(*) as count FROM billing WHERE payment_status IN ('unpaid', 'partial')";
+        $billParams = [];
+        if ($branchId) {
+            $billSql .= " AND branch_id = :branch_id";
+            $billParams['branch_id'] = $branchId;
+        }
+        $pendingBillsCount = Database::row($billSql, $billParams)['count'] ?? 0;
 
         // Fetch active queue
         $qSql = "SELECT a.*, p.name as patient_name, u.username as doctor_name 
@@ -293,11 +305,13 @@ class ReceptionController
                    JOIN roles r ON u.role_id = r.id
                    LEFT JOIN branches b ON u.branch_id = b.id
                    WHERE r.slug = 'doctor' AND u.status = 'active'";
+        $docParams = [];
         if ($branchId) {
-            $docSql .= " AND u.branch_id = {$branchId}";
+            $docSql .= " AND u.branch_id = :branch_id";
+            $docParams['branch_id'] = $branchId;
         }
 
-        $doctors = Database::all($docSql);
+        $doctors = Database::all($docSql, $docParams);
         $branches = Branch::all();
         $patients = Patient::all($branchId);
 

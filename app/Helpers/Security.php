@@ -30,6 +30,25 @@ class Security
     }
 
     /**
+     * Verify the CSRF token of the current request, accepting it from a POST
+     * field, the X-CSRF-Token header, or a JSON request body.
+     */
+    public static function verifyRequestToken(?array $jsonBody = null): bool
+    {
+        $token = $_POST['csrf_token'] ?? null;
+
+        if ($token === null && !empty($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            $token = $_SERVER['HTTP_X_CSRF_TOKEN'];
+        }
+
+        if ($token === null && $jsonBody !== null && isset($jsonBody['csrf_token'])) {
+            $token = $jsonBody['csrf_token'];
+        }
+
+        return self::verifyCsrfToken(is_string($token) ? $token : null);
+    }
+
+    /**
      * Recursively sanitizes user input (removes tags, trims whitespace).
      */
     public static function sanitize(mixed $data): mixed

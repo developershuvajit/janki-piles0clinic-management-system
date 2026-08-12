@@ -296,11 +296,6 @@ $router->post('/admin/cms/treatments/save', 'TreatmentController@save');
 $router->get('/admin/cms/enquiries', 'EnquiryController@index');
 $router->post('/admin/cms/enquiries/update', 'EnquiryController@update');
 
-// System Test / Demo Verification Routes
-$router->get('/admin/pdf-test', 'AdminController@pdfTest');
-$router->get('/admin/qr-test', 'AdminController@qrTest');
-$router->post('/admin/upload-test', 'AdminController@uploadTest');
-
 // Resolve the relative URI matching to handle subfolders dynamically (like /clinic/public/)
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';

@@ -1,0 +1,17 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime state
+logs/*.log
+logs/rate_limits/
+storage/backups/
+
+# Uploaded user content
+public/assets/uploads/**/*
+!public/assets/uploads/.htaccess
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
