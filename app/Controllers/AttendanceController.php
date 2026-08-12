@@ -198,7 +198,7 @@ class AttendanceController
                 <!-- Card Footer with QR Code -->
                 <div class="id-card-footer">
                     <div class="id-card-qr">
-                        <img src="' . $qrCodeUrl . '" alt="QR Code" width="120" height="120">
+                        <img src="' . $qrCodeUrl . '" alt="QR Code" width="180" height="180">
                     </div>
                     <div class="id-card-branch">
                         <i class="bi bi-building"></i> ' . htmlspecialchars($branchName) . '

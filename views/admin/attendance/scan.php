@@ -62,14 +62,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         0%, 100% { transform: translateY(-60px); }
         50% { transform: translateY(60px); }
     }
-    .employee-detected {
-        background: #fff;
-        border-radius: 12px;
-        padding: 1rem;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-        border: 1px solid #e2e8f0;
-        margin-top: 1rem;
-    }
     .btn-camera-toggle {
         border-radius: 40px;
         padding: 0.4rem 1.2rem;
@@ -81,14 +73,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
     }
     .btn-camera-toggle:hover {
         background: #f1f5f9;
-    }
-    .btn-camera-toggle.active {
-        background: #2563eb;
-        color: #fff;
-        border-color: #2563eb;
-    }
-    .btn-camera-toggle.active:hover {
-        background: #1d4ed8;
     }
     .attendance-status {
         padding: 0.5rem 1rem;
@@ -107,6 +91,10 @@ include VIEWS_PATH . '/layout/admin_header.php';
     .attendance-status.pending {
         background: #fef7e8;
         color: #c5711e;
+    }
+    .attendance-status.info {
+        background: #e8f0fe;
+        color: #1a56db;
     }
     .badge-soft {
         background: #f1f4f8;
@@ -140,6 +128,37 @@ include VIEWS_PATH . '/layout/admin_header.php';
         padding: .4rem .8rem;
         border-bottom: 1px solid #f1f5f9;
     }
+    .scan-flash {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(15, 123, 74, 0.95);
+        color: #fff;
+        padding: 2rem 3rem;
+        border-radius: 16px;
+        font-size: 1.5rem;
+        font-weight: 600;
+        z-index: 9999;
+        pointer-events: none;
+        animation: flashPop 1s ease-out forwards;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        text-align: center;
+    }
+    .scan-flash.error {
+        background: rgba(179, 60, 60, 0.95);
+    }
+    .scan-flash .icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    @keyframes flashPop {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+        20% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+        80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+    }
     @media (max-width: 768px) {
         .camera-wrapper {
             min-height: 300px;
@@ -151,13 +170,13 @@ include VIEWS_PATH . '/layout/admin_header.php';
             width: 150px;
             height: 150px;
         }
-        .employee-detected .d-flex {
-            flex-direction: column;
-            text-align: center;
+        .scan-flash {
+            font-size: 1rem;
+            padding: 1.5rem 2rem;
+            width: 90%;
         }
-        .employee-detected .ms-auto {
-            margin-left: 0 !important;
-            margin-top: 0.5rem;
+        .scan-flash .icon {
+            font-size: 2rem;
         }
     }
 </style>
@@ -166,9 +185,9 @@ include VIEWS_PATH . '/layout/admin_header.php';
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
             <h5 class="fw-bold text-slate mb-0" style="font-size:1rem;">
-                <i class="bi bi-qr-code-scan text-primary"></i> QR Code Attendance Scanner
+                <i class="bi bi-qr-code-scan text-primary"></i> QR Attendance Scanner
             </h5>
-            <span style="font-size:0.72rem;color:#94a3b8;">Scan employee ID card QR code to mark attendance</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">Auto-scan & mark attendance instantly</span>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <button onclick="switchCamera()" class="btn-camera-toggle" id="cameraToggle">
@@ -193,23 +212,30 @@ include VIEWS_PATH . '/layout/admin_header.php';
     </div>
 
     <!-- Status -->
-    <div id="attendanceStatus" class="mt-3"></div>
+    <div id="attendanceStatus" class="mt-3">
+        <div class="attendance-status info">
+            <i class="bi bi-camera me-2"></i> Scanning... Place QR code in the frame.
+        </div>
+    </div>
 
-    <!-- Detected Employee -->
-    <div id="detectedEmployee" class="employee-detected" style="display:none;">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-            <div id="empPhoto" style="width:60px;height:60px;border-radius:50%;background:#f1f4f8;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
-                <i class="bi bi-person fs-2 text-muted"></i>
+    <!-- Quick Stats -->
+    <div class="row g-3 mt-2">
+        <div class="col-4">
+            <div class="card-clean text-center">
+                <div style="font-size:1.5rem;font-weight:700;color:#0f7b4a;" id="todayPresent">0</div>
+                <div style="font-size:0.65rem;color:#94a3b8;">Present</div>
             </div>
-            <div style="flex:1;min-width:150px;">
-                <div id="empName" style="font-weight:600;font-size:1rem;color:#0b1a2b;">Employee Name</div>
-                <div id="empId" style="font-size:0.78rem;color:#94a3b8;">EMP-000</div>
-                <div id="empRole" style="font-size:0.78rem;color:#6b7a8f;">Role</div>
+        </div>
+        <div class="col-4">
+            <div class="card-clean text-center">
+                <div style="font-size:1.5rem;font-weight:700;color:#c5711e;" id="todayAbsent">0</div>
+                <div style="font-size:0.65rem;color:#94a3b8;">Absent</div>
             </div>
-            <div id="attendanceAction" class="ms-auto">
-                <button onclick="markAttendance()" class="btn btn-primary btn-sm rounded-pill px-4" style="background:#2563eb;border:none;">
-                    <i class="bi bi-check-circle me-1"></i> Mark Present
-                </button>
+        </div>
+        <div class="col-4">
+            <div class="card-clean text-center">
+                <div style="font-size:1.5rem;font-weight:700;color:#2563eb;" id="todayTotal">0</div>
+                <div style="font-size:0.65rem;color:#94a3b8;">Total Staff</div>
             </div>
         </div>
     </div>
@@ -218,9 +244,9 @@ include VIEWS_PATH . '/layout/admin_header.php';
     <div class="card-clean mt-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <span style="font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6b7a8f;">
-                <i class="bi bi-clock-history me-1"></i> Today's Attendance Log
+                <i class="bi bi-clock-history me-1"></i> Today's Log
             </span>
-            <span style="font-size:0.7rem;color:#94a3b8;"><?= date('d M, Y') ?></span>
+            <span style="font-size:0.7rem;color:#94a3b8;" id="todayDate"><?= date('d M, Y') ?></span>
         </div>
         <div class="table-responsive">
             <table class="table table-clean">
@@ -233,12 +259,17 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     </tr>
                 </thead>
                 <tbody id="attendanceLog">
-                    <tr><td colspan="4" class="text-center text-muted" style="padding:2rem;">No attendance records for today.</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted" style="padding:2rem;">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<!-- Audio Element - Correct path as per your folder structure -->
+<audio id="successSound" preload="auto">
+    <source src="/public/assets/sounds/success.mp3" type="audio/mpeg">
+</audio>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
@@ -247,9 +278,29 @@ let currentCamera = 'environment';
 let scanInterval = null;
 let isScanning = false;
 let lastScannedCode = null;
-let detectedEmployeeData = null;
+let isProcessing = false;
+let scanCooldown = false;
 
 const video = document.getElementById('video');
+const successSound = document.getElementById('successSound');
+
+// Debug audio loading
+console.log('🔊 Audio element:', successSound);
+console.log('🔊 Audio source:', successSound.querySelector('source')?.src);
+
+// Check if audio file exists
+fetch('/public/assets/sounds/success.mp3')
+    .then(response => {
+        if (response.ok) {
+            console.log('✅ Audio file found at: /public/assets/sounds/success.mp3');
+        } else {
+            console.warn('⚠️ Audio file NOT found! Status:', response.status);
+            console.warn('⚠️ Please check if file exists at: public/assets/sounds/success.mp3');
+        }
+    })
+    .catch(err => {
+        console.error('❌ Error checking audio file:', err);
+    });
 
 async function startCamera() {
     try {
@@ -271,18 +322,10 @@ async function startCamera() {
         
         startScanning();
         updateCameraButton();
-        document.getElementById('attendanceStatus').innerHTML = `
-            <div class="attendance-status pending">
-                <i class="bi bi-camera me-2"></i> Camera ready. Place QR code in the frame.
-            </div>
-        `;
+        setStatus('info', '<i class="bi bi-camera me-2"></i> Camera ready. Place QR code in the frame.');
     } catch (err) {
         console.error('Camera error:', err);
-        document.getElementById('attendanceStatus').innerHTML = `
-            <div class="attendance-status error">
-                <i class="bi bi-exclamation-triangle me-2"></i> Unable to access camera. Please allow camera permissions.
-            </div>
-        `;
+        setStatus('error', '<i class="bi bi-exclamation-triangle me-2"></i> Unable to access camera. Please allow camera permissions.');
     }
 }
 
@@ -298,12 +341,73 @@ function updateCameraButton() {
         '<i class="bi bi-arrow-repeat me-1"></i> Back Camera';
 }
 
+function setStatus(type, message) {
+    const el = document.getElementById('attendanceStatus');
+    el.innerHTML = `<div class="attendance-status ${type}">${message}</div>`;
+}
+
+function showFlash(type, title, message) {
+    const icon = type === 'success' ? '✅' : '❌';
+    const color = type === 'success' ? 'rgba(15, 123, 74, 0.95)' : 'rgba(179, 60, 60, 0.95)';
+    
+    const flash = document.createElement('div');
+    flash.className = `scan-flash ${type === 'error' ? 'error' : ''}`;
+    flash.style.background = color;
+    flash.innerHTML = `
+        <span class="icon">${icon}</span>
+        ${title}
+        <div style="font-size:0.7rem;font-weight:400;margin-top:0.3rem;">${message}</div>
+    `;
+    document.body.appendChild(flash);
+    
+    setTimeout(() => {
+        if (flash.parentNode) flash.remove();
+    }, 1500);
+}
+
+function playSuccessSound() {
+    console.log('🔊 Attempting to play success sound...');
+    
+    try {
+        // Reset audio to start
+        successSound.currentTime = 0;
+        
+        // Play with promise
+        const playPromise = successSound.play();
+        
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    console.log('✅ Success sound played successfully!');
+                })
+                .catch(err => {
+                    console.warn('⚠️ Audio playback failed:', err);
+                    console.warn('⚠️ Trying fallback method...');
+                    
+                    // Fallback: Create new audio element
+                    try {
+                        const fallbackAudio = new Audio('../../../public/assets/sounds/success.mp3');
+                        fallbackAudio.play()
+                            .then(() => console.log('✅ Fallback audio played!'))
+                            .catch(e => console.warn('❌ Fallback audio failed:', e));
+                    } catch (e) {
+                        console.warn('❌ Fallback creation failed:', e);
+                    }
+                });
+        }
+    } catch (e) {
+        console.warn('❌ Audio error:', e);
+    }
+}
+
 function startScanning() {
     if (scanInterval) clearInterval(scanInterval);
     isScanning = true;
+    scanCooldown = false;
     
     scanInterval = setInterval(() => {
-        if (!isScanning || video.readyState !== 4) return;
+        if (!isScanning || isProcessing || scanCooldown) return;
+        if (video.readyState !== 4) return;
         
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -323,19 +427,25 @@ function startScanning() {
                 processQRCode(qrData);
             }
         }
-    }, 500);
+    }, 300);
 }
 
 function processQRCode(qrData) {
+    isProcessing = true;
+    
     try {
         const data = JSON.parse(qrData);
         if (data.type === 'employee_id' && data.id) {
             fetchEmployee(data.id);
         } else {
-            showError('Invalid QR code. Please scan a valid employee ID card.');
+            showFlash('error', 'Invalid QR Code', 'Please scan a valid employee ID card');
+            setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Invalid QR code. Please scan a valid employee ID card.');
+            isProcessing = false;
         }
     } catch (e) {
-        showError('Invalid QR code format. Please scan a valid employee ID card.');
+        showFlash('error', 'Invalid Format', 'QR code format not recognized');
+        setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Invalid QR code format.');
+        isProcessing = false;
     }
 }
 
@@ -344,84 +454,66 @@ function fetchEmployee(employeeId) {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                showDetectedEmployee(data.employee);
+                autoMarkAttendance(data.employee);
             } else {
-                showError('Employee not found. Please try again.');
+                showFlash('error', 'Not Found', 'Employee not found in system');
+                setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Employee not found.');
+                isProcessing = false;
             }
         })
         .catch(err => {
-            showError('Error fetching employee data.');
-            console.error(err);
+            showFlash('error', 'Error', 'Failed to fetch employee data');
+            setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Error fetching employee data.');
+            isProcessing = false;
         });
 }
 
-function showDetectedEmployee(employee) {
-    detectedEmployeeData = employee;
-    const container = document.getElementById('detectedEmployee');
-    container.style.display = 'block';
+function autoMarkAttendance(employee) {
+    // Show detected employee info
+    setStatus('info', `<i class="bi bi-person-check me-2"></i> Detected: <strong>${employee.username}</strong> - Marking attendance...`);
     
-    document.getElementById('empName').textContent = employee.username || 'Unknown';
-    document.getElementById('empId').textContent = 'EMP-' + (employee.id || '000');
-    document.getElementById('empRole').textContent = employee.role_name || 'Staff';
-    
-    if (employee.photo) {
-        document.getElementById('empPhoto').innerHTML = `<img src="<?= site_url('/') ?>${employee.photo}" style="width:60px;height:60px;object-fit:cover;">`;
-    } else {
-        document.getElementById('empPhoto').innerHTML = '<i class="bi bi-person fs-2 text-muted"></i>';
-    }
-    
-    document.getElementById('attendanceStatus').innerHTML = `
-        <div class="attendance-status pending">
-            <i class="bi bi-qr-code me-2"></i> Employee detected. Click "Mark Present" to record attendance.
-        </div>
-    `;
-}
-
-function showError(message) {
-    document.getElementById('attendanceStatus').innerHTML = `
-        <div class="attendance-status error">
-            <i class="bi bi-exclamation-circle me-2"></i> ${message}
-        </div>
-    `;
-}
-
-function markAttendance() {
-    if (!detectedEmployeeData) return;
-    
-    const btn = document.querySelector('#attendanceAction button');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Saving...';
-    
+    // Auto mark attendance
     fetch('<?= site_url('/admin/attendance/mark') ?>', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employee_id: detectedEmployeeData.id })
+        body: JSON.stringify({ employee_id: employee.id })
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            document.getElementById('attendanceStatus').innerHTML = `
-                <div class="attendance-status success">
-                    <i class="bi bi-check-circle-fill me-2"></i> ${data.message || 'Attendance marked successfully!'}
-                </div>
-            `;
+            // Play success sound
+            playSuccessSound();
+            
+            // Show success flash
+            const isCheckIn = data.message.includes('Check-in');
+            showFlash('success', 
+                isCheckIn ? '✅ Checked In' : '✅ Checked Out', 
+                `${employee.username} - ${data.message}`
+            );
+            
+            setStatus('success', `<i class="bi bi-check-circle-fill me-2"></i> ✅ ${data.message} - ${employee.username}`);
+            
+            // Reload attendance log
             loadTodayAttendance();
+            loadStats();
+            
+            // Cooldown to prevent duplicate scans
+            scanCooldown = true;
             setTimeout(() => {
-                document.getElementById('detectedEmployee').style.display = 'none';
-                detectedEmployeeData = null;
+                scanCooldown = false;
                 lastScannedCode = null;
+                isProcessing = false;
             }, 3000);
         } else {
-            showError(data.message || 'Failed to mark attendance.');
+            showFlash('error', 'Failed', data.message || 'Could not mark attendance');
+            setStatus('error', `<i class="bi bi-exclamation-circle me-2"></i> ${data.message || 'Failed to mark attendance.'}`);
+            isProcessing = false;
         }
     })
     .catch(err => {
-        showError('Error marking attendance.');
-        console.error(err);
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Mark Present';
+        showFlash('error', 'Error', 'Failed to mark attendance');
+        setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Error marking attendance.');
+        isProcessing = false;
     });
 }
 
@@ -433,12 +525,12 @@ function loadTodayAttendance() {
             if (data.attendance && data.attendance.length > 0) {
                 tbody.innerHTML = data.attendance.map(a => `
                     <tr>
-                        <td>${a.username || 'Unknown'}</td>
+                        <td><strong>${a.username || 'Unknown'}</strong></td>
                         <td>${a.check_in || '-'}</td>
                         <td>${a.check_out || '-'}</td>
                         <td>
                             <span class="badge-soft" style="background:#e6f5ed;color:#0f7b4a;">
-                                ${a.status === 'present' ? 'Present' : 'Absent'}
+                                ${a.status === 'present' ? '✅ Present' : '❌ Absent'}
                             </span>
                         </td>
                     </tr>
@@ -452,24 +544,43 @@ function loadTodayAttendance() {
         });
 }
 
-function resetScanner() {
-    lastScannedCode = null;
-    detectedEmployeeData = null;
-    document.getElementById('detectedEmployee').style.display = 'none';
-    document.getElementById('attendanceStatus').innerHTML = `
-        <div class="attendance-status pending">
-            <i class="bi bi-arrow-counterclockwise me-2"></i> Scanner reset. Ready to scan.
-        </div>
-    `;
+function loadStats() {
+    fetch('<?= site_url('/admin/attendance/today') ?>')
+        .then(res => res.json())
+        .then(data => {
+            if (data.attendance) {
+                const present = data.attendance.filter(a => a.status === 'present').length;
+                const absent = data.attendance.filter(a => a.status !== 'present').length;
+                const total = data.attendance.length;
+                
+                document.getElementById('todayPresent').textContent = present;
+                document.getElementById('todayAbsent').textContent = absent;
+                document.getElementById('todayTotal').textContent = total;
+            }
+        })
+        .catch(err => {
+            console.error('Error loading stats:', err);
+        });
 }
 
-// Start camera and load attendance on page load
+function resetScanner() {
+    lastScannedCode = null;
+    isProcessing = false;
+    scanCooldown = false;
+    setStatus('info', '<i class="bi bi-arrow-counterclockwise me-2"></i> Scanner reset. Ready to scan.');
+}
+
+// Start on load
 document.addEventListener('DOMContentLoaded', function() {
     startCamera();
     loadTodayAttendance();
+    loadStats();
+    
+    // Refresh stats every 30 seconds
+    setInterval(loadStats, 30000);
 });
 
-// Cleanup on page unload
+// Cleanup
 window.addEventListener('beforeunload', function() {
     if (scanInterval) clearInterval(scanInterval);
     if (currentStream) {

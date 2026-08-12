@@ -82,18 +82,6 @@ $router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBo
 // ============================================
 
 // Admin Appointment Management
- // ============================================
-// APPOINTMENT ROUTES
-// ============================================
-
-// IMPORTANT: Specific routes must come BEFORE wildcard/parameter routes
-
-// Public Online Booking (ORDER MATTERS!)
-$router->get('/appointments/book/success', 'AppointmentController@bookingSuccess');  // MUST come first
-$router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
-$router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
-
-// Admin Appointment Routes
 $router->get('/admin/appointments', 'AppointmentController@index');
 $router->get('/admin/appointments/pending', 'AppointmentController@pendingList');
 $router->get('/admin/appointments/approve/{id}', 'AppointmentController@approve');
@@ -105,6 +93,11 @@ $router->post('/admin/appointments/schedule/save', 'AppointmentController@saveSc
 
 // Get Available Slots (AJAX - Public)
 $router->get('/admin/appointments/slots', 'AppointmentController@getSlotsAjax');
+
+// Public Online Booking
+$router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
+$router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
+$router->get('/appointments/book/success', 'AppointmentController@bookingSuccess');
 
 
 
