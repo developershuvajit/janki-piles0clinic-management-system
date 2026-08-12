@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Helpers\Session;
 use App\Helpers\Security;
+use App\Helpers\Logger;
 use App\Models\Blog;
 
 class BlogController
@@ -41,12 +42,15 @@ class BlogController
             $imageUrl = $_POST['existing_image'] ?? '';
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                 $destDir = __DIR__ . '/../../public/uploads/blog';
-                if (!is_dir($destDir)) {
-                    mkdir($destDir, 0777, true);
+                if (!is_dir($destDir) && !mkdir($destDir, 0777, true) && !is_dir($destDir)) {
+                    Logger::error("Unable to create blog upload directory: {$destDir}");
                 }
                 $fileName = time() . '_' . basename($_FILES['image']['name']);
                 if (move_uploaded_file($_FILES['image']['tmp_name'], $destDir . '/' . $fileName)) {
                     $imageUrl = '/uploads/blog/' . $fileName;
+                } else {
+                    Logger::error("Failed moving uploaded blog image to {$destDir}/{$fileName}");
+                    Session::setFlash('error', 'The article image could not be uploaded.');
                 }
             }
 
@@ -62,12 +66,17 @@ class BlogController
                 'seo_description' => trim($_POST['seo_description'] ?? '')
             ];
 
-            if ($id > 0) {
-                Blog::updateBlog($id, $blogData);
-                Session::setFlash('success', 'Blog article updated successfully.');
-            } else {
-                Blog::createBlog($blogData);
-                Session::setFlash('success', 'Blog article published successfully.');
+            try {
+                if ($id > 0) {
+                    Blog::updateBlog($id, $blogData);
+                    Session::setFlash('success', 'Blog article updated successfully.');
+                } else {
+                    Blog::createBlog($blogData);
+                    Session::setFlash('success', 'Blog article published successfully.');
+                }
+            } catch (\Throwable $e) {
+                Logger::error("Failed saving blog article: " . $e->getMessage(), ['blog_id' => $id]);
+                Session::setFlash('error', 'Failed to save the blog article.');
             }
         }
         redirect('/admin/cms/blogs');

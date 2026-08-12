@@ -66,9 +66,8 @@ class Salary
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed generating monthly payroll: " . $e->getMessage());
-            echo "   [generatePayroll EXCEPTION] " . $e->getMessage() . "\n";
             return false;
         }
     }

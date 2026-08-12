@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\Database;
+use App\Helpers\Logger;
 
 class Treatment
 {
@@ -113,7 +114,8 @@ class Treatment
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
+            Logger::error("Failed assigning doctors to treatment {$treatmentId}: " . $e->getMessage());
             return false;
         }
     }

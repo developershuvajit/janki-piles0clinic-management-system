@@ -73,11 +73,13 @@ class Database
     }
 
     /**
-     * Execute an SQL statement (insert/update/delete) and return success boolean.
+     * Execute an SQL statement (insert/update/delete).
+     * Returns true when the statement ran; a failing statement raises PDOException.
      */
     public static function execute(string $sql, array $params = []): bool
     {
-        return self::query($sql, $params) instanceof \PDOStatement;
+        self::query($sql, $params);
+        return true;
     }
 
     /**
@@ -110,5 +112,30 @@ class Database
     public static function rollBack(): bool
     {
         return self::getConnection()->rollBack();
+    }
+
+    /**
+     * Check whether a transaction is currently active.
+     */
+    public static function inTransaction(): bool
+    {
+        return self::getConnection()->inTransaction();
+    }
+
+    /**
+     * Rollback only when a transaction is active, so that failing inside a catch
+     * block never masks the original exception with "no active transaction".
+     */
+    public static function rollBackIfActive(): bool
+    {
+        try {
+            if (!self::inTransaction()) {
+                return false;
+            }
+            return self::rollBack();
+        } catch (\Throwable $e) {
+            Logger::error("Transaction rollback failed: " . $e->getMessage());
+            return false;
+        }
     }
 }

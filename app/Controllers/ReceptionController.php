@@ -418,11 +418,16 @@ class ReceptionController
         $status = Security::sanitize($_GET['status'] ?? 'waiting');
 
         if ($id > 0) {
-            Appointment::updateQueueStatus($id, $status);
-            if ($status === 'completed') {
-                Appointment::updateStatus($id, 'completed');
+            $updated = Appointment::updateQueueStatus($id, $status);
+            if ($updated && $status === 'completed') {
+                $updated = Appointment::updateStatus($id, 'completed');
             }
-            Session::setFlash('success', 'Queue position updated successfully.');
+
+            if ($updated) {
+                Session::setFlash('success', 'Queue position updated successfully.');
+            } else {
+                Session::setFlash('error', 'Failed to update the queue position.');
+            }
         }
 
         redirect('/reception/queues');
@@ -963,9 +968,12 @@ class ReceptionController
         $notes = Security::sanitize($_GET['notes'] ?? $_POST['notes'] ?? null);
 
         if ($id > 0) {
-            \App\Models\Lead::updateStatus($id, $status, $notes);
-            ActivityLogger::log('Lead Status Updated', "Lead #{$id} status updated to '{$status}'");
-            Session::setFlash('success', 'Lead status updated.');
+            if (\App\Models\Lead::updateStatus($id, $status, $notes)) {
+                ActivityLogger::log('Lead Status Updated', "Lead #{$id} status updated to '{$status}'");
+                Session::setFlash('success', 'Lead status updated.');
+            } else {
+                Session::setFlash('error', 'Failed to update the lead status.');
+            }
         }
 
         redirect('/reception/leads');

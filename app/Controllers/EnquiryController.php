@@ -37,8 +37,11 @@ class EnquiryController
             $notes = trim($_POST['notes'] ?? '');
 
             if ($id > 0) {
-                Enquiry::updateStatus($id, $status, $notes);
-                Session::setFlash('success', 'Lead follow-up logs updated successfully.');
+                if (Enquiry::updateStatus($id, $status, $notes)) {
+                    Session::setFlash('success', 'Lead follow-up logs updated successfully.');
+                } else {
+                    Session::setFlash('error', 'Failed to update the lead follow-up logs.');
+                }
             } else {
                 Session::setFlash('error', 'Invalid lead ID.');
             }

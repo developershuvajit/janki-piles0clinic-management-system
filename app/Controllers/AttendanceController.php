@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Helpers\Session;
 use App\Helpers\Permission;
 use App\Helpers\Database;
+use App\Helpers\Logger;
 
 class AttendanceController
 {
@@ -42,6 +43,7 @@ class AttendanceController
         
         $date = $_POST['date'];
         $attendanceData = $_POST['attendance'] ?? [];
+        $failed = 0;
 
         foreach ($attendanceData as $empId => $att) {
             // Check if attendance already exists
@@ -57,17 +59,25 @@ class AttendanceController
                             updated_at = NOW() 
                         WHERE employee_id = :id AND date = :date";
                 
-                Database::execute($sql, [
-                    'id' => (int)$empId,
-                    'date' => $date,
-                    'status' => $att['status'],
-                    'check_in' => $att['check_in'] ?? null,
-                    'check_out' => $att['check_out'] ?? null,
-                    'notes' => $att['notes'] ?? null
-                ]);
+                try {
+                    Database::execute($sql, [
+                        'id' => (int)$empId,
+                        'date' => $date,
+                        'status' => $att['status'],
+                        'check_in' => $att['check_in'] ?? null,
+                        'check_out' => $att['check_out'] ?? null,
+                        'notes' => $att['notes'] ?? null
+                    ]);
+                } catch (\Throwable $e) {
+                    $failed++;
+                    Logger::error("Failed updating attendance record: " . $e->getMessage(), [
+                        'employee_id' => (int)$empId,
+                        'date' => $date
+                    ]);
+                }
             } else {
                 // Insert new
-                Attendance::logAttendance([
+                $logged = Attendance::logAttendance([
                     'employee_id' => (int)$empId,
                     'date' => $date,
                     'status' => $att['status'],
@@ -75,10 +85,17 @@ class AttendanceController
                     'check_out' => $att['check_out'] ?? null,
                     'notes' => $att['notes'] ?? null
                 ]);
+                if (!$logged) {
+                    $failed++;
+                }
             }
         }
 
-        Session::setFlash('success', 'Attendance records updated successfully.');
+        if ($failed > 0) {
+            Session::setFlash('error', "Attendance saved, but {$failed} record(s) could not be stored.");
+        } else {
+            Session::setFlash('success', 'Attendance records updated successfully.');
+        }
         redirect('/admin/employees/attendance?date=' . $date);
     }
 

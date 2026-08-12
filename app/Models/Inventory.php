@@ -109,7 +109,7 @@ class Inventory
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed adding inventory stock: " . $e->getMessage());
             return false;
         }
@@ -170,7 +170,7 @@ class Inventory
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed stock deduction: " . $e->getMessage());
             return false;
         }
@@ -191,11 +191,12 @@ class Inventory
     {
         $sql = "INSERT INTO suppliers (name, phone, email, address, status) 
                 VALUES (:name, :phone, :email, :addr, 'active')";
-        return Database::execute($sql, [
+        Database::execute($sql, [
             'name' => $data['name'],
             'phone' => $data['phone'],
             'email' => $data['email'] ?? null,
             'addr' => $data['address'] ?? null
         ]);
+        return (int)Database::lastInsertId();
     }
 }

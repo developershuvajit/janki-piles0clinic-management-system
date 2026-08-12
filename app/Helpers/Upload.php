@@ -404,10 +404,24 @@ class Upload
                 "</FilesMatch>\n" .
                 "Options -ExecCGI\n";
 
-            @file_put_contents(
+            $written = @file_put_contents(
                 $htaccessPath,
                 $htaccessContent
             );
+
+            if ($written === false) {
+
+                Logger::error(
+                    'Unable to write upload directory protection file: ' .
+                    $htaccessPath
+                );
+
+                return [
+                    'success' => false,
+                    'error' =>
+                        'System error: Unable to secure the upload directory.'
+                ];
+            }
         }
 
         /*
@@ -482,7 +496,13 @@ class Upload
         |--------------------------------------------------------------------------
         */
 
-        @chmod($targetFile, 0644);
+        if (!@chmod($targetFile, 0644)) {
+
+            Logger::warning(
+                'Unable to set permissions on uploaded file: ' .
+                $targetFile
+            );
+        }
 
         /*
         |--------------------------------------------------------------------------

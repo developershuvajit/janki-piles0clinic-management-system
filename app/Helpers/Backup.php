@@ -37,7 +37,13 @@ class Backup
             // Save to file
             $cmd .= ' > ' . escapeshellarg($outputPath);
             exec($cmd, $output, $returnCode);
-            return $returnCode === 0;
+            if ($returnCode !== 0) {
+                Logger::error("mysqldump exited with code {$returnCode} while writing {$outputPath}", [
+                    'db' => $db
+                ]);
+                return false;
+            }
+            return true;
         }
 
         // Stream to browser as download
@@ -48,7 +54,13 @@ class Backup
             header('Expires: 0');
         }
 
-        passthru($cmd);
+        passthru($cmd, $returnCode);
+        if ($returnCode !== 0) {
+            Logger::error("mysqldump exited with code {$returnCode} while streaming backup download", [
+                'db' => $db
+            ]);
+            return false;
+        }
         return true;
     }
 
@@ -90,8 +102,9 @@ class Backup
     public static function scheduledBackup(): bool
     {
         $dir = ROOT_PATH . '/storage/backups';
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            Logger::error("Unable to create backup directory: {$dir}");
+            return false;
         }
 
         $filename  = $dir . '/medclinic_backup_' . date('Y-m-d_H-i-s') . '.sql';
@@ -104,7 +117,9 @@ class Backup
                 usort($files, fn($a, $b) => filemtime($a) <=> filemtime($b));
                 $toDelete = array_slice($files, 0, count($files) - 7);
                 foreach ($toDelete as $old) {
-                    @unlink($old);
+                    if (!@unlink($old)) {
+                        Logger::warning("Unable to rotate out old backup file: {$old}");
+                    }
                 }
             }
             Logger::info("Scheduled backup created: $filename");

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Helpers\Database;
+use App\Helpers\Logger;
 use App\Helpers\Security;
 
 class Attendance
@@ -89,7 +90,7 @@ class Attendance
                 ]);
             }
         } catch (\Exception $e) {
-            error_log("logAttendance Error: " . $e->getMessage());
+            Logger::error("Failed logging attendance: " . $e->getMessage(), ['employee_id' => $data['employee_id'] ?? null]);
             return false;
         }
     }
@@ -106,7 +107,7 @@ class Attendance
                 ['id' => $employeeId, 'date' => $date]
             );
         } catch (\Exception $e) {
-            error_log("getToday Error: " . $e->getMessage());
+            Logger::error("Failed loading attendance for employee {$employeeId} on {$date}: " . $e->getMessage());
             return null;
         }
     }
@@ -117,12 +118,10 @@ class Attendance
     public static function updateCheckOut(int $employeeId, string $date, string $time): bool
     {
         try {
-            error_log("updateCheckOut - Employee: " . $employeeId . ", Date: " . $date . ", Time: " . $time);
-            
             // First check if record exists
             $exists = self::getToday($employeeId, $date);
             if (!$exists) {
-                error_log("No record found for employee: " . $employeeId);
+                Logger::warning("No attendance record to check out for employee {$employeeId} on {$date}.");
                 return false;
             }
             
@@ -131,17 +130,13 @@ class Attendance
                     SET check_out = :time, updated_at = NOW() 
                     WHERE employee_id = :id AND date = :date";
             
-            $result = Database::execute($sql, [
+            return Database::execute($sql, [
                 'time' => $time,
                 'id' => $employeeId,
                 'date' => $date
             ]);
-            
-            error_log("updateCheckOut Result: " . ($result ? 'true' : 'false'));
-            return $result;
-            
         } catch (\Exception $e) {
-            error_log("updateCheckOut Error: " . $e->getMessage());
+            Logger::error("Failed updating check-out for employee {$employeeId} on {$date}: " . $e->getMessage());
             return false;
         }
     }
@@ -162,7 +157,7 @@ class Attendance
                 ['date' => $date]
             );
         } catch (\Exception $e) {
-            error_log("getTodayAll Error: " . $e->getMessage());
+            Logger::error("Failed loading attendance roster for {$date}: " . $e->getMessage());
             return [];
         }
     }
@@ -246,7 +241,7 @@ class Attendance
                 'reason' => Security::sanitize($data['reason'] ?? '')
             ]);
         } catch (\Exception $e) {
-            error_log("applyLeave Error: " . $e->getMessage());
+            Logger::error("Failed submitting leave application for employee {$empId}: " . $e->getMessage());
             return false;
         }
     }
@@ -262,7 +257,7 @@ class Attendance
                 ['status' => $status, 'id' => $id]
             );
         } catch (\Exception $e) {
-            error_log("updateLeaveStatus Error: " . $e->getMessage());
+            Logger::error("Failed updating leave #{$id} status to '{$status}': " . $e->getMessage());
             return false;
         }
     }

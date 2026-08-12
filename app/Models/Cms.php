@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Helpers\Database;
+use App\Helpers\Logger;
 
 class Cms
 {
@@ -39,7 +40,8 @@ class Cms
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
+            Logger::error("Failed saving website settings: " . $e->getMessage());
             return false;
         }
     }
@@ -58,11 +60,12 @@ class Cms
     public static function createAlbum(array $data): int
     {
         $sql = "INSERT INTO gallery_albums (name, slug, description) VALUES (:name, :slug, :desc)";
-        return Database::execute($sql, [
+        Database::execute($sql, [
             'name' => $data['name'],
             'slug' => $data['slug'],
             'desc' => $data['description'] ?? null
         ]);
+        return (int)Database::lastInsertId();
     }
 
     /**
@@ -79,12 +82,13 @@ class Cms
     public static function addMedia(array $data): int
     {
         $sql = "INSERT INTO gallery_media (album_id, type, url, caption) VALUES (:album_id, :type, :url, :caption)";
-        return Database::execute($sql, [
+        Database::execute($sql, [
             'album_id' => $data['album_id'],
             'type' => $data['type'] ?? 'photo',
             'url' => $data['url'],
             'caption' => $data['caption'] ?? null
         ]);
+        return (int)Database::lastInsertId();
     }
 
     /**
@@ -102,7 +106,7 @@ class Cms
     {
         $sql = "INSERT INTO testimonials (type, author, rating, review_text, video_url, status) 
                 VALUES (:type, :author, :rating, :text, :video_url, :status)";
-        return Database::execute($sql, [
+        Database::execute($sql, [
             'type' => $data['type'] ?? 'patient',
             'author' => $data['author'],
             'rating' => (int)($data['rating'] ?? 5),
@@ -110,5 +114,6 @@ class Cms
             'video_url' => $data['video_url'] ?? null,
             'status' => $data['status'] ?? 'active'
         ]);
+        return (int)Database::lastInsertId();
     }
 }

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Helpers\Session;
 use App\Helpers\Security;
+use App\Helpers\Logger;
 use App\Models\Cms;
 
 class CmsController
@@ -92,12 +93,17 @@ class CmsController
             $slug = strtolower(preg_replace('/[^A-Za-z0-9-]+/', '-', $name));
 
             if (!empty($name)) {
-                Cms::createAlbum([
-                    'name' => $name,
-                    'slug' => $slug,
-                    'description' => trim($_POST['description'] ?? '')
-                ]);
-                Session::setFlash('success', 'Gallery album created.');
+                try {
+                    Cms::createAlbum([
+                        'name' => $name,
+                        'slug' => $slug,
+                        'description' => trim($_POST['description'] ?? '')
+                    ]);
+                    Session::setFlash('success', 'Gallery album created.');
+                } catch (\Throwable $e) {
+                    Logger::error("Failed creating gallery album: " . $e->getMessage(), ['name' => $name]);
+                    Session::setFlash('error', 'Failed to create the gallery album.');
+                }
             }
         }
         redirect('/admin/cms/gallery');
@@ -124,12 +130,14 @@ class CmsController
             if ($type === 'photo' && isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
                 // Save photo upload
                 $destDir = __DIR__ . '/../../public/uploads/gallery';
-                if (!is_dir($destDir)) {
-                    mkdir($destDir, 0777, true);
+                if (!is_dir($destDir) && !mkdir($destDir, 0777, true) && !is_dir($destDir)) {
+                    Logger::error("Unable to create gallery upload directory: {$destDir}");
                 }
                 $fileName = time() . '_' . basename($_FILES['file']['name']);
                 if (move_uploaded_file($_FILES['file']['tmp_name'], $destDir . '/' . $fileName)) {
                     $url = '/uploads/gallery/' . $fileName;
+                } else {
+                    Logger::error("Failed moving uploaded gallery file to {$destDir}/{$fileName}");
                 }
             } else {
                 // Save video link
@@ -137,13 +145,18 @@ class CmsController
             }
 
             if (!empty($url) && $albumId > 0) {
-                Cms::addMedia([
-                    'album_id' => $albumId,
-                    'type' => $type,
-                    'url' => $url,
-                    'caption' => $caption
-                ]);
-                Session::setFlash('success', 'Media asset added successfully.');
+                try {
+                    Cms::addMedia([
+                        'album_id' => $albumId,
+                        'type' => $type,
+                        'url' => $url,
+                        'caption' => $caption
+                    ]);
+                    Session::setFlash('success', 'Media asset added successfully.');
+                } catch (\Throwable $e) {
+                    Logger::error("Failed adding gallery media: " . $e->getMessage(), ['album_id' => $albumId]);
+                    Session::setFlash('error', 'Failed to add the media asset.');
+                }
             } else {
                 Session::setFlash('error', 'Invalid media file or link.');
             }
@@ -175,15 +188,20 @@ class CmsController
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            Cms::addTestimonial([
-                'type' => trim($_POST['type'] ?? 'patient'),
-                'author' => trim($_POST['author'] ?? ''),
-                'rating' => (int)($_POST['rating'] ?? 5),
-                'review_text' => trim($_POST['review_text'] ?? ''),
-                'video_url' => trim($_POST['video_url'] ?? ''),
-                'status' => 'active'
-            ]);
-            Session::setFlash('success', 'Testimonial review logged successfully.');
+            try {
+                Cms::addTestimonial([
+                    'type' => trim($_POST['type'] ?? 'patient'),
+                    'author' => trim($_POST['author'] ?? ''),
+                    'rating' => (int)($_POST['rating'] ?? 5),
+                    'review_text' => trim($_POST['review_text'] ?? ''),
+                    'video_url' => trim($_POST['video_url'] ?? ''),
+                    'status' => 'active'
+                ]);
+                Session::setFlash('success', 'Testimonial review logged successfully.');
+            } catch (\Throwable $e) {
+                Logger::error("Failed saving testimonial: " . $e->getMessage());
+                Session::setFlash('error', 'Failed to save the testimonial.');
+            }
         }
         redirect('/admin/cms/testimonials');
     }

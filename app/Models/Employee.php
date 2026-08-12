@@ -137,7 +137,7 @@ class Employee
 
             return $employeeId;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed to commit employee creation transaction: " . $e->getMessage());
             return null;
         }
@@ -202,7 +202,7 @@ class Employee
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed to commit employee update transaction: " . $e->getMessage());
             return false;
         }
@@ -229,7 +229,7 @@ class Employee
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed to delete employee: " . $e->getMessage());
             return false;
         }
