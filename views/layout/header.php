@@ -22,38 +22,7 @@
 <body>
 
     <!-- Site Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="<?= site_url() ?>">
-                <i class="bi bi-heart-pulse-fill text-success fs-3 me-2"></i>
-                <span>Med</span>Clinic
-            </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="mainNavbar">
-                <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item">
-                        <a class="nav-link px-3" href="<?= site_url() ?>">Home</a>
-                    </li>
-                    <?php if (\App\Helpers\Session::isLoggedIn()): ?>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-outline-success btn-sm ms-2 px-3 py-1 text-success text-decoration-none" href="<?= site_url('/admin/dashboard') ?>">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-success btn-sm ms-2 px-3 py-1 text-white text-decoration-none" href="<?= site_url('/logout') ?>">Logout</a>
-                        </li>
-                    <?php else: ?>
-                        <li class="nav-item">
-                            <a class="nav-link btn btn-primary btn-sm ms-2 px-4 text-white text-decoration-none" href="<?= site_url('/login') ?>">Login</a>
-                        </li>
-                    <?php endif; ?>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    
 
     <!-- Main Container -->
     <main class="flex-grow-1 py-4">
