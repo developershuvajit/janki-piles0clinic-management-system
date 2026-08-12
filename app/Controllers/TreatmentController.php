@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Helpers\Session;
 use App\Helpers\Security;
+use App\Helpers\Logger;
 use App\Models\Treatment;
 
 class TreatmentController
@@ -51,12 +52,15 @@ class TreatmentController
             $imageUrl = $_POST['existing_image'] ?? '';
             if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
                 $destDir = __DIR__ . '/../../public/uploads/treatments';
-                if (!is_dir($destDir)) {
-                    mkdir($destDir, 0777, true);
+                if (!is_dir($destDir) && !mkdir($destDir, 0777, true) && !is_dir($destDir)) {
+                    Logger::error("Unable to create treatment upload directory: {$destDir}");
                 }
                 $fileName = time() . '_' . basename($_FILES['image']['name']);
                 if (move_uploaded_file($_FILES['image']['tmp_name'], $destDir . '/' . $fileName)) {
                     $imageUrl = '/uploads/treatments/' . $fileName;
+                } else {
+                    Logger::error("Failed moving uploaded treatment image to {$destDir}/{$fileName}");
+                    Session::setFlash('error', 'The treatment image could not be uploaded.');
                 }
             }
 
@@ -72,19 +76,25 @@ class TreatmentController
                 'seo_description' => trim($_POST['seo_description'] ?? '')
             ];
 
-            if ($id > 0) {
-                Treatment::update($id, $treatmentData);
-                $treatmentId = $id;
-                Session::setFlash('success', 'Treatment catalog updated.');
-            } else {
-                $treatmentId = Treatment::create($treatmentData);
-                Session::setFlash('success', 'New treatment catalog created.');
+            try {
+                if ($id > 0) {
+                    Treatment::update($id, $treatmentData);
+                    $treatmentId = $id;
+                    Session::setFlash('success', 'Treatment catalog updated.');
+                } else {
+                    $treatmentId = Treatment::create($treatmentData);
+                    Session::setFlash('success', 'New treatment catalog created.');
+                }
+            } catch (\Throwable $e) {
+                Logger::error("Failed saving treatment catalog entry: " . $e->getMessage(), ['treatment_id' => $id]);
+                Session::setFlash('error', 'Failed to save the treatment catalog entry.');
+                redirect('/admin/cms/treatments');
             }
 
             // Assign doctors
             $doctorIds = $_POST['doctor_ids'] ?? [];
-            if ($treatmentId > 0) {
-                Treatment::assignDoctors($treatmentId, $doctorIds);
+            if ($treatmentId > 0 && !Treatment::assignDoctors($treatmentId, $doctorIds)) {
+                Session::setFlash('error', 'Treatment saved, but assigning the attending doctors failed.');
             }
         }
         redirect('/admin/cms/treatments');

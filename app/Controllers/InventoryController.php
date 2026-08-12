@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Inventory;
 use App\Helpers\Session;
 use App\Helpers\Permission;
+use App\Helpers\Logger;
 
 class InventoryController
 {
@@ -99,8 +100,13 @@ class InventoryController
         if (empty($data['name']) || empty($data['phone'])) {
             Session::setFlash('error', 'Supplier name and contact phone are required.');
         } else {
-            Inventory::createSupplier($data);
-            Session::setFlash('success', 'Supplier created successfully.');
+            try {
+                Inventory::createSupplier($data);
+                Session::setFlash('success', 'Supplier created successfully.');
+            } catch (\Throwable $e) {
+                Logger::error("Failed creating supplier: " . $e->getMessage(), ['name' => $data['name']]);
+                Session::setFlash('error', 'Failed to create the supplier record.');
+            }
         }
         redirect('/admin/inventory');
     }

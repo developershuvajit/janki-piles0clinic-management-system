@@ -26,7 +26,9 @@ class SalaryController
         $branchId = Session::get('role') !== 'super_admin' ? (int)Session::get('branch_id') : null;
 
         // Auto-generate baseline slips if missing
-        Salary::generatePayroll($monthYear, $branchId);
+        if (!Salary::generatePayroll($monthYear, $branchId)) {
+            Session::setFlash('error', 'Baseline payroll slips could not be generated. The list may be incomplete.');
+        }
         
         $salaries = Salary::getSalariesForMonth($monthYear, $branchId);
         

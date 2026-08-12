@@ -9,6 +9,7 @@ use App\Helpers\Security;
 use App\Helpers\ActivityLogger;
 use App\Helpers\Database;
 use App\Helpers\Email;
+use App\Helpers\Logger;
 
 class AuthController
 {
@@ -115,7 +116,9 @@ class AuthController
                     ]
                 );
             } catch (\Throwable $e) {
-                // Fail silently for history insertion
+                Logger::error("Failed recording login history entry: " . $e->getMessage(), [
+                    'user_id' => $user['id']
+                ]);
             }
 
             ActivityLogger::log('User Login', "User {$username} logged in successfully from IP: {$ip}.", (int)$user['id']);

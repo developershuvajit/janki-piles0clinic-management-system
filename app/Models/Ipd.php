@@ -131,7 +131,7 @@ class Ipd
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed to execute IPD admission transaction: " . $e->getMessage());
             return false;
         }
@@ -209,7 +209,7 @@ class Ipd
             Database::commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            Database::rollBackIfActive();
             Logger::error("Failed discharging IPD patient transaction: " . $e->getMessage());
             return false;
         }

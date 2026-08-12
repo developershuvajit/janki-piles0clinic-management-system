@@ -43,24 +43,31 @@ class Prescription
         $sql = "INSERT INTO prescription_medicines (prescription_id, medicine_name, dosage, frequency, duration, instructions, issued_status) 
                 VALUES (:prescription_id, :name, :dosage, :frequency, :duration, :instructions, 'pending')";
         
-        $successCount = 0;
+        $attempted = 0;
+        $failed = 0;
         foreach ($medicines as $med) {
             if (empty($med['medicine_name'])) {
                 continue;
             }
-            $success = Database::execute($sql, [
-                'prescription_id' => $prescriptionId,
-                'name' => $med['medicine_name'],
-                'dosage' => $med['dosage'] ?? '',
-                'frequency' => $med['frequency'] ?? '',
-                'duration' => $med['duration'] ?? '',
-                'instructions' => $med['instructions'] ?? ''
-            ]);
-            if ($success) {
-                $successCount++;
+            $attempted++;
+            try {
+                Database::execute($sql, [
+                    'prescription_id' => $prescriptionId,
+                    'name' => $med['medicine_name'],
+                    'dosage' => $med['dosage'] ?? '',
+                    'frequency' => $med['frequency'] ?? '',
+                    'duration' => $med['duration'] ?? '',
+                    'instructions' => $med['instructions'] ?? ''
+                ]);
+            } catch (\Throwable $e) {
+                $failed++;
+                Logger::error("Failed to attach medicine to prescription {$prescriptionId}: " . $e->getMessage(), [
+                    'medicine_name' => $med['medicine_name']
+                ]);
             }
         }
-        return $successCount > 0;
+
+        return $attempted > 0 && $failed === 0;
     }
 
     /**

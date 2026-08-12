@@ -232,11 +232,17 @@ class DoctorController
                         'instructions' => Security::sanitize($med['instructions'] ?? '')
                     ];
                 }
-                Prescription::addMedicines($prescId, $medicines);
+                if (!Prescription::addMedicines($prescId, $medicines)) {
+                    Session::setFlash('error', 'Consultation saved, but some prescribed medicines could not be stored.');
+                }
             }
 
-            Appointment::updateQueueStatus($apptId, 'completed');
-            Appointment::updateStatus($apptId, 'completed');
+            $queueUpdated = Appointment::updateQueueStatus($apptId, 'completed');
+            $statusUpdated = Appointment::updateStatus($apptId, 'completed');
+            if (!$queueUpdated || !$statusUpdated) {
+                Session::setFlash('error', 'Consultation saved, but the appointment could not be marked as completed.');
+                redirect('/doctor');
+            }
 
             Session::setFlash('success', 'Consultation saved successfully.');
             redirect('/doctor');
@@ -578,7 +584,11 @@ class DoctorController
                         'instructions' => Security::sanitize($med['instructions'] ?? '')
                     ];
                 }
-                Prescription::addMedicines($prescId, $medicines);
+                if (!Prescription::addMedicines($prescId, $medicines)) {
+                    ActivityLogger::log('Prescription Created', "Created prescription ID {$prescId} for patient ID {$patientId}");
+                    Session::setFlash('error', 'Prescription created, but some medicines could not be stored.');
+                    redirect('/doctor/prescriptions');
+                }
             }
 
             ActivityLogger::log('Prescription Created', "Created prescription ID {$prescId} for patient ID {$patientId}");

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Helpers\Session;
 use App\Helpers\Security;
+use App\Helpers\Logger;
 use App\Models\Cms;
 use App\Models\Blog;
 use App\Models\Treatment;
@@ -162,14 +163,19 @@ class WebsiteController
             $blogId = (int)($_POST['blog_id'] ?? 0);
             $blog = Blog::getBlog($blogId);
             if ($blog) {
-                Blog::addComment([
-                    'blog_id' => $blogId,
-                    'author_name' => trim($_POST['author_name'] ?? 'Anonymous'),
-                    'author_email' => trim($_POST['author_email'] ?? ''),
-                    'comment_text' => trim($_POST['comment_text'] ?? ''),
-                    'status' => 'pending'
-                ]);
-                Session::setFlash('success', 'Your comment has been submitted and is pending moderation approval.');
+                try {
+                    Blog::addComment([
+                        'blog_id' => $blogId,
+                        'author_name' => trim($_POST['author_name'] ?? 'Anonymous'),
+                        'author_email' => trim($_POST['author_email'] ?? ''),
+                        'comment_text' => trim($_POST['comment_text'] ?? ''),
+                        'status' => 'pending'
+                    ]);
+                    Session::setFlash('success', 'Your comment has been submitted and is pending moderation approval.');
+                } catch (\Throwable $e) {
+                    Logger::error("Failed saving blog comment: " . $e->getMessage(), ['blog_id' => $blogId]);
+                    Session::setFlash('error', 'Sorry, your comment could not be submitted. Please try again.');
+                }
                 redirect('/blog/' . $blog['slug']);
             }
         }
@@ -192,14 +198,19 @@ class WebsiteController
     public static function saveEnquiry(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            Enquiry::create([
-                'name' => trim($_POST['name'] ?? ''),
-                'email' => trim($_POST['email'] ?? ''),
-                'phone' => trim($_POST['phone'] ?? ''),
-                'subject' => trim($_POST['subject'] ?? 'Website Inquiry'),
-                'message' => trim($_POST['message'] ?? '')
-            ]);
-            Session::setFlash('success', 'Your inquiry has been received! Our clinical coordinator will reach out to you shortly.');
+            try {
+                Enquiry::create([
+                    'name' => trim($_POST['name'] ?? ''),
+                    'email' => trim($_POST['email'] ?? ''),
+                    'phone' => trim($_POST['phone'] ?? ''),
+                    'subject' => trim($_POST['subject'] ?? 'Website Inquiry'),
+                    'message' => trim($_POST['message'] ?? '')
+                ]);
+                Session::setFlash('success', 'Your inquiry has been received! Our clinical coordinator will reach out to you shortly.');
+            } catch (\Throwable $e) {
+                Logger::error("Failed saving website enquiry: " . $e->getMessage());
+                Session::setFlash('error', 'Sorry, your inquiry could not be submitted. Please call the clinic or try again.');
+            }
         }
         redirect('/contact');
     }

@@ -92,7 +92,7 @@ class Session
                 Database::execute("UPDATE users SET last_active_at = NOW() WHERE id = :id", ['id' => $userId]);
                 self::set('last_db_update', time());
             } catch (\Throwable $e) {
-                // Ignore transient db failure during keepalive updates
+                Logger::warning("Failed updating last_active_at keepalive timestamp: " . $e->getMessage());
             }
         }
     }
