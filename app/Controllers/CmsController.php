@@ -25,11 +25,7 @@ class CmsController
     public static function saveSettings(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/settings');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/settings', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = $_POST['settings'] ?? [];
@@ -81,11 +77,7 @@ class CmsController
     public static function saveAlbum(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/gallery');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/gallery', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim($_POST['name'] ?? '');
@@ -109,11 +101,7 @@ class CmsController
     public static function saveMedia(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/gallery');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/gallery', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $albumId = (int)($_POST['album_id'] ?? 0);
@@ -168,11 +156,7 @@ class CmsController
     public static function saveTestimonial(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/testimonials');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/testimonials', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Cms::addTestimonial([

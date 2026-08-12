@@ -11,11 +11,13 @@ use App\Models\Prescription;
 use App\Models\Ipd;
 use App\Models\Discharge;
 use App\Models\Inventory;
+use App\Models\User;
 use App\Helpers\Session;
 use App\Helpers\Security;
 use App\Helpers\Permission;
 use App\Helpers\Database;
 use App\Helpers\ActivityLogger;
+use App\Helpers\Request;
 use App\Helpers\Upload;
 
 class ReceptionController
@@ -27,55 +29,46 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
         
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
         $date = date('Y-m-d');
         
         // Retrieve statistics aggregates filtered by branch
-        $patientSql = "SELECT COUNT(*) as count FROM patients WHERE DATE(created_at) = :date";
         $pParams = ['date' => $date];
-        if ($branchId) {
-            $patientSql .= " AND branch_id = :branch_id";
-            $pParams['branch_id'] = $branchId;
-        }
-        $patientsCount = Database::row($patientSql, $pParams)['count'] ?? 0;
+        $patientSql = Database::scopeToBranch("SELECT COUNT(*) as count FROM patients WHERE DATE(created_at) = :date", $pParams, $branchId);
+        $patientsCount = Database::count($patientSql, $pParams);
 
-        $apptSql = "SELECT COUNT(*) as count FROM appointments WHERE date = :date";
         $aParams = ['date' => $date];
-        if ($branchId) {
-            $apptSql .= " AND branch_id = :branch_id";
-            $aParams['branch_id'] = $branchId;
-        }
-        $apptsCount = Database::row($apptSql, $aParams)['count'] ?? 0;
+        $apptSql = Database::scopeToBranch("SELECT COUNT(*) as count FROM appointments WHERE date = :date", $aParams, $branchId);
+        $apptsCount = Database::count($apptSql, $aParams);
 
-        $opdCount = Database::row("SELECT COUNT(*) as count FROM appointments WHERE date = :date AND type = 'walk-in'" . ($branchId ? " AND branch_id = {$branchId}" : ""), ['date' => $date])['count'] ?? 0;
+        $oParams = ['date' => $date];
+        $opdSql = Database::scopeToBranch("SELECT COUNT(*) as count FROM appointments WHERE date = :date AND type = 'walk-in'", $oParams, $branchId);
+        $opdCount = Database::count($opdSql, $oParams);
         
         $ipdCount = count(Ipd::getActiveAdmissions($branchId));
 
         $pendingIssues = count(Prescription::getPendingMedicineIssues($branchId));
         
-        $revSql = "SELECT SUM(paid_amount) as total FROM billing WHERE DATE(created_at) = :date AND payment_status = 'paid'";
         $rParams = ['date' => $date];
-        if ($branchId) {
-            $revSql .= " AND branch_id = :branch_id";
-            $rParams['branch_id'] = $branchId;
-        }
-        $revRow = Database::row($revSql, $rParams);
-        $revenue = (float)($revRow['total'] ?? 0.00);
+        $revSql = Database::scopeToBranch("SELECT SUM(paid_amount) as total FROM billing WHERE DATE(created_at) = :date AND payment_status = 'paid'", $rParams, $branchId);
+        $revenue = (float)Database::value($revSql, $rParams, 'total', 0.00);
 
-        $pendingBillsCount = Database::row("SELECT COUNT(*) as count FROM billing WHERE payment_status IN ('unpaid', 'partial')" . ($branchId ? " AND branch_id = {$branchId}" : ""))['count'] ?? 0;
+        $bParams = [];
+        $pendingBillsSql = Database::scopeToBranch("SELECT COUNT(*) as count FROM billing WHERE payment_status IN ('unpaid', 'partial')", $bParams, $branchId);
+        $pendingBillsCount = Database::count($pendingBillsSql, $bParams);
 
         // Fetch active queue
-        $qSql = "SELECT a.*, p.name as patient_name, u.username as doctor_name 
+        $qParams = ['date' => $date];
+        $qSql = Database::scopeToBranch(
+            "SELECT a.*, p.name as patient_name, u.username as doctor_name 
                  FROM appointments a 
                  JOIN patients p ON a.patient_id = p.id
                  JOIN users u ON a.doctor_id = u.id
-                 WHERE a.date = :date AND a.status = 'approved' AND a.queue_status IN ('waiting', 'in_consultation')";
-        $qParams = ['date' => $date];
-        if ($branchId) {
-            $qSql .= " AND a.branch_id = :branch_id";
-            $qParams['branch_id'] = $branchId;
-        }
+                 WHERE a.date = :date AND a.status = 'approved' AND a.queue_status IN ('waiting', 'in_consultation')",
+            $qParams,
+            $branchId,
+            'a.branch_id'
+        );
         $qSql .= " ORDER BY a.token_number ASC LIMIT 10";
         
         $queue = Database::all($qSql, $qParams);
@@ -101,8 +94,7 @@ class ReceptionController
     public function patientsIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $patients = Patient::all($branchId);
         view('admin.patients.index', [
@@ -131,30 +123,13 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token validation failed.');
-            redirect('/reception/patients/create');
-        }
+        Security::requireCsrfToken('/reception/patients/create', 'Security token validation failed.');
 
-        $user = Session::user();
-        $userBranch = $user['branch_id'] ? (int)$user['branch_id'] : null;
-        $postBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1;
-        $branchId = $userBranch ?? $postBranch;
+        $branchId = Session::branchId() ?? (Request::postInt('branch_id') ?? 1);
 
-        $data = [
-            'name' => Security::sanitize($_POST['name'] ?? ''),
-            'email' => Security::sanitize($_POST['email'] ?? ''),
-            'phone' => Security::sanitize($_POST['phone'] ?? ''),
-            'gender' => Security::sanitize($_POST['gender'] ?? 'male'),
-            'dob' => Security::sanitize($_POST['dob'] ?? ''),
-            'blood_group' => Security::sanitize($_POST['blood_group'] ?? ''),
-            'address' => Security::sanitize($_POST['address'] ?? ''),
-            'emergency_contact' => Security::sanitize($_POST['emergency_contact'] ?? ''),
-            'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
-            'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
-            'family_history' => Security::sanitize($_POST['family_history'] ?? ''),
+        $data = array_merge(Request::sanitizedPost(Patient::PROFILE_FIELDS), [
             'branch_id' => $branchId
-        ];
+        ]);
 
         if (empty($data['name']) || empty($data['phone']) || empty($data['dob']) || empty($data['address'])) {
             Session::setFlash('error', 'Name, Phone, DOB, and Address are required.');
@@ -203,24 +178,9 @@ class ReceptionController
         Permission::checkPortal('reception');
         $id = (int)($params['id'] ?? 0);
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/reception/patients/edit/{$id}");
-        }
+        Security::requireCsrfToken("/reception/patients/edit/{$id}");
 
-        $data = [
-            'name' => Security::sanitize($_POST['name'] ?? ''),
-            'email' => Security::sanitize($_POST['email'] ?? ''),
-            'phone' => Security::sanitize($_POST['phone'] ?? ''),
-            'gender' => Security::sanitize($_POST['gender'] ?? 'male'),
-            'dob' => Security::sanitize($_POST['dob'] ?? ''),
-            'blood_group' => Security::sanitize($_POST['blood_group'] ?? ''),
-            'address' => Security::sanitize($_POST['address'] ?? ''),
-            'emergency_contact' => Security::sanitize($_POST['emergency_contact'] ?? ''),
-            'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
-            'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
-            'family_history' => Security::sanitize($_POST['family_history'] ?? '')
-        ];
+        $data = Request::sanitizedPost(Patient::PROFILE_FIELDS);
 
         if (Patient::update($id, $data)) {
             ActivityLogger::log('Patient Updated', "Updated profile details for patient ID {$id}");
@@ -285,19 +245,9 @@ class ReceptionController
     public function showWalkInForm(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
-        $docSql = "SELECT u.id, u.username, b.name as branch_name 
-                   FROM users u
-                   JOIN roles r ON u.role_id = r.id
-                   LEFT JOIN branches b ON u.branch_id = b.id
-                   WHERE r.slug = 'doctor' AND u.status = 'active'";
-        if ($branchId) {
-            $docSql .= " AND u.branch_id = {$branchId}";
-        }
-
-        $doctors = Database::all($docSql);
+        $doctors = User::activeDoctors($branchId);
         $branches = Branch::all();
         $patients = Patient::all($branchId);
 
@@ -316,15 +266,11 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/reception/walk-in');
-        }
+        Security::requireCsrfToken('/reception/walk-in');
 
         $patientId = (int)($_POST['patient_id'] ?? 0);
         $doctorId = (int)($_POST['doctor_id'] ?? 0);
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : (!empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1);
+        $branchId = Session::branchId() ?? (Request::postInt('branch_id') ?? 1);
         $consultationFee = (float)($_POST['consultation_fee'] ?? 500.00);
 
         if ($patientId === 0 || $doctorId === 0) {
@@ -381,8 +327,7 @@ class ReceptionController
     public function queuesList(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $date = date('Y-m-d');
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
@@ -434,8 +379,7 @@ class ReceptionController
     public function ipdIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $admissions = Ipd::getActiveAdmissions($branchId);
         $discharged = Ipd::getDischargedHistory($branchId);
@@ -453,13 +397,10 @@ class ReceptionController
     public function ipdAdmitForm(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $patients = Patient::all($branchId);
-        $doctors = Database::all(
-            "SELECT u.id, u.username FROM users u JOIN roles r ON u.role_id = r.id WHERE r.slug = 'doctor' AND u.status = 'active'"
-        );
+        $doctors = User::activeDoctors();
         $beds = Ipd::getAvailableBeds();
 
         view('admin.ipd.admit', [
@@ -477,10 +418,7 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/reception/ipd/admit');
-        }
+        Security::requireCsrfToken('/reception/ipd/admit');
 
         $data = [
             'patient_id' => (int)($_POST['patient_id'] ?? 0),
@@ -527,8 +465,7 @@ class ReceptionController
     public function billingIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $sql = "SELECT b.*, p.name as patient_name, p.patient_id as patient_code 
                 FROM billing b
@@ -577,10 +514,7 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/reception/billing');
-        }
+        Security::requireCsrfToken('/reception/billing');
 
         $billId = (int)($_POST['bill_id'] ?? 0);
         $method = Security::sanitize($_POST['payment_method'] ?? 'cash');
@@ -656,10 +590,7 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/reception/billing');
-        }
+        Security::requireCsrfToken('/reception/billing');
 
         $billId = (int)($_POST['bill_id'] ?? 0);
         $refundAmount = (float)($_POST['refund_amount'] ?? 0.00);
@@ -682,8 +613,7 @@ class ReceptionController
     public function medicineDispatchIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $pending = Prescription::getPendingMedicineIssues($branchId);
 
@@ -744,8 +674,7 @@ class ReceptionController
     public function dischargeIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $approvedSql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
                                u.username as doctor_name, b.bed_number, r.room_number 
@@ -793,8 +722,7 @@ class ReceptionController
     public function collectionsReport(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $report = Billing::getTodayCollectionsReport($branchId);
 
@@ -810,8 +738,7 @@ class ReceptionController
     public function reportsDashboard(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $report = Billing::getTodayCollectionsReport($branchId);
 
@@ -844,10 +771,7 @@ class ReceptionController
         Permission::checkPortal('reception');
         $userId = (int)Session::get('user_id');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security validation failed.');
-            redirect('/reception/profile');
-        }
+        Security::requireCsrfToken('/reception/profile', 'Security validation failed.');
 
         $password = $_POST['password'] ?? '';
         $confirm = $_POST['password_confirm'] ?? '';
@@ -878,8 +802,7 @@ class ReceptionController
     public function followupsIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $tab = $_GET['tab'] ?? 'due';
         $followups = \App\Models\Followup::getList($branchId, $tab);
@@ -899,8 +822,7 @@ class ReceptionController
     public function leadsIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $status = $_GET['status'] ?? 'all';
         $search = $_GET['search'] ?? null;
@@ -922,13 +844,9 @@ class ReceptionController
     public function saveLead(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/reception/leads');
-        }
+        Security::requireCsrfToken('/reception/leads');
 
         $data = [
             'branch_id' => $branchId,
@@ -993,8 +911,7 @@ class ReceptionController
     public function attendanceIndex(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $date = $_GET['date'] ?? date('Y-m-d');
         $roster = \App\Models\Attendance::getDailyRoster($date, $branchId);
@@ -1014,13 +931,9 @@ class ReceptionController
     public function markAttendance(): void
     {
         Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/reception/attendance');
-        }
+        Security::requireCsrfToken('/reception/attendance');
 
         $userId = (int)($_POST['user_id'] ?? 0);
         $date = $_POST['date'] ?? date('Y-m-d');

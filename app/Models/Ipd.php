@@ -9,6 +9,15 @@ use App\Helpers\Logger;
 class Ipd
 {
     /**
+     * Join chain shared by every admission lookup (patient, doctor, bed, room).
+     */
+    private const ADMISSION_JOINS = "FROM ipd_admissions a
+                JOIN patients p ON a.patient_id = p.id
+                JOIN users u ON a.doctor_id = u.id
+                JOIN ipd_beds b ON a.bed_id = b.id
+                JOIN ipd_rooms r ON b.room_id = r.id";
+
+    /**
      * Retrieve all active rooms and their associated bed capacities.
      */
     public static function getRooms(): array
@@ -41,18 +50,11 @@ class Ipd
     {
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone,
                        u.username as doctor_name, b.bed_number, r.room_number, r.type as room_type 
-                FROM ipd_admissions a
-                JOIN patients p ON a.patient_id = p.id
-                JOIN users u ON a.doctor_id = u.id
-                JOIN ipd_beds b ON a.bed_id = b.id
-                JOIN ipd_rooms r ON b.room_id = r.id
+                " . self::ADMISSION_JOINS . "
                 WHERE a.status = 'admitted'";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " AND p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'p.branch_id');
 
         $sql .= " ORDER BY a.admission_date DESC";
         return Database::all($sql, $params);
@@ -65,18 +67,11 @@ class Ipd
     {
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code,
                        u.username as doctor_name, b.bed_number, r.room_number 
-                FROM ipd_admissions a
-                JOIN patients p ON a.patient_id = p.id
-                JOIN users u ON a.doctor_id = u.id
-                JOIN ipd_beds b ON a.bed_id = b.id
-                JOIN ipd_rooms r ON b.room_id = r.id
+                " . self::ADMISSION_JOINS . "
                 WHERE a.status = 'discharged'";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " AND p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'p.branch_id');
 
         $sql .= " ORDER BY a.discharge_date DESC";
         return Database::all($sql, $params);
@@ -90,11 +85,7 @@ class Ipd
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone, 
                        p.dob, p.gender, p.blood_group, p.allergies, p.address, p.branch_id as branch_id,
                        u.username as doctor_name, b.bed_number, r.room_number, r.price_per_day, r.type as room_type 
-                FROM ipd_admissions a
-                JOIN patients p ON a.patient_id = p.id
-                JOIN users u ON a.doctor_id = u.id
-                JOIN ipd_beds b ON a.bed_id = b.id
-                JOIN ipd_rooms r ON b.room_id = r.id
+                " . self::ADMISSION_JOINS . "
                 WHERE a.id = :id LIMIT 1";
         return Database::row($sql, ['id' => $id]);
     }

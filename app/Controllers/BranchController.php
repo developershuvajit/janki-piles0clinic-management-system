@@ -42,10 +42,7 @@ class BranchController
     {
         Permission::check('manage_branches');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security verification expired.');
-            redirect('/admin/branches/create');
-        }
+        Security::requireCsrfToken('/admin/branches/create', 'Security verification expired.');
 
         $data = [
             'name' => Security::sanitize($_POST['name'] ?? ''),
@@ -120,10 +117,7 @@ class BranchController
             redirect('/admin/branches');
         }
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security verification expired.');
-            redirect("/admin/branches/edit/{$id}");
-        }
+        Security::requireCsrfToken("/admin/branches/edit/{$id}", 'Security verification expired.');
 
         $data = [
             'name' => Security::sanitize($_POST['name'] ?? ''),

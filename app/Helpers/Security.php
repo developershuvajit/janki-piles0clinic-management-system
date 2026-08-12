@@ -30,6 +30,19 @@ class Security
     }
 
     /**
+     * Verify the submitted CSRF token, or flash an error and redirect away.
+     */
+    public static function requireCsrfToken(string $redirectPath, string $message = 'Security token expired.'): void
+    {
+        if (self::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            return;
+        }
+
+        Session::setFlash('error', $message);
+        redirect($redirectPath);
+    }
+
+    /**
      * Recursively sanitizes user input (removes tags, trims whitespace).
      */
     public static function sanitize(mixed $data): mixed

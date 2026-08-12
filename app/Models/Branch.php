@@ -90,25 +90,27 @@ class Branch
     public static function getBranchStats(int $branchId): array
     {
         // 1. Patient Count
-        $patientCount = Database::row(
+        $patientCount = Database::count(
             "SELECT COUNT(*) as count FROM patients WHERE branch_id = :branch_id", 
             ['branch_id' => $branchId]
-        )['count'] ?? 0;
+        );
         
         // 2. Doctor Count
-        $doctorCount = Database::row(
+        $doctorCount = Database::count(
             "SELECT COUNT(u.id) as count 
              FROM users u 
              JOIN roles r ON u.role_id = r.id 
              WHERE u.branch_id = :branch_id AND r.slug = 'doctor' AND u.status = 'active'", 
             ['branch_id' => $branchId]
-        )['count'] ?? 0;
+        );
         
         // 3. Total Branch Revenue (aggregating paid billing)
-        $revenue = Database::row(
+        $revenue = Database::value(
             "SELECT SUM(paid_amount) as total FROM billing WHERE branch_id = :branch_id AND payment_status = 'paid'", 
-            ['branch_id' => $branchId]
-        )['total'] ?? 0.00;
+            ['branch_id' => $branchId],
+            'total',
+            0.00
+        );
 
         // 4. Doctors List for the branch
         $doctors = Database::all(

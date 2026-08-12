@@ -9,6 +9,9 @@ use App\Helpers\Security;
 use App\Helpers\ActivityLogger;
 use App\Helpers\Database;
 use App\Helpers\Email;
+use App\Helpers\LoginHistory;
+use App\Helpers\Logger;
+use App\Helpers\Request;
 
 class AuthController
 {
@@ -55,11 +58,10 @@ class AuthController
      */
     public function login(): void
     {
-        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
-            || ($_POST['ajax'] ?? '') === '1';
+        $isAjax = Request::isAjax();
 
         // 0. Rate limiting — max 5 attempts per 5 minutes per IP
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $ip = Request::clientIp();
         $rateLimitKey = 'login_' . preg_replace('/[^0-9a-f_]/', '_', hash('sha256', $ip));
         if (Security::rateLimit($rateLimitKey, 5, 300)) {
             $errorMsg = 'Too many login attempts. Please wait 5 minutes and try again.';
@@ -103,20 +105,7 @@ class AuthController
             Session::login($user, $rememberMe);
             
             // Log successful attempt in database audit
-            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-            $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
-            try {
-                Database::execute(
-                    "INSERT INTO login_history (user_id, ip_address, user_agent, logged_in_at) VALUES (:user_id, :ip, :ua, NOW())",
-                    [
-                        'user_id' => $user['id'],
-                        'ip' => $ip,
-                        'ua' => substr($ua, 0, 255)
-                    ]
-                );
-            } catch (\Throwable $e) {
-                // Fail silently for history insertion
-            }
+            LoginHistory::recordLogin((int)$user['id']);
 
             ActivityLogger::log('User Login', "User {$username} logged in successfully from IP: {$ip}.", (int)$user['id']);
             Security::rateLimitClear($rateLimitKey); // Clear failed attempts on success
@@ -214,10 +203,7 @@ class AuthController
      */
     public function sendOtp(): void
     {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security validation expired. Please try again.');
-            redirect('/forgot-password');
-        }
+        Security::requireCsrfToken('/forgot-password', 'Security validation expired. Please try again.');
 
         $email = Security::sanitize($_POST['email'] ?? '');
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -288,10 +274,7 @@ class AuthController
      */
     public function verifyOtp(): void
     {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security validation expired.');
-            redirect('/verify-otp');
-        }
+        Security::requireCsrfToken('/verify-otp', 'Security validation expired.');
 
         $email = Session::get('reset_email');
         $code = trim($_POST['otp_code'] ?? '');
@@ -351,10 +334,7 @@ class AuthController
      */
     public function resetPassword(): void
     {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security validation expired.');
-            redirect('/reset-password');
-        }
+        Security::requireCsrfToken('/reset-password', 'Security validation expired.');
 
         $userId = Session::get('reset_user_id');
         $password = $_POST['password'] ?? '';

@@ -131,10 +131,7 @@ class Prescription
                 WHERE pm.issued_status = 'pending'";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " AND p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'p.branch_id');
 
         $sql .= " ORDER BY pm.id DESC";
         return Database::all($sql, $params);

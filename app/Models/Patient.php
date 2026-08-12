@@ -10,6 +10,25 @@ use App\Helpers\Logger;
 class Patient
 {
     /**
+     * Editable patient profile fields mapped to their default values.
+     *
+     * @var array<string, string>
+     */
+    public const PROFILE_FIELDS = [
+        'name' => '',
+        'email' => '',
+        'phone' => '',
+        'gender' => 'male',
+        'dob' => '',
+        'blood_group' => '',
+        'address' => '',
+        'emergency_contact' => '',
+        'allergies' => '',
+        'medical_history' => '',
+        'family_history' => ''
+    ];
+
+    /**
      * Retrieve all patients.
      */
     public static function all(?int $branchId = null): array
@@ -19,10 +38,7 @@ class Patient
                 LEFT JOIN branches b ON p.branch_id = b.id";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " WHERE p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'p.branch_id');
         
         $sql .= " ORDER BY p.id DESC";
         return Database::all($sql, $params);
@@ -66,10 +82,7 @@ class Patient
                    OR p.patient_id LIKE :q)";
         
         $params = ['q' => '%' . $query . '%'];
-        if ($branchId !== null) {
-            $sql .= " AND p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'p.branch_id');
 
         $sql .= " ORDER BY p.name ASC LIMIT 25";
         return Database::all($sql, $params);

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Helpers\Session;
 use App\Helpers\Security;
 use App\Models\Treatment;
+use App\Models\User;
 
 class TreatmentController
 {
@@ -18,12 +19,7 @@ class TreatmentController
         $treatments = Treatment::all();
         
         // Fetch all doctors to assign
-        $doctors = \App\Helpers\Database::all("
-            SELECT u.id, u.username 
-            FROM users u 
-            JOIN roles r ON u.role_id = r.id 
-            WHERE r.slug = 'doctor' AND u.status = 'active'
-        ");
+        $doctors = User::activeDoctors();
 
         include VIEWS_PATH . '/admin/cms/treatments.php';
     }
@@ -34,11 +30,7 @@ class TreatmentController
     public static function save(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/treatments');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/treatments', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;

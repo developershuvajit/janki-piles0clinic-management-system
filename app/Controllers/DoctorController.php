@@ -26,37 +26,36 @@ class DoctorController
         Permission::checkPortal('doctor');
         
         $doctorId = (int)Session::get('user_id');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
         $date = date('Y-m-d');
         
         $queue = Appointment::getDoctorQueue($doctorId, $date);
         
         // Retrieve statistics aggregates
-        $opdTodayCount = Database::row(
+        $opdTodayCount = Database::count(
             "SELECT COUNT(*) as count FROM appointments WHERE doctor_id = :doc AND date = :date", 
             ['doc' => $doctorId, 'date' => $date]
-        )['count'] ?? 0;
+        );
 
-        $completedCount = Database::row(
+        $completedCount = Database::count(
             "SELECT COUNT(*) as count FROM appointments WHERE doctor_id = :doc AND date = :date AND status = 'completed'", 
             ['doc' => $doctorId, 'date' => $date]
-        )['count'] ?? 0;
+        );
         
         $ipdCount = count(Database::all(
             "SELECT id FROM ipd_admissions WHERE doctor_id = :doc AND status = 'admitted'",
             ['doc' => $doctorId]
         ));
 
-        $pendingDischarges = Database::row(
+        $pendingDischarges = Database::count(
             "SELECT COUNT(*) as count FROM ipd_admissions WHERE doctor_id = :doc AND status = 'admitted' AND discharge_approval = 'pending'",
             ['doc' => $doctorId]
-        )['count'] ?? 0;
+        );
 
-        $followUpsCount = Database::row(
+        $followUpsCount = Database::count(
             "SELECT COUNT(*) as count FROM prescriptions WHERE doctor_id = :doc AND follow_up_date = :date",
             ['doc' => $doctorId, 'date' => $date]
-        )['count'] ?? 0;
+        );
 
         $pendingCount = count(array_filter($queue, function($q) {
             return $q['queue_status'] === 'waiting' || $q['queue_status'] === 'in_consultation';
@@ -94,8 +93,7 @@ class DoctorController
     public function patientsIndex(): void
     {
         Permission::checkPortal('doctor');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $patients = Patient::all($branchId);
         view('admin.doctor.patients', [
@@ -184,10 +182,7 @@ class DoctorController
     {
         Permission::checkPortal('doctor');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/doctor');
-        }
+        Security::requireCsrfToken('/doctor');
 
         $apptId = (int)($_POST['appointment_id'] ?? 0);
         $appt = Appointment::find($apptId);
@@ -303,10 +298,7 @@ class DoctorController
         Permission::checkPortal('doctor');
         $id = (int)($params['id'] ?? 0);
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/doctor/ipd/visit-notes/{$id}");
-        }
+        Security::requireCsrfToken("/doctor/ipd/visit-notes/{$id}");
 
         $data = [
             'temp' => Security::sanitize($_POST['vit_temp'] ?? ''),
@@ -357,10 +349,7 @@ class DoctorController
         $id = (int)($params['id'] ?? 0);
         $doctorId = (int)Session::get('user_id');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/doctor/ipd/procedure-notes/{$id}");
-        }
+        Security::requireCsrfToken("/doctor/ipd/procedure-notes/{$id}");
 
         $data = [
             'name' => Security::sanitize($_POST['name'] ?? ''),
@@ -453,10 +442,7 @@ class DoctorController
     {
         Permission::checkPortal('doctor');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/doctor/discharge');
-        }
+        Security::requireCsrfToken('/doctor/discharge');
 
         $admissionId = (int)($_POST['ipd_admission_id'] ?? 0);
 
@@ -525,8 +511,7 @@ class DoctorController
     public function createPrescriptionForm(): void
     {
         Permission::checkPortal('doctor');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $branchId = Session::branchId();
 
         $patients = Patient::all($branchId);
         $medicines = Inventory::getMedicines();
@@ -545,10 +530,7 @@ class DoctorController
     {
         Permission::checkPortal('doctor');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/doctor/prescriptions/create');
-        }
+        Security::requireCsrfToken('/doctor/prescriptions/create');
 
         $patientId = (int)($_POST['patient_id'] ?? 0);
         $doctorId = (int)Session::get('user_id');
@@ -676,20 +658,20 @@ class DoctorController
         Permission::checkPortal('doctor');
         $doctorId = (int)Session::get('user_id');
 
-        $monthlyOpd = Database::row(
+        $monthlyOpd = Database::count(
             "SELECT COUNT(*) as count FROM appointments WHERE doctor_id = :doc AND MONTH(date) = MONTH(CURRENT_DATE())",
             ['doc' => $doctorId]
-        )['count'] ?? 0;
+        );
 
-        $monthlyIpd = Database::row(
+        $monthlyIpd = Database::count(
             "SELECT COUNT(*) as count FROM ipd_admissions WHERE doctor_id = :doc AND MONTH(created_at) = MONTH(CURRENT_DATE())",
             ['doc' => $doctorId]
-        )['count'] ?? 0;
+        );
 
-        $totalConsultations = Database::row(
+        $totalConsultations = Database::count(
             "SELECT COUNT(*) as count FROM prescriptions WHERE doctor_id = :doc",
             ['doc' => $doctorId]
-        )['count'] ?? 0;
+        );
 
         view('admin.doctor.reports', [
             'title' => 'Doctor Clinical Activity Reports',
@@ -724,10 +706,7 @@ class DoctorController
         Permission::checkPortal('doctor');
         $userId = (int)Session::get('user_id');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/doctor/profile');
-        }
+        Security::requireCsrfToken('/doctor/profile');
 
         $qualification = Security::sanitize($_POST['qualification'] ?? '');
         $experience = Security::sanitize($_POST['experience'] ?? '');

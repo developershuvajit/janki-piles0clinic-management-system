@@ -21,10 +21,7 @@ class Appointment
                 JOIN branches b ON a.branch_id = b.id";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " WHERE a.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'a.branch_id');
 
         $sql .= " ORDER BY a.date DESC, a.time_slot ASC";
         return Database::all($sql, $params);

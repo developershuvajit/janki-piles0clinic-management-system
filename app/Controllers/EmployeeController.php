@@ -52,10 +52,7 @@ class EmployeeController
     {
         Permission::check('manage_employees');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/admin/employees/create');
-        }
+        Security::requireCsrfToken('/admin/employees/create');
 
         $data = [
             'username' => Security::sanitize($_POST['username'] ?? ''),
@@ -168,10 +165,7 @@ class EmployeeController
             redirect('/admin/employees');
         }
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/admin/employees/edit/{$id}");
-        }
+        Security::requireCsrfToken("/admin/employees/edit/{$id}");
 
         $data = [
             'username' => Security::sanitize($_POST['username'] ?? ''),
@@ -333,10 +327,7 @@ class EmployeeController
     {
         Permission::check('record_attendance');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/admin/employees/attendance');
-        }
+        Security::requireCsrfToken('/admin/employees/attendance');
 
         $date = $_POST['date'] ?? date('Y-m-d');
         $status = $_POST['status'] ?? [];

@@ -21,10 +21,7 @@ class Employee
                 LEFT JOIN branches b ON u.branch_id = b.id";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " WHERE u.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'u.branch_id');
 
         $sql .= " ORDER BY e.id DESC";
         return Database::all($sql, $params);

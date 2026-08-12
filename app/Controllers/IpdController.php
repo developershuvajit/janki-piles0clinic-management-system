@@ -7,6 +7,7 @@ use App\Models\Ipd;
 use App\Models\Patient;
 use App\Models\Branch;
 use App\Models\Billing;
+use App\Models\User;
 use App\Helpers\Session;
 use App\Helpers\Security;
 use App\Helpers\Permission;
@@ -42,11 +43,7 @@ class IpdController
         
         $patients = Patient::all();
         $beds = Ipd::getAvailableBeds();
-        $doctors = Database::all(
-            "SELECT u.id, u.username FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE r.slug = 'doctor' AND u.status = 'active'"
-        );
+        $doctors = User::activeDoctors();
 
         view('admin.ipd.admit', [
             'title' => 'Admit Inpatient',
@@ -63,10 +60,7 @@ class IpdController
     {
         Permission::check('manage_ipd');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/admin/ipd/admit');
-        }
+        Security::requireCsrfToken('/admin/ipd/admit');
 
         $data = [
             'patient_id' => (int)($_POST['patient_id'] ?? 0),
@@ -110,11 +104,7 @@ class IpdController
         $procedures = Ipd::getProcedures($id);
         
         // List of doctors for procedurals selector
-        $doctors = Database::all(
-            "SELECT u.id, u.username FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE r.slug = 'doctor' AND u.status = 'active'"
-        );
+        $doctors = User::activeDoctors();
 
         view('admin.ipd.nursing_logs', [
             'title' => 'Clinical Charts - Admission #' . $id,
@@ -133,10 +123,7 @@ class IpdController
         Permission::check('manage_ipd');
         $id = (int)($params['id'] ?? 0);
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/admin/ipd/nursing-logs/{$id}");
-        }
+        Security::requireCsrfToken("/admin/ipd/nursing-logs/{$id}");
 
         $data = [
             'temp' => Security::sanitize($_POST['temp'] ?? ''),
@@ -168,10 +155,7 @@ class IpdController
         Permission::check('manage_ipd');
         $id = (int)($params['id'] ?? 0);
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/admin/ipd/nursing-logs/{$id}");
-        }
+        Security::requireCsrfToken("/admin/ipd/nursing-logs/{$id}");
 
         $data = [
             'name' => Security::sanitize($_POST['procedure_name'] ?? ''),
