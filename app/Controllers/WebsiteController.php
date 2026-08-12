@@ -159,14 +159,31 @@ class WebsiteController
     public static function saveComment(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Security::verifyRequestToken()) {
+                Session::setFlash('error', 'Security validation failed. Please refresh the page and try again.');
+                redirect('/blog');
+            }
+
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            if (Security::rateLimit('comment_' . hash('sha256', $ip), 5, 600)) {
+                Session::setFlash('error', 'Too many submissions. Please try again later.');
+                redirect('/blog');
+            }
+
             $blogId = (int)($_POST['blog_id'] ?? 0);
             $blog = Blog::getBlog($blogId);
             if ($blog) {
+                $email = Security::sanitize(trim($_POST['author_email'] ?? ''));
+                if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    Session::setFlash('error', 'Please enter a valid email address.');
+                    redirect('/blog/' . $blog['slug']);
+                }
+
                 Blog::addComment([
                     'blog_id' => $blogId,
-                    'author_name' => trim($_POST['author_name'] ?? 'Anonymous'),
-                    'author_email' => trim($_POST['author_email'] ?? ''),
-                    'comment_text' => trim($_POST['comment_text'] ?? ''),
+                    'author_name' => Security::sanitize(trim($_POST['author_name'] ?? '')) ?: 'Anonymous',
+                    'author_email' => $email,
+                    'comment_text' => mb_substr(Security::sanitize(trim($_POST['comment_text'] ?? '')), 0, 2000),
                     'status' => 'pending'
                 ]);
                 Session::setFlash('success', 'Your comment has been submitted and is pending moderation approval.');
@@ -192,12 +209,37 @@ class WebsiteController
     public static function saveEnquiry(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!Security::verifyRequestToken()) {
+                Session::setFlash('error', 'Security validation failed. Please refresh the page and try again.');
+                redirect('/contact');
+            }
+
+            $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+            if (Security::rateLimit('enquiry_' . hash('sha256', $ip), 5, 600)) {
+                Session::setFlash('error', 'Too many submissions. Please try again later.');
+                redirect('/contact');
+            }
+
+            $name = Security::sanitize(trim($_POST['name'] ?? ''));
+            $phone = Security::sanitize(trim($_POST['phone'] ?? ''));
+            $email = Security::sanitize(trim($_POST['email'] ?? ''));
+
+            if ($name === '' || $phone === '') {
+                Session::setFlash('error', 'Name and phone number are required.');
+                redirect('/contact');
+            }
+
+            if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                Session::setFlash('error', 'Please enter a valid email address.');
+                redirect('/contact');
+            }
+
             Enquiry::create([
-                'name' => trim($_POST['name'] ?? ''),
-                'email' => trim($_POST['email'] ?? ''),
-                'phone' => trim($_POST['phone'] ?? ''),
-                'subject' => trim($_POST['subject'] ?? 'Website Inquiry'),
-                'message' => trim($_POST['message'] ?? '')
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'subject' => Security::sanitize(trim($_POST['subject'] ?? '')) ?: 'Website Inquiry',
+                'message' => mb_substr(Security::sanitize(trim($_POST['message'] ?? '')), 0, 2000)
             ]);
             Session::setFlash('success', 'Your inquiry has been received! Our clinical coordinator will reach out to you shortly.');
         }

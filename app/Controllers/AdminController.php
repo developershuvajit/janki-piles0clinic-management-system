@@ -8,9 +8,6 @@ use App\Helpers\Security;
 use App\Helpers\ConfigHelper;
 use App\Helpers\Database;
 use App\Helpers\ActivityLogger;
-use App\Helpers\PDFHelper;
-use App\Helpers\QRHelper;
-use App\Helpers\Upload;
 
 class AdminController
 {
@@ -139,68 +136,4 @@ class AdminController
         ]);
     }
 
-    /**
-     * Verify PDF generation wrapper by downloading a test report.
-     */
-    public function pdfTest(): void
-    {
-        $user = Session::user();
-        $title = "Clinic System Foundation Verification";
-        
-        $content = "This document validates that the PDF Library (FPDF Wrapper) is correctly initialized.\n\n"
-            . "System Details:\n"
-            . "- User context: " . ($user['username'] ?? 'unknown') . "\n"
-            . "- Timestamp: " . date('Y-m-d H:i:s') . "\n"
-            . "- Environment: " . ($_ENV['APP_ENV'] ?? 'development') . "\n"
-            . "- Host URL: " . site_url() . "\n\n"
-            . "Database configuration and error logging are functioning properly.";
-            
-        PDFHelper::generateSimplePDF($title, $content, 'system_verification_report.pdf', 'I');
-    }
-
-    /**
-     * Verify QR generation by displaying a test page.
-     */
-    public function qrTest(): void
-    {
-        $data = $_GET['data'] ?? site_url('/login');
-        $qrUrl = QRHelper::generate($data);
-        
-        view('admin.qr_test', [
-            'title' => 'QR Code Verification',
-            'qrUrl' => $qrUrl,
-            'data' => $data
-        ]);
-    }
-
-    /**
-     * Verify file upload system via standard post attachment.
-     */
-    public function uploadTest(): void
-    {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security verification failed.');
-            redirect('/admin/dashboard');
-        }
-
-        if (empty($_FILES['test_file']['name'])) {
-            Session::setFlash('error', 'Please choose a file to test upload.');
-            redirect('/admin/dashboard');
-        }
-
-        $uploader = new Upload([
-            'maxSize' => 2 * 1024 * 1024 // Limit test uploads to 2MB
-        ]);
-
-        $result = $uploader->file($_FILES['test_file'], 'test_uploads');
-
-        if ($result['success']) {
-            ActivityLogger::log('File Upload Verification', "Uploaded file saved as: " . $result['saved_as']);
-            Session::setFlash('success', "File uploaded successfully! Hashed path: " . $result['path']);
-        } else {
-            Session::setFlash('error', "Upload failed: " . $result['error']);
-        }
-
-        redirect('/admin/dashboard');
-    }
 }

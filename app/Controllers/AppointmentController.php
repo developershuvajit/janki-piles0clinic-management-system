@@ -190,11 +190,6 @@ public function getSlotsAjax(): void
     $doctorId = (int)($_GET['doctor_id'] ?? 0);
     $date = Security::sanitize($_GET['date'] ?? '');
 
-    // Debug logging
-    error_log("=== getSlotsAjax called ===");
-    error_log("Doctor ID: " . $doctorId);
-    error_log("Date: " . $date);
-
     if ($doctorId === 0 || empty($date)) {
         echo json_encode(['success' => false, 'slots' => [], 'message' => 'Doctor ID and date required']);
         return;
@@ -202,7 +197,6 @@ public function getSlotsAjax(): void
 
     // Get day of week
     $dayOfWeek = date('l', strtotime($date));
-    error_log("Day of week: " . $dayOfWeek);
 
     // Direct database query to check schedule
     $schedule = Database::row(
@@ -210,11 +204,6 @@ public function getSlotsAjax(): void
          WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
         ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
     );
-    
-    error_log("Schedule found: " . ($schedule ? 'Yes' : 'No'));
-    if ($schedule) {
-        error_log("Schedule: " . print_r($schedule, true));
-    }
 
     // If no schedule found, return empty
     if (!$schedule) {
@@ -228,17 +217,10 @@ public function getSlotsAjax(): void
 
     // Get slots using the model
     $slots = Appointment::getAvailableSlots($doctorId, $date);
-    
-    error_log("Slots generated: " . count($slots));
-    
+
     echo json_encode([
         'success' => true,
-        'slots' => $slots,
-        'debug' => [
-            'day' => $dayOfWeek,
-            'schedule' => $schedule,
-            'slots_count' => count($slots)
-        ]
+        'slots' => $slots
     ]);
 }
 

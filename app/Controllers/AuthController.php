@@ -219,6 +219,12 @@ class AuthController
             redirect('/forgot-password');
         }
 
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        if (Security::rateLimit('otp_request_' . hash('sha256', $ip), 5, 900)) {
+            Session::setFlash('error', 'Too many reset requests. Please wait 15 minutes and try again.');
+            redirect('/forgot-password');
+        }
+
         $email = Security::sanitize($_POST['email'] ?? '');
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Session::setFlash('error', 'Please enter a valid email address.');
@@ -235,7 +241,7 @@ class AuthController
         }
 
         // Generate 6-digit OTP code and expiry (15 mins)
-        $otp = sprintf("%06d", mt_rand(0, 999999));
+        $otp = sprintf("%06d", random_int(0, 999999));
         $expiry = date('Y-m-d H:i:s', time() + 900); // 15 mins
 
         try {
@@ -291,6 +297,12 @@ class AuthController
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             Session::setFlash('error', 'Security validation expired.');
             redirect('/verify-otp');
+        }
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        if (Security::rateLimit('otp_verify_' . hash('sha256', $ip), 10, 900)) {
+            Session::setFlash('error', 'Too many verification attempts. Please request a new code later.');
+            redirect('/forgot-password');
         }
 
         $email = Session::get('reset_email');

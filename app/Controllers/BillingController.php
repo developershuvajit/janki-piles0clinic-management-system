@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Billing;
 use App\Helpers\Session;
 use App\Helpers\Permission;
+use App\Helpers\Security;
 
 class BillingController
 {
@@ -50,10 +51,16 @@ class BillingController
     public function processPayment()
     {
         Permission::check('manage_reception_dashboard');
-        
-        $billId = (int)$_POST['bill_id'];
-        $paidAmt = (float)$_POST['paid_amount'];
-        $method = $_POST['payment_method'];
+
+        $billId = (int)($_POST['bill_id'] ?? 0);
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/billing/collect/' . $billId);
+        }
+
+        $paidAmt = (float)($_POST['paid_amount'] ?? 0);
+        $method = Security::sanitize($_POST['payment_method'] ?? '');
 
         $bill = Billing::find($billId);
         if (!$bill) {
@@ -98,10 +105,16 @@ class BillingController
     public function processRefund()
     {
         Permission::check('manage_reception_dashboard');
-        
-        $billId = (int)$_POST['bill_id'];
-        $refAmt = (float)$_POST['refund_amount'];
-        $reason = trim($_POST['refund_reason']);
+
+        $billId = (int)($_POST['bill_id'] ?? 0);
+
+        if (!Security::verifyRequestToken()) {
+            Session::setFlash('error', 'Security validation failed. Please refresh and try again.');
+            redirect('/admin/billing/refund/' . $billId);
+        }
+
+        $refAmt = (float)($_POST['refund_amount'] ?? 0);
+        $reason = Security::sanitize(trim($_POST['refund_reason'] ?? ''));
 
         if ($refAmt <= 0.00) {
             Session::setFlash('error', 'Please enter a valid refund amount.');
@@ -122,6 +135,8 @@ class BillingController
      */
     public function receiptPrint($id)
     {
+        Permission::check('manage_reception_dashboard');
+
         $bill = Billing::find((int)$id);
         if (!$bill) {
             Session::setFlash('error', 'Receipt not found.');
