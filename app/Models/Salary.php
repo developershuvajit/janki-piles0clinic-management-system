@@ -20,10 +20,7 @@ class Salary
                 WHERE s.month_year = :month_year";
         
         $params = ['month_year' => $monthYear];
-        if ($branchId !== null) {
-            $sql .= " AND u.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'u.branch_id');
 
         $sql .= " ORDER BY u.username ASC";
         return Database::all($sql, $params);
@@ -44,10 +41,7 @@ class Salary
                       AND e.id NOT IN (SELECT employee_id FROM employee_salaries WHERE month_year = :month_year)";
             
             $params = ['month_year' => $monthYear];
-            if ($branchId !== null) {
-                $sql .= " AND u.branch_id = :branch_id";
-                $params['branch_id'] = $branchId;
-            }
+            $sql = Database::scopeToBranch($sql, $params, $branchId, 'u.branch_id');
 
             $employees = Database::all($sql, $params);
             

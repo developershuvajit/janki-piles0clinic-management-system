@@ -25,11 +25,7 @@ class BlogController
     public static function save(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/blogs');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/blogs', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;

@@ -475,10 +475,7 @@ public function attendanceReport()
                     WHERE u.status = 'active'";
     
     $employeesParams = [];
-    if ($branchId !== null) {
-        $employeesSql .= " AND u.branch_id = :branch_id";
-        $employeesParams['branch_id'] = $branchId;
-    }
+    $employeesSql = Database::scopeToBranch($employeesSql, $employeesParams, $branchId, 'u.branch_id');
     $employeesSql .= " ORDER BY u.username ASC";
     
     $allEmployees = Database::all($employeesSql, $employeesParams);
@@ -504,10 +501,7 @@ public function attendanceReport()
     }
     
     // Branch filter for attendance
-    if ($branchId !== null) {
-        $attendanceSql .= " AND e.branch_id = :branch_id";
-        $attendanceParams['branch_id'] = $branchId;
-    }
+    $attendanceSql = Database::scopeToBranch($attendanceSql, $attendanceParams, $branchId, 'e.branch_id');
     
     $attendanceSql .= " ORDER BY e.id ASC";
     $attendanceRecords = Database::all($attendanceSql, $attendanceParams);

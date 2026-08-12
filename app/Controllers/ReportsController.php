@@ -30,10 +30,7 @@ class ReportsController
                    JOIN branches b ON bi.branch_id = b.id
                    WHERE bi.payment_status = 'paid'";
         $revParams = [];
-        if ($branchId !== null) {
-            $revSql .= " AND bi.branch_id = :branch_id";
-            $revParams['branch_id'] = $branchId;
-        }
+        $revSql = Database::scopeToBranch($revSql, $revParams, $branchId, 'bi.branch_id');
         $revSql .= " GROUP BY b.id, b.name";
         $revenueData = Database::all($revSql, $revParams);
 
@@ -42,10 +39,7 @@ class ReportsController
                    FROM appointments a
                    JOIN users u ON a.doctor_id = u.id";
         $docParams = [];
-        if ($branchId !== null) {
-            $docSql .= " WHERE a.branch_id = :branch_id";
-            $docParams['branch_id'] = $branchId;
-        }
+        $docSql = Database::scopeToBranch($docSql, $docParams, $branchId, 'a.branch_id');
         $docSql .= " GROUP BY u.id, u.username ORDER BY value DESC LIMIT 5";
         $doctorStats = Database::all($docSql, $docParams);
 
@@ -63,10 +57,7 @@ class ReportsController
                     COUNT(id) as value 
                    FROM patients";
         $patParams = [];
-        if ($branchId !== null) {
-            $patSql .= " WHERE branch_id = :branch_id";
-            $patParams['branch_id'] = $branchId;
-        }
+        $patSql = Database::scopeToBranch($patSql, $patParams, $branchId);
         $patSql .= " GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b %Y') 
                      ORDER BY DATE_FORMAT(created_at, '%Y-%m') ASC LIMIT 6";
         $patientStats = Database::all($patSql, $patParams);

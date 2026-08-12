@@ -90,24 +90,29 @@ class Followup
     public static function getMetrics(?int $branchId = null): array
     {
         $today = date('Y-m-d');
-        $params = ['today' => $today];
         $branchClause = "";
+        $branchParams = [];
 
         if ($branchId !== null) {
             $branchClause = " AND (branch_id = :branch_id OR branch_id IS NULL)";
-            $params['branch_id'] = $branchId;
+            $branchParams['branch_id'] = $branchId;
         }
 
-        $due = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE next_visit_date = :today AND status != 'completed'" . $branchClause, $params)['c'] ?? 0;
-        $upcoming = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE next_visit_date > :today AND status != 'completed'" . $branchClause, $params)['c'] ?? 0;
-        $missed = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE next_visit_date < :today AND status != 'completed'" . $branchClause, $params)['c'] ?? 0;
-        $completed = Database::row("SELECT COUNT(*) as c FROM patient_followups WHERE status = 'completed'" . ($branchId ? " AND (branch_id = {$branchId} OR branch_id IS NULL)" : ""), [])['c'] ?? 0;
+        $countBy = static function (string $condition, array $params = []) use ($branchClause, $branchParams): int {
+            return (int)Database::value(
+                "SELECT COUNT(*) as c FROM patient_followups WHERE {$condition}" . $branchClause,
+                array_merge($branchParams, $params),
+                'c'
+            );
+        };
+
+        $pending = "status != 'completed'";
 
         return [
-            'due' => (int)$due,
-            'upcoming' => (int)$upcoming,
-            'missed' => (int)$missed,
-            'completed' => (int)$completed
+            'due' => $countBy("next_visit_date = :today AND {$pending}", ['today' => $today]),
+            'upcoming' => $countBy("next_visit_date > :today AND {$pending}", ['today' => $today]),
+            'missed' => $countBy("next_visit_date < :today AND {$pending}", ['today' => $today]),
+            'completed' => $countBy("status = 'completed'")
         ];
     }
 }

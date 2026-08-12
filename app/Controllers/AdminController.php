@@ -95,10 +95,7 @@ class AdminController
      */
     public function saveSettings(): void
     {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token validation expired. Please try again.');
-            redirect('/admin/settings');
-        }
+        Security::requireCsrfToken('/admin/settings', 'Security token validation expired. Please try again.');
 
         $fields = [
             'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure', 
@@ -178,10 +175,7 @@ class AdminController
      */
     public function uploadTest(): void
     {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security verification failed.');
-            redirect('/admin/dashboard');
-        }
+        Security::requireCsrfToken('/admin/dashboard', 'Security verification failed.');
 
         if (empty($_FILES['test_file']['name'])) {
             Session::setFlash('error', 'Please choose a file to test upload.');

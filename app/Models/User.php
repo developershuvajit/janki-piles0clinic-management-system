@@ -47,6 +47,22 @@ class User
     }
 
     /**
+     * Active doctors, optionally limited to a single branch.
+     */
+    public static function activeDoctors(?int $branchId = null): array
+    {
+        $sql = "SELECT u.id, u.username, b.name as branch_name 
+                FROM users u
+                JOIN roles r ON u.role_id = r.id
+                LEFT JOIN branches b ON u.branch_id = b.id
+                WHERE r.slug = 'doctor' AND u.status = 'active'";
+        $params = [];
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'u.branch_id');
+
+        return Database::all($sql . " ORDER BY u.username ASC", $params);
+    }
+
+    /**
      * Update a user's password.
      */
     public static function updatePassword(int $userId, string $newPassword): bool

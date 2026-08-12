@@ -31,10 +31,7 @@ class Attendance
                 WHERE u.status = 'active'";
         $params = ['date' => $date];
 
-        if ($branchId !== null) {
-            $sql .= " AND u.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'u.branch_id');
 
         $sql .= " ORDER BY u.username ASC";
         return Database::all($sql, $params);
@@ -211,10 +208,7 @@ class Attendance
                 LEFT JOIN roles r ON u.role_id = r.id";
         $params = [];
 
-        if ($branchId !== null) {
-            $sql .= " WHERE u.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'u.branch_id');
 
         $sql .= " ORDER BY l.created_at DESC";
         return Database::all($sql, $params);

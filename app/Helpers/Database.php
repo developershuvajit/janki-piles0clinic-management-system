@@ -81,6 +81,40 @@ class Database
     }
 
     /**
+     * Fetch a single aggregate value, falling back to a default when absent.
+     */
+    public static function value(string $sql, array $params = [], string $column = 'count', mixed $default = 0): mixed
+    {
+        $row = self::row($sql, $params);
+        return $row[$column] ?? $default;
+    }
+
+    /**
+     * Fetch a "SELECT COUNT(*) as count ..." style aggregate as an integer.
+     */
+    public static function count(string $sql, array $params = []): int
+    {
+        return (int)self::value($sql, $params);
+    }
+
+    /**
+     * Append a branch scope condition to a query when a branch is given.
+     *
+     * @param array<string, mixed> $params Bound parameters, extended in place.
+     */
+    public static function scopeToBranch(string $sql, array &$params, ?int $branchId, string $column = 'branch_id'): string
+    {
+        if ($branchId === null) {
+            return $sql;
+        }
+
+        $keyword = stripos($sql, ' where ') !== false ? ' AND ' : ' WHERE ';
+        $params['branch_id'] = $branchId;
+
+        return $sql . $keyword . $column . ' = :branch_id';
+    }
+
+    /**
      * Return the last inserted ID.
      */
     public static function lastInsertId(): string

@@ -11,9 +11,8 @@ class Session
     public static function start(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
-            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-                || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-            
+            $secure = Request::isSecure();
+
             // Apply secure cookies session configurations if headers not yet sent (important for CLI/tests)
             if (!headers_sent()) {
                 session_set_cookie_params([
@@ -60,20 +59,7 @@ class Session
             ActivityLogger::log('Session Timeout', "User {$username} was logged out due to inactivity.", $userId);
             
             // Update last logout timestamp in history
-            try {
-                $lastHistory = Database::row(
-                    "SELECT id FROM login_history WHERE user_id = :user_id AND logged_out_at IS NULL ORDER BY id DESC LIMIT 1",
-                    ['user_id' => $userId]
-                );
-                if ($lastHistory) {
-                    Database::execute(
-                        "UPDATE login_history SET logged_out_at = NOW() WHERE id = :id",
-                        ['id' => $lastHistory['id']]
-                    );
-                }
-            } catch (\Throwable $e) {
-                Logger::error("Failed updating history logout timestamp during timeout: " . $e->getMessage());
-            }
+            LoginHistory::closeOpenSession($userId, 'timeout');
 
             self::destroy();
             self::start();
@@ -136,16 +122,7 @@ class Session
                     self::login($user);
                     
                     // Track login audit history
-                    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-                    $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
-                    Database::execute(
-                        "INSERT INTO login_history (user_id, ip_address, user_agent, logged_in_at) VALUES (:user_id, :ip, :ua, NOW())", 
-                        [
-                            'user_id' => $userId,
-                            'ip' => $ip,
-                            'ua' => substr($ua, 0, 255)
-                        ]
-                    );
+                    LoginHistory::recordLogin($userId);
                     
                     ActivityLogger::log('Remember Me Auto-Login', "User {$user['username']} auto-logged in via cookie.", $userId);
                     return;
@@ -165,9 +142,7 @@ class Session
     public static function clearRememberMeCookie(): void
     {
         if (isset($_COOKIE['remember_me'])) {
-            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-                || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-            setcookie('remember_me', '', time() - 3600, '/', '', $secure, true);
+            setcookie('remember_me', '', time() - 3600, '/', '', Request::isSecure(), true);
         }
     }
 
@@ -284,9 +259,7 @@ class Session
                 );
                 
                 // Set cookie for 30 days
-                $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
-                    || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-                setcookie('remember_me', $userId . ':' . $token, time() + 30 * 86400, '/', '', $secure, true);
+                setcookie('remember_me', $userId . ':' . $token, time() + 30 * 86400, '/', '', Request::isSecure(), true);
             } catch (\Throwable $e) {
                 Logger::error("Failed to update remember token in db: " . $e->getMessage());
             }
@@ -315,21 +288,12 @@ class Session
             try {
                 // Clear remember token in DB
                 Database::execute("UPDATE users SET remember_token = NULL WHERE id = :id", ['id' => $userId]);
-                
-                // Log logout history
-                $lastHistory = Database::row(
-                    "SELECT id FROM login_history WHERE user_id = :user_id AND logged_out_at IS NULL ORDER BY id DESC LIMIT 1", 
-                    ['user_id' => $userId]
-                );
-                if ($lastHistory) {
-                    Database::execute(
-                        "UPDATE login_history SET logged_out_at = NOW() WHERE id = :id", 
-                        ['id' => $lastHistory['id']]
-                    );
-                }
             } catch (\Throwable $e) {
                 Logger::error("Logout database updates failed: " . $e->getMessage());
             }
+
+            // Log logout history
+            LoginHistory::closeOpenSession($userId, 'logout');
         }
         
         self::clearRememberMeCookie();
@@ -361,5 +325,14 @@ class Session
             'role_id' => self::get('role_id'),
             'branch_id' => self::get('branch_id')
         ];
+    }
+
+    /**
+     * Branch the active user is scoped to, or null when unrestricted.
+     */
+    public static function branchId(): ?int
+    {
+        $branchId = self::get('branch_id');
+        return $branchId ? (int)$branchId : null;
     }
 }

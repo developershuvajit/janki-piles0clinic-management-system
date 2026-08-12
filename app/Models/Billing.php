@@ -162,10 +162,7 @@ class Billing
                 JOIN branches br ON b.branch_id = br.id";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " WHERE b.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $sql = Database::scopeToBranch($sql, $params, $branchId, 'b.branch_id');
 
         $sql .= " ORDER BY b.created_at DESC";
         return Database::all($sql, $params);
@@ -183,10 +180,7 @@ class Billing
                       FROM billing 
                       WHERE DATE(created_at) = :date AND payment_status = 'paid'";
         $params = ['date' => $date];
-        if ($branchId !== null) {
-            $methodSql .= " AND branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
-        }
+        $methodSql = Database::scopeToBranch($methodSql, $params, $branchId);
         $methodSql .= " GROUP BY payment_method";
         $methods = Database::all($methodSql, $params);
 
@@ -196,8 +190,8 @@ class Billing
         
         $paramsCounts = ['date' => $date];
         
-        $opdCount = Database::row($opdCountSql, $paramsCounts)['count'] ?? 0;
-        $ipdCount = Database::row($ipdCountSql, $paramsCounts)['count'] ?? 0;
+        $opdCount = Database::count($opdCountSql, $paramsCounts);
+        $ipdCount = Database::count($ipdCountSql, $paramsCounts);
 
         // 3. List of invoices collected today
         $invoicesSql = "SELECT b.*, p.name as patient_name, p.patient_id as patient_code 

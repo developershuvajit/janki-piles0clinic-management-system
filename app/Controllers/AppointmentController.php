@@ -6,6 +6,7 @@ namespace App\Controllers;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Branch;
+use App\Models\User;
 use App\Helpers\Session;
 use App\Helpers\Security;
 use App\Helpers\Permission;
@@ -124,11 +125,7 @@ class AppointmentController
 
         $schedules = Database::all("SELECT * FROM doctor_schedules WHERE doctor_id = :id", ['id' => $doctorId]);
         
-        $doctors = Database::all(
-            "SELECT u.id, u.username FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE r.slug = 'doctor' AND u.status = 'active'"
-        );
+        $doctors = User::activeDoctors();
 
         view('admin.appointments.schedule', [
             'title' => 'Configure Shift Schedules',
@@ -147,10 +144,7 @@ class AppointmentController
             redirect('/login');
         }
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/admin/appointments/schedule');
-        }
+        Security::requireCsrfToken('/admin/appointments/schedule');
 
         $doctorId = (int)($_POST['doctor_id'] ?? 0);
         if ($doctorId === 0) {
@@ -251,14 +245,7 @@ public function getSlotsAjax(): void
         Session::remove('last_booking');
         Session::remove('last_booking_id');
         
-        $doctors = Database::all(
-            "SELECT u.id, u.username, b.name as branch_name 
-             FROM users u
-             JOIN roles r ON u.role_id = r.id
-             LEFT JOIN branches b ON u.branch_id = b.id
-             WHERE r.slug = 'doctor' AND u.status = 'active'
-             ORDER BY u.username ASC"
-        );
+        $doctors = User::activeDoctors();
         $branches = Branch::all();
 
         view('website.book_appointment', [
@@ -273,10 +260,7 @@ public function getSlotsAjax(): void
      */
     public function submitOnlineBooking(): void
     {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security validation expired.');
-            redirect('/appointments/book');
-        }
+        Security::requireCsrfToken('/appointments/book', 'Security validation expired.');
 
         // Get all form data
         $name = Security::sanitize($_POST['name'] ?? '');

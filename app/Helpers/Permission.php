@@ -81,12 +81,9 @@ class Permission
         }
 
         if (!self::has($permissionSlug)) {
-            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
-                || ($_POST['ajax'] ?? '') === '1';
-
             $deniedMsg = 'Access Denied: You do not possess the required permission level.';
             
-            if ($isAjax) {
+            if (Request::isAjax()) {
                 jsonResponse(['success' => false, 'message' => $deniedMsg], 403);
             }
 
@@ -122,12 +119,9 @@ class Permission
             return;
         }
 
-        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') 
-            || ($_POST['ajax'] ?? '') === '1';
-
         $deniedMsg = 'Access Denied: You do not have authorization to access the ' . ucfirst($portal) . ' portal.';
 
-        if ($isAjax) {
+        if (Request::isAjax()) {
             jsonResponse(['success' => false, 'message' => $deniedMsg], 403);
         }
 

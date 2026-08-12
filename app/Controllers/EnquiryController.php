@@ -25,11 +25,7 @@ class EnquiryController
     public static function update(): void
     {
         if (!Session::isLoggedIn()) { redirect('/login'); exit; }
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Invalid security token. Please try again.');
-            redirect('/admin/cms/enquiries');
-            exit;
-        }
+        Security::requireCsrfToken('/admin/cms/enquiries', 'Invalid security token. Please try again.');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int)($_POST['id'] ?? 0);

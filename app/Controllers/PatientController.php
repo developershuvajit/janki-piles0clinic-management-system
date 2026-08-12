@@ -10,6 +10,7 @@ use App\Helpers\Security;
 use App\Helpers\Upload;
 use App\Helpers\Permission;
 use App\Helpers\ActivityLogger;
+use App\Helpers\Request;
 
 class PatientController
 {
@@ -54,25 +55,11 @@ class PatientController
     {
         Permission::check('manage_patients');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/admin/patients/create');
-        }
+        Security::requireCsrfToken('/admin/patients/create');
 
-        $data = [
-            'name' => Security::sanitize($_POST['name'] ?? ''),
-            'email' => Security::sanitize($_POST['email'] ?? ''),
-            'phone' => Security::sanitize($_POST['phone'] ?? ''),
-            'gender' => Security::sanitize($_POST['gender'] ?? 'male'),
-            'dob' => Security::sanitize($_POST['dob'] ?? ''),
-            'blood_group' => Security::sanitize($_POST['blood_group'] ?? ''),
-            'address' => Security::sanitize($_POST['address'] ?? ''),
-            'emergency_contact' => Security::sanitize($_POST['emergency_contact'] ?? ''),
-            'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
-            'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
-            'family_history' => Security::sanitize($_POST['family_history'] ?? ''),
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null
-        ];
+        $data = array_merge(Request::sanitizedPost(Patient::PROFILE_FIELDS), [
+            'branch_id' => Request::postInt('branch_id')
+        ]);
 
         if (empty($data['name']) || empty($data['phone']) || empty($data['dob']) || empty($data['address'])) {
             Session::setFlash('error', 'Please fill in all required fields.');
@@ -127,26 +114,12 @@ class PatientController
             redirect('/admin/patients');
         }
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/admin/patients/edit/{$id}");
-        }
+        Security::requireCsrfToken("/admin/patients/edit/{$id}");
 
-        $data = [
-            'name' => Security::sanitize($_POST['name'] ?? ''),
-            'email' => Security::sanitize($_POST['email'] ?? ''),
-            'phone' => Security::sanitize($_POST['phone'] ?? ''),
-            'gender' => Security::sanitize($_POST['gender'] ?? 'male'),
-            'dob' => Security::sanitize($_POST['dob'] ?? ''),
-            'blood_group' => Security::sanitize($_POST['blood_group'] ?? ''),
-            'address' => Security::sanitize($_POST['address'] ?? ''),
-            'emergency_contact' => Security::sanitize($_POST['emergency_contact'] ?? ''),
-            'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
-            'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
-            'family_history' => Security::sanitize($_POST['family_history'] ?? ''),
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null,
+        $data = array_merge(Request::sanitizedPost(Patient::PROFILE_FIELDS), [
+            'branch_id' => Request::postInt('branch_id'),
             'status' => Security::sanitize($_POST['status'] ?? 'active')
-        ];
+        ]);
 
         if (empty($data['name']) || empty($data['phone']) || empty($data['dob']) || empty($data['address'])) {
             Session::setFlash('error', 'Please fill in all required fields.');
