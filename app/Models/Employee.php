@@ -35,14 +35,24 @@ class Employee
      */
     public static function find(int $id): ?array
     {
-        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, u.role_id, u.branch_id, r.name as role_name, r.slug as role_slug, b.name as branch_name 
+        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, u.role_id, u.branch_id, 
+                       r.name as role_name, r.slug as role_slug, b.name as branch_name 
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id
                 WHERE e.id = :id LIMIT 1";
         
-        return Database::row($sql, ['id' => $id]);
+        $result = Database::row($sql, ['id' => $id]);
+        
+        // Set default values if null
+        if ($result) {
+            $result['shift_start'] = $result['shift_start'] ?? '09:00:00';
+            $result['shift_end'] = $result['shift_end'] ?? '17:00:00';
+            $result['role_name'] = $result['role_name'] ?? 'Staff';
+        }
+        
+        return $result;
     }
 
     /**
@@ -50,7 +60,8 @@ class Employee
      */
     public static function findByUserId(int $userId): ?array
     {
-        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, u.role_id, u.branch_id, r.name as role_name, r.slug as role_slug, b.name as branch_name 
+        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, u.role_id, u.branch_id, 
+                       r.name as role_name, r.slug as role_slug, b.name as branch_name 
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
@@ -267,7 +278,8 @@ class Employee
      */
     public static function getAttendanceByDate(string $date): array
     {
-        $sql = "SELECT e.id as employee_id, u.username, r.name as role_name, b.name as branch_name, a.status, a.check_in_time, a.check_out_time
+        $sql = "SELECT e.id as employee_id, u.username, r.name as role_name, b.name as branch_name, 
+                       a.status, a.check_in_time, a.check_out_time
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id

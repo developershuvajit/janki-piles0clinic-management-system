@@ -7,10 +7,14 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <div class="d-flex justify-content-between align-items-center mb-4 text-slate">
     <div>
         <h5 class="fw-bold mb-1"><i class="bi bi-calendar-check text-success me-2"></i>Daily Attendance Register</h5>
-        <p class="text-muted small mb-0">Record manual clock-in times and statuses for employee shifts.</p>
+        <p class="text-muted small mb-0">
+            Record manual clock-in times and statuses for employee shifts.
+            <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 ms-2">
+                <i class="bi bi-qr-code me-1"></i> QR Attendance Auto-Synced
+            </span>
+        </p>
     </div>
     
-    <!-- Date selector -->
     <div style="max-width: 250px;">
         <label class="form-label small fw-semibold">Select Register Date</label>
         <input type="date" class="form-control form-control-sm" value="<?= esc($date) ?>" onchange="window.location.href='<?= site_url('/admin/employees/attendance?date=') ?>' + this.value">
@@ -42,7 +46,14 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <?php else: ?>
                         <?php foreach ($roster as $row): ?>
                             <tr>
-                                <td class="fw-semibold text-slate"><?= esc($row['employee_name']) ?></td>
+                                <td class="fw-semibold text-slate">
+                                    <?= esc($row['employee_name']) ?>
+                                    <?php if (!empty($row['check_in'])): ?>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 ms-1" style="font-size:0.55rem;">
+                                            <i class="bi bi-qr-code me-1"></i> QR
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="small text-muted"><?= esc($row['role_name']) ?></td>
                                 <td>
                                     <select class="form-control form-control-sm form-select" name="attendance[<?= $row['employee_id'] ?>][status]" style="max-width: 150px;">
