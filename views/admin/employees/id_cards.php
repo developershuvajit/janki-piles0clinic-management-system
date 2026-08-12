@@ -3,6 +3,11 @@ $activePage = 'id_cards';
 include VIEWS_PATH . '/layout/admin_header.php'; 
 ?>
 
+<!-- ============================================
+     PAGE CSS
+     ============================================ -->
+<link rel="stylesheet" href="<?= asset('css/datatable.css') ?>">
+
 <style>
     /* ===== ID CARD STYLES ===== */
     .id-card-vertical {
@@ -343,17 +348,13 @@ include VIEWS_PATH . '/layout/admin_header.php';
 
     /* ===== PRINT STYLES - FIXED ===== */
     @media print {
-        /* Hide everything except cards */
         body * {
             visibility: hidden;
         }
-        
-        /* Show only card container and cards */
         #idCardContainer, 
         #idCardContainer * {
             visibility: visible;
         }
-        
         #idCardContainer {
             position: absolute;
             left: 0;
@@ -362,8 +363,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
             margin: 0;
             padding: 0;
         }
-        
-        /* 9 cards per page (3x3 grid) */
         .id-card-grid {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
@@ -373,8 +372,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
             justify-items: center !important;
             align-items: start !important;
         }
-        
-        /* Each card in print */
         .id-card-vertical {
             width: 100% !important;
             max-width: 200px !important;
@@ -387,14 +384,10 @@ include VIEWS_PATH . '/layout/admin_header.php';
             break-inside: avoid !important;
             transform: none !important;
         }
-        
-        /* Force page break after every 9th card */
         .id-card-vertical:nth-child(9n) {
             page-break-after: always !important;
             break-after: page !important;
         }
-        
-        /* Scale down content for print */
         .id-card-header {
             padding: 0.5rem 0.8rem 0.4rem !important;
         }
@@ -411,7 +404,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
             font-size: 0.4rem !important;
             padding: 0.1rem 0.4rem !important;
         }
-        
         .id-card-body {
             padding: 0.6rem 0.8rem 0.3rem !important;
         }
@@ -435,7 +427,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
             font-size: 0.45rem !important;
             padding: 0.05rem 0.5rem !important;
         }
-        
         .id-card-footer {
             padding: 0.3rem 0.8rem 0.4rem !important;
             gap: 0.2rem !important;
@@ -455,7 +446,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
             font-size: 0.4rem !important;
             gap: 0.3rem !important;
         }
-        
         .id-card-bottom {
             padding: 0.15rem 0.8rem !important;
         }
@@ -465,15 +455,14 @@ include VIEWS_PATH . '/layout/admin_header.php';
         .id-card-issued {
             font-size: 0.35rem !important;
         }
-        
-        /* Page setup */
         @page {
             size: A4 portrait;
             margin: 5mm 5mm !important;
         }
-        
-        /* Hide empty pages */
         .id-card-grid:empty {
+            display: none !important;
+        }
+        .no-print {
             display: none !important;
         }
     }
@@ -496,103 +485,148 @@ include VIEWS_PATH . '/layout/admin_header.php';
     }
 </style>
 
-<!-- UI - Hidden in print -->
-<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4 no-print">
-    <div>
-        <h5 class="fw-bold mb-0" style="font-size:1rem;color:#1b5e20;">
-            <i class="bi bi-id-card text-success"></i> Employee ID Cards
-        </h5>
-        <span style="font-size:0.72rem;color:#6d8f6d;">Generate and print professional ID cards</span>
-    </div>
-    <div class="d-flex gap-2 flex-wrap">
-        <button onclick="window.print()" class="btn-soft-clean">
-            <i class="bi bi-printer"></i> Print Cards
-        </button>
-        <button onclick="selectAllEmployees()" class="btn-soft-clean">
-            <i class="bi bi-check-all"></i> Select All
-        </button>
-    </div>
-</div>
-
-<!-- Selection Controls -->
-<div class="card-clean mb-4 no-print">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-            <span style="font-size:0.78rem;color:#2e7d32;">
-                <i class="bi bi-people me-1"></i> <span id="selectedCount" style="font-weight:600;">0</span> selected
-            </span>
-            <button onclick="generateSelected()" class="btn-primary-clean">
-                <i class="bi bi-id-card me-1"></i> Generate
+<!-- ============================================
+     PAGE HTML
+     ============================================ -->
+<div class="datatable-wrapper mt-4">
+    <div class="datatable-header no-print">
+        <h5>Employee ID Cards <small><?= count($employees ?? []) ?> employees</small></h5>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn-register" style="background: #2e7d32;">
+                <i class="bi bi-printer"></i> Print Cards
             </button>
-            <button onclick="generateAll()" class="btn-success-clean">
-                <i class="bi bi-files me-1"></i> Generate All
+            <button onclick="selectAllEmployees()" class="btn-register" style="background: #43a047;">
+                <i class="bi bi-check-all"></i> Select All
             </button>
         </div>
-        <div class="input-group" style="max-width:280px;">
-            <span class="input-group-text bg-white border-end-0" style="border-radius:40px 0 0 40px;border-color:#c8e6c9;">
-                <i class="bi bi-search text-muted" style="color:#6d8f6d;"></i>
-            </span>
-            <input type="text" id="searchEmployee" class="form-control border-start-0" placeholder="Search..." style="border-radius:0 40px 40px 0;border-color:#c8e6c9;font-size:0.8rem;">
+    </div>
+
+    <!-- Selection Controls -->
+    <div class="card-clean mb-4 no-print">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span style="font-size:0.78rem;color:#2e7d32;">
+                    <i class="bi bi-people me-1"></i> <span id="selectedCount" style="font-weight:600;">0</span> selected
+                </span>
+                <button onclick="generateSelected()" class="btn-primary-clean">
+                    <i class="bi bi-id-card me-1"></i> Generate
+                </button>
+                <button onclick="generateAll()" class="btn-success-clean">
+                    <i class="bi bi-files me-1"></i> Generate All
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Employee Table -->
-<div class="table-responsive border-0 shadow-sm rounded-3 no-print" style="border:1px solid #e8f5e9;">
-    <table class="table table-hover align-middle mb-0">
-        <thead style="background:#f4f9f4;color:#1b5e20;">
-            <tr>
-                <th style="width:40px;">
-                    <input type="checkbox" id="selectAll" onchange="toggleAllEmployees(this)" style="accent-color:#2e7d32;">
-                </th>
-                <th>Employee</th>
-                <th>Role</th>
-                <th>Branch</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody id="employeeList">
-            <?php if (empty($employees)): ?>
-                <tr><td colspan="5" class="text-center py-5 text-muted" style="color:#6d8f6d;">No employees found.</td></tr>
-            <?php else: ?>
-                <?php foreach ($employees as $emp): ?>
-                    <tr class="employee-row" data-id="<?= $emp['id'] ?>" data-name="<?= esc($emp['username']) ?>">
-                        <td>
-                            <input type="checkbox" class="employee-checkbox" value="<?= $emp['id'] ?>" onchange="updateSelectedCount()" style="accent-color:#2e7d32;">
-                        </td>
-                        <td>
-                            <div class="d-flex align-items-center gap-2">
-                                <?php if ($emp['photo']): ?>
-                                    <img src="<?= site_url($emp['photo']) ?>" alt="" style="width:35px;height:35px;border-radius:50%;object-fit:cover;border:2px solid #c8e6c9;">
-                                <?php else: ?>
-                                    <div style="width:35px;height:35px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;border:2px solid #c8e6c9;">
-                                        <i class="bi bi-person" style="color:#66bb6a;"></i>
+    <!-- Employee Table with DataTable -->
+    <div class="table-responsive">
+        <table id="employeesTable" class="table-custom" style="width:100%">
+            <thead>
+                <tr>
+                    <th style="width:40px;">
+                        <input type="checkbox" id="selectAll" onchange="toggleAllEmployees(this)" style="accent-color:#2e7d32;">
+                    </th>
+                    <th>Employee</th>
+                    <th>Role</th>
+                    <th>Branch</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($employees)): ?>
+                    <?php foreach ($employees as $emp): ?>
+                        <tr class="employee-row" data-id="<?= $emp['id'] ?>" data-name="<?= esc($emp['username']) ?>">
+                            <td>
+                                <input type="checkbox" class="employee-checkbox" value="<?= $emp['id'] ?>" onchange="updateSelectedCount()" style="accent-color:#2e7d32;">
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <?php if (!empty($emp['photo'])): ?>
+                                        <img src="<?= site_url($emp['photo']) ?>" alt="" style="width:35px;height:35px;border-radius:50%;object-fit:cover;border:2px solid #c8e6c9;">
+                                    <?php else: ?>
+                                        <div style="width:35px;height:35px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;border:2px solid #c8e6c9;">
+                                            <i class="bi bi-person" style="color:#66bb6a;"></i>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div>
+                                        <div style="font-size:0.82rem;font-weight:500;color:#1b5e20;"><?= esc($emp['username']) ?></div>
+                                        <div style="font-size:0.65rem;color:#6d8f6d;"><?= 'EMP-' . str_pad($emp['id'], 5, '0', STR_PAD_LEFT) ?></div>
                                     </div>
-                                <?php endif; ?>
-                                <div>
-                                    <div style="font-size:0.82rem;font-weight:500;color:#1b5e20;"><?= esc($emp['username']) ?></div>
-                                    <div style="font-size:0.65rem;color:#6d8f6d;"><?= 'EMP-' . str_pad($emp['id'], 5, '0', STR_PAD_LEFT) ?></div>
                                 </div>
-                            </div>
-                        </td>
-                        <td style="font-size:0.78rem;color:#2e7d32;"><?= esc($emp['role_name'] ?? 'Staff') ?></td>
-                        <td style="font-size:0.78rem;color:#2e7d32;"><?= esc($emp['branch_name'] ?? 'Main Branch') ?></td>
-                        <td>
-                            <span class="<?= ($emp['user_status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive' ?>">
-                                <?= esc(ucfirst($emp['user_status'] ?? 'active')) ?>
-                            </span>
+                            </td>
+                            <td style="font-size:0.78rem;color:#2e7d32;"><?= esc($emp['role_name'] ?? 'Staff') ?></td>
+                            <td style="font-size:0.78rem;color:#2e7d32;"><?= esc($emp['branch_name'] ?? 'Main Branch') ?></td>
+                            <td>
+                                <span class="<?= ($emp['user_status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive' ?>">
+                                    <?= esc(ucfirst($emp['user_status'] ?? 'active')) ?>
+                                </span>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="5" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
+                            No employees found.
                         </td>
                     </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<!-- ID Cards -->
+<!-- ID Cards Container -->
 <div id="idCardContainer" class="id-card-grid"></div>
 
+<!-- ============================================
+     DATATABLES LIBS + INIT
+     ============================================ -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script src="<?= asset('js/datatable.js') ?>"></script>
+
 <script>
+$(document).ready(function() {
+    if ($('#employeesTable').length) {
+        var table = $('#employeesTable').DataTable({
+            dom: '<"d-flex flex-wrap align-items-center justify-content-between gap-2 p-2"lBf>t<"d-flex flex-wrap align-items-center justify-content-between gap-2 p-2"ip>',
+            buttons: [
+                { extend: 'copy', text: '<i class="bi bi-copy"></i> Copy', className: 'btn btn-sm' },
+                { extend: 'csv', text: '<i class="bi bi-file-earmark-spreadsheet"></i> CSV', className: 'btn btn-sm' },
+                { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i> Excel', className: 'btn btn-sm' },
+                { extend: 'pdf', text: '<i class="bi bi-file-earmark-pdf"></i> PDF', className: 'btn btn-sm' },
+                { extend: 'print', text: '<i class="bi bi-printer"></i> Print', className: 'btn btn-sm' }
+            ],
+            pageLength: 25,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+            order: [[1, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [0, 4] },
+                { searchable: false, targets: [0] }
+            ],
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_",
+                info: "_START_ – _END_ of _TOTAL_",
+                infoEmpty: "No employees found",
+                infoFiltered: "(filtered from _MAX_ total)",
+                zeroRecords: "No matching employees found"
+            }
+        });
+    }
+});
+
+// JavaScript functions (preserved from original)
 let selectedEmployees = [];
 
 function toggleAllEmployees(master) {
@@ -645,14 +679,7 @@ function generateIDCards(ids) {
     });
 }
 
-// Search
-document.getElementById('searchEmployee').addEventListener('input', function() {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll('.employee-row').forEach(row => {
-        row.style.display = row.dataset.name.toLowerCase().includes(q) ? '' : 'none';
-    });
-});
-
+// Remove the search input since DataTable handles it
 document.addEventListener('DOMContentLoaded', updateSelectedCount);
 </script>
 
