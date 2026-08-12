@@ -373,3 +373,60 @@
         padding: .15rem .6rem;
     }
 }
+
+
+/* ===== BRANCH SPECIFIC STYLES ===== */
+.branch-logo {
+    width: 50px !important;
+    height: 50px !important;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    padding: 3px;
+    background: #fff;
+}
+.branch-logo-placeholder {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f1f4f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    font-size: 1.5rem;
+}
+.branch-name {
+    font-weight: 600;
+    color: #0b1a2b;
+    font-size: 0.85rem;
+}
+.branch-address {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    margin-top: 1px;
+}
+.branch-phone {
+    font-size: 0.78rem;
+    color: #1e293b;
+}
+.branch-emergency {
+    font-size: 0.7rem;
+    color: #b33c3c;
+}
+.branch-email {
+    font-size: 0.7rem;
+    color: #6b7a8f;
+}
+.branch-hours {
+    font-size: 0.75rem;
+    color: #475569;
+}
+.btn-action.dashboard {
+    border-color: #d0e2ff;
+    color: #1a6bc4;
+}
+.btn-action.dashboard:hover {
+    background: #e6f0ff;
+}
