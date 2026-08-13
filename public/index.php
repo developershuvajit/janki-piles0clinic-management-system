@@ -53,7 +53,7 @@ $router->post('/admin/settings/save', 'AdminController@saveSettings');
 $router->get('/admin/logs', 'AdminController@logs');
 
 // ============================================================
-// 5. ROLE & PERMISSION MANAGEMENT (SUPER ADMIN ONLY)
+// 5. ROLE & PERMISSION MANAGEMENT
 // ============================================================
 $router->get('/admin/roles', 'RoleController@index');
 $router->get('/admin/roles/create', 'RoleController@create');
@@ -61,12 +61,10 @@ $router->post('/admin/roles/save', 'RoleController@store');
 $router->get('/admin/roles/edit/{id}', 'RoleController@edit');
 $router->post('/admin/roles/update/{id}', 'RoleController@update');
 $router->get('/admin/roles/delete/{id}', 'RoleController@delete');
-$router->get('/admin/roles/permissions/{id}', 'RoleController@permissions');
-$router->post('/admin/roles/permissions/save', 'RoleController@savePermissions');
 $router->get('/admin/permissions', 'RoleController@permissionList');
 
 // ============================================================
-// 6. BRANCH MANAGEMENT (SUPER ADMIN ONLY)
+// 6. BRANCH MANAGEMENT
 // ============================================================
 $router->get('/admin/branches', 'BranchController@index');
 $router->get('/admin/branches/create', 'BranchController@create');
@@ -74,14 +72,10 @@ $router->post('/admin/branches/save', 'BranchController@store');
 $router->get('/admin/branches/edit/{id}', 'BranchController@edit');
 $router->post('/admin/branches/update/{id}', 'BranchController@update');
 $router->get('/admin/branches/delete/{id}', 'BranchController@delete');
-
-// ============================================================
-// 7. BRANCH DASHBOARD (BOTH SUPER ADMIN & BRANCH ADMIN)
-// ============================================================
 $router->get('/admin/branches/dashboard/{id}', 'BranchController@dashboard');
 
 // ============================================================
-// 8. BRANCH ADMIN PORTAL (BRANCH ADMIN ONLY)
+// 7. BRANCH ADMIN PORTAL
 // ============================================================
 $router->get('/branch/dashboard/{id}', 'BranchController@dashboard');
 $router->get('/branch/patients/{id}', 'BranchController@patients');
@@ -91,7 +85,7 @@ $router->get('/branch/reports/{id}', 'BranchController@reports');
 $router->get('/branch/settings/{id}', 'BranchController@settings');
 
 // ============================================================
-// 9. USER MANAGEMENT (SUPER ADMIN + BRANCH ADMIN)
+// 8. USER MANAGEMENT
 // ============================================================
 $router->get('/admin/users', 'UserController@index');
 $router->get('/admin/users/create', 'UserController@create');
@@ -101,7 +95,7 @@ $router->post('/admin/users/update/{id}', 'UserController@update');
 $router->get('/admin/users/delete/{id}', 'UserController@delete');
 
 // ============================================================
-// 10. EMPLOYEE MANAGEMENT (SUPER ADMIN + BRANCH ADMIN)
+// 9. EMPLOYEE MANAGEMENT
 // ============================================================
 $router->get('/admin/employees', 'EmployeeController@index');
 $router->get('/admin/employees/create', 'EmployeeController@create');
@@ -112,46 +106,45 @@ $router->get('/admin/employees/delete/{id}', 'EmployeeController@delete');
 $router->get('/admin/employees/delete-doc/{id}', 'EmployeeController@deleteDoc');
 
 // ============================================================
-// 11. ATTENDANCE MANAGEMENT
+// 10. ATTENDANCE & QR SCANNER ROUTES
 // ============================================================
- // ============================================================
-// ATTENDANCE MANAGEMENT
-// ============================================================
+$router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
+$router->get('/admin/attendance/fetch-employee', 'AttendanceController@fetchEmployee');
+$router->post('/admin/attendance/mark', 'AttendanceController@markAttendance');
+$router->get('/admin/attendance/today', 'AttendanceController@todayAttendance');
 $router->get('/admin/attendance/register', 'AttendanceController@register');
 $router->post('/admin/attendance/save', 'AttendanceController@saveAttendance');
 $router->get('/admin/attendance/leaves', 'AttendanceController@leavesList');
 $router->post('/admin/attendance/leaves/apply', 'AttendanceController@applyLeave');
 $router->get('/admin/attendance/leaves/approve/{id}', 'AttendanceController@approveLeave');
 $router->get('/admin/attendance/leaves/reject/{id}', 'AttendanceController@rejectLeave');
-
-// QR Code Attendance
-$router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
-$router->get('/admin/attendance/fetch-employee', 'AttendanceController@fetchEmployee');
-$router->post('/admin/attendance/mark', 'AttendanceController@markAttendance');
-$router->get('/admin/attendance/today', 'AttendanceController@todayAttendance');
-
-// Attendance Report
 $router->get('/admin/attendance/report', 'AttendanceController@attendanceReport');
 
-// Employee ID Cards
+// ============================================================
+// 11. EMPLOYEE ID CARDS
+// ============================================================
 $router->get('/admin/employees/id-cards', 'AttendanceController@idCards');
 $router->post('/admin/employees/generate-id-cards', 'AttendanceController@generateIDCards');
 
-// QR Code Generation
+// ============================================================
+// 12. QR GENERATOR
+// ============================================================
 $router->get('/admin/qr/generate', 'AttendanceController@generateQR');
 
-// HR Reports
+// ============================================================
+// 13. HR REPORTS
+// ============================================================
 $router->get('/admin/hr/reports', 'AttendanceController@hrReports');
 
 // ============================================================
-// 12. SALARY / PAYROLL MANAGEMENT
+// 14. SALARY / PAYROLL MANAGEMENT
 // ============================================================
 $router->get('/admin/salary', 'SalaryController@index');
 $router->post('/admin/salary/settle', 'SalaryController@settleSalary');
 $router->get('/admin/salary/payslip/{id}', 'SalaryController@paySlip');
 
 // ============================================================
-// 13. PATIENT MANAGEMENT
+// 15. PATIENT MANAGEMENT
 // ============================================================
 $router->get('/admin/patients', 'PatientController@index');
 $router->get('/admin/patients/create', 'PatientController@create');
@@ -164,7 +157,7 @@ $router->post('/admin/patients/upload-doc/{id}', 'PatientController@uploadDoc');
 $router->get('/admin/patients/delete-doc/{id}', 'PatientController@deleteDoc');
 
 // ============================================================
-// 14. APPOINTMENT MANAGEMENT
+// 16. APPOINTMENT MANAGEMENT
 // ============================================================
 $router->get('/admin/appointments', 'AppointmentController@index');
 $router->get('/admin/appointments/pending', 'AppointmentController@pendingList');
@@ -175,7 +168,7 @@ $router->post('/admin/appointments/schedule/save', 'AppointmentController@saveSc
 $router->get('/admin/appointments/slots', 'AppointmentController@getSlotsAjax');
 
 // ============================================================
-// 15. IPD WARD ADMISSIONS
+// 17. IPD WARD ADMISSIONS
 // ============================================================
 $router->get('/admin/ipd', 'IpdController@index');
 $router->get('/admin/ipd/admit', 'IpdController@admitForm');
@@ -190,7 +183,7 @@ $router->get('/admin/ipd/discharge-summary/print/{id}', 'DischargeController@pri
 $router->get('/admin/ipd/discharge-summary/pdf/{id}', 'DischargeController@pdfSummary');
 
 // ============================================================
-// 16. BILLING MANAGEMENT
+// 18. BILLING MANAGEMENT
 // ============================================================
 $router->get('/admin/billing', 'BillingController@index');
 $router->get('/admin/billing/collect/{id}', 'BillingController@collectForm');
@@ -200,7 +193,7 @@ $router->post('/admin/billing/refund/save', 'BillingController@processRefund');
 $router->get('/admin/billing/receipt/{id}', 'BillingController@receiptPrint');
 
 // ============================================================
-// 17. INVENTORY MANAGEMENT
+// 19. INVENTORY MANAGEMENT
 // ============================================================
 $router->get('/admin/inventory', 'InventoryController@index');
 $router->get('/admin/inventory/low-stock', 'InventoryController@lowStockList');
@@ -209,12 +202,12 @@ $router->post('/admin/inventory/purchase/save', 'InventoryController@savePurchas
 $router->post('/admin/inventory/supplier/save', 'InventoryController@saveSupplier');
 
 // ============================================================
-// 18. REPORTS & ANALYTICS
+// 20. REPORTS & ANALYTICS
 // ============================================================
 $router->get('/admin/reports', 'ReportsController@dashboard');
 
 // ============================================================
-// 19. WEBSITE CMS & BLOG MANAGEMENT
+// 21. WEBSITE CMS & BLOG MANAGEMENT
 // ============================================================
 $router->get('/admin/cms/settings', 'CmsController@index');
 $router->post('/admin/cms/settings/save', 'CmsController@saveSettings');
@@ -236,13 +229,13 @@ $router->get('/admin/cms/treatments', 'TreatmentController@index');
 $router->post('/admin/cms/treatments/save', 'TreatmentController@save');
 
 // ============================================================
-// 20. CRM / ENQUIRY MANAGEMENT
+// 22. CRM / ENQUIRY MANAGEMENT
 // ============================================================
 $router->get('/admin/cms/enquiries', 'EnquiryController@index');
 $router->post('/admin/cms/enquiries/update', 'EnquiryController@update');
 
 // ============================================================
-// 21. ONLINE APPOINTMENT BOOKING (PUBLIC)
+// 23. ONLINE APPOINTMENT BOOKING (PUBLIC)
 // ============================================================
 $router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
 $router->post('/appointments/book/otp', 'AppointmentController@sendBookingOtp');
@@ -250,7 +243,7 @@ $router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBo
 $router->get('/appointments/book/success', 'AppointmentController@bookingSuccess');
 
 // ============================================================
-// 22. RECEPTION PORTAL (RECEPTIONIST ONLY)
+// 24. RECEPTION PORTAL (RECEPTIONIST ONLY)
 // ============================================================
 $router->get('/reception', 'ReceptionController@dashboard');
 $router->get('/reception/dashboard', 'ReceptionController@dashboard');
@@ -295,7 +288,7 @@ $router->post('/reception/attendance/save', 'ReceptionController@markAttendance'
 $router->get('/reception/search', 'ReceptionController@globalSearchAjax');
 
 // ============================================================
-// 23. DOCTOR PORTAL (DOCTOR ONLY)
+// 25. DOCTOR PORTAL (DOCTOR ONLY)
 // ============================================================
 $router->get('/doctor', 'DoctorController@dashboard');
 $router->get('/doctor/dashboard', 'DoctorController@dashboard');
@@ -327,7 +320,7 @@ $router->get('/doctor/profile', 'DoctorController@profile');
 $router->post('/doctor/profile/update', 'DoctorController@updateProfile');
 
 // ============================================================
-// 24. SYSTEM TEST ROUTES
+// 26. SYSTEM TEST ROUTES
 // ============================================================
 $router->get('/admin/pdf-test', 'AdminController@pdfTest');
 $router->get('/admin/qr-test', 'AdminController@qrTest');

@@ -1,4 +1,4 @@
- <?php
+<?php
 declare(strict_types=1);
 
 namespace App\Controllers;
@@ -12,9 +12,6 @@ use App\Helpers\ActivityLogger;
 
 class AttendanceController
 {
-    /**
-     * Get branch filter for current user
-     */
     private function getBranchFilter(): array
     {
         $user = Session::user();
@@ -38,9 +35,6 @@ class AttendanceController
         }
     }
 
-    /**
-     * Daily manual attendance logging sheet.
-     */
     public function register()
     {
         Permission::check('record_attendance');
@@ -59,9 +53,6 @@ class AttendanceController
         ]);
     }
 
-    /**
-     * Save daily check-ins roster.
-     */
     public function saveAttendance()
     {
         Permission::check('record_attendance');
@@ -106,9 +97,6 @@ class AttendanceController
         redirect('/admin/attendance/register?date=' . $date);
     }
 
-    /**
-     * Manage leaves and approvals.
-     */
     public function leavesList()
     {
         Permission::check('record_attendance');
@@ -124,9 +112,6 @@ class AttendanceController
         ]);
     }
 
-    /**
-     * Submit leave request.
-     */
     public function applyLeave()
     {
         Permission::check('record_attendance');
@@ -149,9 +134,6 @@ class AttendanceController
         redirect('/admin/attendance/leaves');
     }
 
-    /**
-     * Approve leave.
-     */
     public function approveLeave($id)
     {
         Permission::check('record_attendance');
@@ -166,9 +148,6 @@ class AttendanceController
         redirect('/admin/attendance/leaves');
     }
 
-    /**
-     * Reject leave.
-     */
     public function rejectLeave($id)
     {
         Permission::check('record_attendance');
@@ -183,9 +162,6 @@ class AttendanceController
         redirect('/admin/attendance/leaves');
     }
 
-    /**
-     * QR Code Attendance Scan View
-     */
     public function scanAttendance()
     {
         Permission::check('record_attendance');
@@ -196,11 +172,9 @@ class AttendanceController
         ]);
     }
 
-    /**
-     * Fetch employee by ID for attendance scanning
-     */
     public function fetchEmployee()
     {
+        error_log("fetchEmployee called with ID: " . ($_GET['id'] ?? 'none'));
         header('Content-Type: application/json');
         
         try {
@@ -261,24 +235,27 @@ class AttendanceController
                     $employee['already_marked'] = false;
                 }
                 
+                error_log("Employee found: " . $employee['username']);
                 echo json_encode(['success' => true, 'employee' => $employee]);
             } else {
+                error_log("Employee not found for ID: " . $id);
                 echo json_encode(['success' => false, 'message' => 'Employee not found or access denied']);
             }
         } catch (Exception $e) {
+            error_log("fetchEmployee error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * Mark attendance via QR scan - FINAL FIXED
-     */
     public function markAttendance()
     {
+        error_log("markAttendance called");
         header('Content-Type: application/json');
         
         try {
             $rawInput = file_get_contents('php://input');
+            error_log("Raw input: " . $rawInput);
+            
             $input = json_decode($rawInput, true);
             
             if ($input === null) {
@@ -401,6 +378,7 @@ class AttendanceController
                     $employeeId
                 );
                 
+                error_log("Attendance marked successfully for employee: " . $employeeId);
                 echo json_encode([
                     'success' => true,
                     'message' => $message,
@@ -412,19 +390,19 @@ class AttendanceController
                     'attendance' => $attendance
                 ]);
             } else {
+                error_log("Failed to record attendance for employee: " . $employeeId);
                 echo json_encode(['success' => false, 'message' => 'Failed to record attendance']);
             }
             
         } catch (Exception $e) {
+            error_log("markAttendance error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * Get today's attendance
-     */
     public function todayAttendance()
     {
+        error_log("todayAttendance called");
         header('Content-Type: application/json');
         
         try {
@@ -469,13 +447,11 @@ class AttendanceController
             echo json_encode(['success' => true, 'attendance' => $attendance]);
             
         } catch (Exception $e) {
+            error_log("todayAttendance error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
 
-    /**
-     * HR Reports
-     */
     public function hrReports()
     {
         Permission::check('view_logs');
@@ -498,9 +474,6 @@ class AttendanceController
         ]);
     }
 
-    /**
-     * Employee ID Cards View
-     */
     public function idCards()
     {
         Permission::check('manage_employees');
@@ -516,9 +489,6 @@ class AttendanceController
         ]);
     }
 
-    /**
-     * Generate QR Code for employee
-     */
     public function generateQR()
     {
         $data = $_GET['data'] ?? '';
@@ -533,9 +503,6 @@ class AttendanceController
         exit;
     }
 
-    /**
-     * Attendance Report
-     */
     public function attendanceReport()
     {
         Permission::check('view_logs');
@@ -648,9 +615,6 @@ class AttendanceController
         ]);
     }
 
-    /**
-     * Generate employee ID cards (AJAX)
-     */
     public function generateIDCards()
     {
         if (ob_get_level()) ob_clean();

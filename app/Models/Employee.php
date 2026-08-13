@@ -58,6 +58,7 @@ class Employee
 /**
  * Get employee by ID
  */
+// app/Models/Employee.php - Add this method if not exists
 public static function find(int $id): ?array
 {
     return Database::row("

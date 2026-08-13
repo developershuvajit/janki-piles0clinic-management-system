@@ -9,7 +9,7 @@ use App\Helpers\Security;
 class Attendance
 {
     /**
-     * Get staff attendance records for a specific date.
+     * Get staff attendance records for a specific date with branch filter
      */
     public static function getDailyRoster(string $date, ?int $branchId = null): array
     {
@@ -23,7 +23,10 @@ class Attendance
                     ea.check_in,
                     ea.check_out,
                     ea.status,
-                    ea.notes
+                    ea.notes,
+                    e.shift_start,
+                    e.shift_end,
+                    e.photo
                 FROM users u
                 JOIN roles r ON u.role_id = r.id
                 LEFT JOIN employees e ON u.id = e.user_id
@@ -41,7 +44,7 @@ class Attendance
     }
 
     /**
-     * Log attendance record.
+     * Log attendance record (Insert or Update)
      */
     public static function logAttendance(array $data): bool
     {
@@ -76,8 +79,8 @@ class Attendance
                 ]);
             } else {
                 // Insert new
-                $sql = "INSERT INTO employee_attendance (employee_id, date, status, check_in, check_out, notes) 
-                        VALUES (:employee_id, :date, :status, :check_in, :check_out, :notes)";
+                $sql = "INSERT INTO employee_attendance (employee_id, date, status, check_in, check_out, notes, created_at) 
+                        VALUES (:employee_id, :date, :status, :check_in, :check_out, :notes, NOW())";
                 
                 return Database::execute($sql, [
                     'employee_id' => $employeeId,
@@ -117,12 +120,9 @@ class Attendance
     public static function updateCheckOut(int $employeeId, string $date, string $time): bool
     {
         try {
-            error_log("updateCheckOut - Employee: " . $employeeId . ", Date: " . $date . ", Time: " . $time);
-            
             // First check if record exists
             $exists = self::getToday($employeeId, $date);
             if (!$exists) {
-                error_log("No record found for employee: " . $employeeId);
                 return false;
             }
             
@@ -131,14 +131,11 @@ class Attendance
                     SET check_out = :time, updated_at = NOW() 
                     WHERE employee_id = :id AND date = :date";
             
-            $result = Database::execute($sql, [
+            return Database::execute($sql, [
                 'time' => $time,
                 'id' => $employeeId,
                 'date' => $date
             ]);
-            
-            error_log("updateCheckOut Result: " . ($result ? 'true' : 'false'));
-            return $result;
             
         } catch (\Exception $e) {
             error_log("updateCheckOut Error: " . $e->getMessage());
@@ -149,18 +146,34 @@ class Attendance
     /**
      * Get all today's attendance with employee details
      */
-    public static function getTodayAll(string $date): array
+    public static function getTodayAll(string $date, ?int $branchId = null): array
     {
         try {
-            return Database::all(
-                "SELECT a.*, u.username, e.photo 
-                 FROM employee_attendance a
-                 LEFT JOIN employees e ON a.employee_id = e.id
-                 LEFT JOIN users u ON e.user_id = u.id
-                 WHERE a.date = :date 
-                 ORDER BY a.check_in DESC",
-                ['date' => $date]
-            );
+            $sql = "SELECT 
+                        a.*, 
+                        u.username, 
+                        u.email,
+                        e.photo,
+                        e.shift_start,
+                        e.shift_end,
+                        r.name as role_name,
+                        r.slug as role_slug
+                    FROM employee_attendance a
+                    LEFT JOIN employees e ON a.employee_id = e.id
+                    LEFT JOIN users u ON e.user_id = u.id
+                    LEFT JOIN roles r ON u.role_id = r.id
+                    WHERE a.date = :date";
+            
+            $params = ['date' => $date];
+            
+            if ($branchId !== null) {
+                $sql .= " AND u.branch_id = :branch_id";
+                $params['branch_id'] = $branchId;
+            }
+            
+            $sql .= " ORDER BY a.check_in DESC";
+            
+            return Database::all($sql, $params);
         } catch (\Exception $e) {
             error_log("getTodayAll Error: " . $e->getMessage());
             return [];
@@ -168,7 +181,7 @@ class Attendance
     }
 
     /**
-     * Get today's summary
+     * Get today's summary with branch filter
      */
     public static function getTodaySummary(?int $branchId = null): array
     {
@@ -200,19 +213,24 @@ class Attendance
     }
 
     /**
-     * Get leaves list
+     * Get leaves list with branch filter
      */
     public static function getLeavesList(?int $branchId = null): array
     {
-        $sql = "SELECT l.*, u.username as employee_name, r.name as role_name 
+        $sql = "SELECT 
+                    l.*, 
+                    u.username as employee_name, 
+                    r.name as role_name,
+                    e.id as employee_id
                 FROM employee_leaves l
                 LEFT JOIN employees e ON l.employee_id = e.id
                 LEFT JOIN users u ON e.user_id = u.id
-                LEFT JOIN roles r ON u.role_id = r.id";
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE 1=1";
         $params = [];
 
         if ($branchId !== null) {
-            $sql .= " WHERE u.branch_id = :branch_id";
+            $sql .= " AND u.branch_id = :branch_id";
             $params['branch_id'] = $branchId;
         }
 
@@ -235,8 +253,8 @@ class Attendance
                 $empId = (int)$emp['id'];
             }
 
-            $sql = "INSERT INTO employee_leaves (employee_id, leave_type, start_date, end_date, reason, status) 
-                    VALUES (:employee_id, :leave_type, :start_date, :end_date, :reason, 'pending')";
+            $sql = "INSERT INTO employee_leaves (employee_id, leave_type, start_date, end_date, reason, status, created_at) 
+                    VALUES (:employee_id, :leave_type, :start_date, :end_date, :reason, 'pending', NOW())";
 
             return Database::execute($sql, [
                 'employee_id' => $empId,
@@ -258,12 +276,67 @@ class Attendance
     {
         try {
             return Database::execute(
-                "UPDATE employee_leaves SET status = :status WHERE id = :id",
+                "UPDATE employee_leaves SET status = :status, updated_at = NOW() WHERE id = :id",
                 ['status' => $status, 'id' => $id]
             );
         } catch (\Exception $e) {
             error_log("updateLeaveStatus Error: " . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Get attendance by date range with branch filter
+     */
+    public static function getByDateRange(string $startDate, string $endDate, ?int $branchId = null): array
+    {
+        $sql = "SELECT 
+                    a.*,
+                    u.username,
+                    u.email,
+                    e.photo,
+                    r.name as role_name
+                FROM employee_attendance a
+                LEFT JOIN employees e ON a.employee_id = e.id
+                LEFT JOIN users u ON e.user_id = u.id
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE a.date BETWEEN :start_date AND :end_date";
+        
+        $params = [
+            'start_date' => $startDate,
+            'end_date' => $endDate
+        ];
+        
+        if ($branchId !== null) {
+            $sql .= " AND u.branch_id = :branch_id";
+            $params['branch_id'] = $branchId;
+        }
+        
+        $sql .= " ORDER BY a.date DESC, a.check_in DESC";
+        
+        return Database::all($sql, $params);
+    }
+
+    /**
+     * Get attendance status for an employee by date range
+     */
+    public static function getEmployeeAttendance(int $employeeId, string $startDate, string $endDate): array
+    {
+        try {
+            return Database::all(
+                "SELECT * FROM employee_attendance 
+                 WHERE employee_id = :id 
+                 AND date BETWEEN :start_date AND :end_date
+                 ORDER BY date DESC",
+                [
+                    'id' => $employeeId,
+                    'start_date' => $startDate,
+                    'end_date' => $endDate
+                ]
+            );
+        } catch (\Exception $e) {
+            error_log("getEmployeeAttendance Error: " . $e->getMessage());
+            return [];
         }
     }
 }

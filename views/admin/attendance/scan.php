@@ -152,7 +152,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+ <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 let currentStream = null;
 let currentCamera = 'environment';
@@ -270,16 +270,45 @@ function startScanning() {
 
 function processQRCode(qrData) {
     isProcessing = true;
+    console.log('QR Data:', qrData);
+    
     try {
-        const data = JSON.parse(qrData);
-        if (data.type === 'employee_id' && data.id) {
-            fetchEmployee(data.id);
+        let employeeId = null;
+        
+        // Try to parse as JSON first
+        try {
+            const data = JSON.parse(qrData);
+            console.log('Parsed JSON:', data);
+            if (data.type === 'employee_id' && data.id) {
+                employeeId = data.id;
+            } else if (data.id) {
+                employeeId = data.id;
+            }
+        } catch (e) {
+            // If not JSON, treat as plain text ID
+            console.log('Not JSON, trying as plain text');
+            const id = parseInt(qrData);
+            if (!isNaN(id) && id > 0) {
+                employeeId = id;
+            } else {
+                // Try to extract number from text
+                const matches = qrData.match(/\d+/);
+                if (matches) {
+                    employeeId = parseInt(matches[0]);
+                }
+            }
+        }
+        
+        if (employeeId) {
+            console.log('Employee ID found:', employeeId);
+            fetchEmployee(employeeId);
         } else {
             showFlash('error', 'Invalid QR Code', 'Please scan a valid employee ID card');
             setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Invalid QR code.');
             isProcessing = false;
         }
     } catch (e) {
+        console.error('QR Processing Error:', e);
         showFlash('error', 'Invalid Format', 'QR code format not recognized');
         setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Invalid QR code format.');
         isProcessing = false;
@@ -287,36 +316,58 @@ function processQRCode(qrData) {
 }
 
 function fetchEmployee(employeeId) {
-    fetch('<?= site_url('/admin/attendance/fetch-employee') ?>?id=' + employeeId)
-        .then(res => res.json())
+    console.log('Fetching employee:', employeeId);
+    const url = '<?= site_url('/admin/attendance/fetch-employee') ?>?id=' + employeeId;
+    
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+                });
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 autoMarkAttendance(data.employee);
             } else {
-                showFlash('error', 'Not Found', 'Employee not found in system');
-                setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Employee not found.');
+                showFlash('error', 'Not Found', data.message || 'Employee not found in system');
+                setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> ' + (data.message || 'Employee not found.'));
                 isProcessing = false;
             }
         })
         .catch(err => {
-            showFlash('error', 'Error', 'Failed to fetch employee data');
+            console.error('Fetch error:', err);
+            showFlash('error', 'Error', 'Failed to fetch employee data: ' + err.message);
             setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Error fetching employee data.');
             isProcessing = false;
         });
 }
 
 function autoMarkAttendance(employee) {
+    console.log('Marking attendance for:', employee.username);
     setStatus('info', `<i class="bi bi-person-check me-2"></i> Detected: <strong>${employee.username}</strong> - Processing...`);
-    fetch('<?= site_url('/admin/attendance/mark') ?>', {
+    
+    const url = '<?= site_url('/admin/attendance/mark') ?>';
+    
+    fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        body: JSON.stringify({ employee_id: employee.id })
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            employee_id: employee.id
+        })
     })
-    .then(res => {
-        if (!res.ok) {
-            throw new Error('HTTP ' + res.status);
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error('HTTP ' + response.status + ': ' + text.substring(0, 100));
+            });
         }
-        return res.json();
+        return response.json();
     })
     .then(data => {
         if (data.success) {
@@ -366,7 +417,7 @@ function autoMarkAttendance(employee) {
     })
     .catch(err => {
         console.error('Error:', err);
-        showFlash('error', 'Error', 'Failed to mark attendance');
+        showFlash('error', 'Error', 'Failed to mark attendance: ' + err.message);
         setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Error marking attendance.');
         isProcessing = false;
     });
@@ -384,8 +435,9 @@ function formatTime(time) {
 }
 
 function loadTodayAttendance() {
-    fetch('<?= site_url('/admin/attendance/today') ?>')
-        .then(res => res.json())
+    const url = '<?= site_url('/admin/attendance/today') ?>';
+    fetch(url)
+        .then(response => response.json())
         .then(data => {
             const tbody = document.getElementById('attendanceLog');
             if (data.attendance && data.attendance.length > 0) {
@@ -437,8 +489,9 @@ function loadTodayAttendance() {
 }
 
 function loadStats() {
-    fetch('<?= site_url('/admin/attendance/today') ?>')
-        .then(res => res.json())
+    const url = '<?= site_url('/admin/attendance/today') ?>';
+    fetch(url)
+        .then(response => response.json())
         .then(data => {
             if (data.attendance) {
                 const present = data.attendance.filter(a => a.status === 'present').length;
