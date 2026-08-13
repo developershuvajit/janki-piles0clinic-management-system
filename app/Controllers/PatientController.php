@@ -38,47 +38,48 @@ class PatientController
 
     /**
      * Show Patient Registration Form.
+     * Super Admin - সব ব্রাঞ্চ দেখাবে, নিজে সিলেক্ট করবে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চ দেখাবে, অটো সেট
      */
-    /**
- * Show Patient Registration Form.
- */
-public function create(): void
-{
-    Permission::check('manage_patients');
-    
-    $user = Session::user();
-    $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
-    $branchId = $user['branch_id'] ?? null;
-    $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
-    $isBranchAdmin = ($roleSlug === 'branch_admin');
-    $isReceptionist = ($roleSlug === 'receptionist');
-    $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
-    
-    $branches = [];
-    if ($isSuperAdmin) {
-        // Super Admin - সব ব্রাঞ্চ দেখাবে
-        $branches = Branch::all();
-    } elseif ($hasBranchFilter && $branchId) {
-        // বাকি সবাই - শুধু নিজের ব্রাঞ্চ দেখাবে
-        $branch = Branch::find($branchId);
-        if ($branch) {
-            $branches = [$branch];
+    public function create(): void
+    {
+        Permission::check('manage_patients');
+        
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        $isReceptionist = ($roleSlug === 'receptionist');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+        
+        $branches = [];
+        if ($isSuperAdmin) {
+            // Super Admin - সব ব্রাঞ্চ দেখাবে
+            $branches = Branch::all();
+        } elseif ($hasBranchFilter && $branchId) {
+            // বাকি সবাই (Branch Admin, Receptionist) - শুধু নিজের ব্রাঞ্চ দেখাবে
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
         }
+        
+        view('admin.patients.create', [
+            'title' => 'Register New Patient',
+            'branches' => $branches,
+            'isSuperAdmin' => $isSuperAdmin,
+            'isBranchAdmin' => $isBranchAdmin,
+            'isReceptionist' => $isReceptionist,
+            'hasBranchFilter' => $hasBranchFilter,
+            'branchId' => $branchId
+        ]);
     }
-    
-    view('admin.patients.create', [
-        'title' => 'Register New Patient',
-        'branches' => $branches,
-        'isSuperAdmin' => $isSuperAdmin,
-        'isBranchAdmin' => $isBranchAdmin,
-        'isReceptionist' => $isReceptionist,
-        'hasBranchFilter' => $hasBranchFilter,
-        'branchId' => $branchId
-    ]);
-}
 
     /**
      * Store new patient profile.
+     * Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+     * Branch Admin / Receptionist - নিজের ব্রাঞ্চ ফোর্স সেট
      */
     public function store(): void
     {
@@ -141,53 +142,54 @@ public function create(): void
 
     /**
      * Show Edit Patient Form.
+     * Super Admin - সব ব্রাঞ্চ দেখাবে, পরিবর্তন করতে পারবে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চ দেখাবে, পরিবর্তন করতে পারবে না
      */
-    /**
- * Show Edit Patient Form.
- */
-public function edit(array $params): void
-{
-    Permission::check('manage_patients');
-    $id = (int)($params['id'] ?? 0);
-    $patient = Patient::find($id);
+    public function edit(array $params): void
+    {
+        Permission::check('manage_patients');
+        $id = (int)($params['id'] ?? 0);
+        $patient = Patient::find($id);
 
-    if (!$patient) {
-        Session::setFlash('error', 'Patient not found or access denied.');
-        redirect('/admin/patients');
-    }
-
-    $user = Session::user();
-    $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
-    $branchId = $user['branch_id'] ?? null;
-    $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
-    $isBranchAdmin = ($roleSlug === 'branch_admin');
-    $isReceptionist = ($roleSlug === 'receptionist');
-    $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
-    
-    $branches = [];
-    if ($isSuperAdmin) {
-        $branches = Branch::all();
-    } elseif ($hasBranchFilter && $branchId) {
-        $branch = Branch::find($branchId);
-        if ($branch) {
-            $branches = [$branch];
+        if (!$patient) {
+            Session::setFlash('error', 'Patient not found or access denied.');
+            redirect('/admin/patients');
         }
-    }
 
-    view('admin.patients.edit', [
-        'title' => 'Edit Patient Details',
-        'patient' => $patient,
-        'branches' => $branches,
-        'isSuperAdmin' => $isSuperAdmin,
-        'isBranchAdmin' => $isBranchAdmin,
-        'isReceptionist' => $isReceptionist,
-        'hasBranchFilter' => $hasBranchFilter,
-        'branchId' => $branchId
-    ]);
-}
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        $isReceptionist = ($roleSlug === 'receptionist');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+        
+        $branches = [];
+        if ($isSuperAdmin) {
+            $branches = Branch::all();
+        } elseif ($hasBranchFilter && $branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        }
+
+        view('admin.patients.edit', [
+            'title' => 'Edit Patient Details',
+            'patient' => $patient,
+            'branches' => $branches,
+            'isSuperAdmin' => $isSuperAdmin,
+            'isBranchAdmin' => $isBranchAdmin,
+            'isReceptionist' => $isReceptionist,
+            'hasBranchFilter' => $hasBranchFilter,
+            'branchId' => $branchId
+        ]);
+    }
 
     /**
      * Update patient details.
+     * Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+     * Branch Admin / Receptionist - নিজের ব্রাঞ্চ ফোর্স সেট
      */
     public function update(array $params): void
     {
@@ -256,6 +258,8 @@ public function edit(array $params): void
 
     /**
      * Delete patient.
+     * Super Admin - সব পেশেন্ট ডিলিট করতে পারে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের পেশেন্ট ডিলিট করতে পারে
      */
     public function delete(array $params): void
     {
