@@ -8,14 +8,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
      ============================================ -->
 <link rel="stylesheet" href="<?= asset('css/datatable.css') ?>">
 
-<style>
-    /* Hide QR column */
-    .qr-column,
-    .qr-column-cell {
-        display: none !important;
-    }
-</style>
-
 <!-- ============================================
      PAGE HTML
      ============================================ -->
@@ -33,7 +25,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
                 <tr>
                     <th class="sno">#</th>
                     <th>Patient ID</th>
-                    <th class="qr-column" style="width:44px;">QR</th>
                     <th>Name</th>
                     <th style="min-width:80px;">Gender</th>
                     <th>Phone</th>
@@ -50,15 +41,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
                         <tr>
                             <td class="sno"><?= $sn++ ?></td>
                             <td class="patient-id"><?= esc($pat['patient_id']) ?></td>
-                            <td class="qr-column-cell">
-                                <?php if (!empty($pat['qr_code_url'])): ?>
-                                    <a href="<?= site_url($pat['qr_code_url']) ?>" target="_blank">
-                                        <img src="<?= site_url($pat['qr_code_url']) ?>" class="qr-img">
-                                    </a>
-                                <?php else: ?>
-                                    <i class="bi bi-qr-code" style="font-size:1.2rem;color:#94a3b8;"></i>
-                                <?php endif; ?>
-                            </td>
                             <td class="name"><?= esc($pat['name']) ?></td>
                             <td class="gender">
                                 <?= esc(ucfirst($pat['gender'] ?? 'N/A')) ?>
@@ -91,7 +73,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <?php endforeach;
                 else: ?>
                     <tr>
-                        <td colspan="10" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
+                        <td colspan="9" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
                             No patients registered yet.
                         </td>
                     </tr>
@@ -116,6 +98,17 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 
-<script src="<?= asset('js/datatable.js') ?>"></script>
+<script>
+$(document).ready(function() {
+    $('#patientsTable').DataTable({
+        pageLength: 25,
+        responsive: true,
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+    });
+});
+</script>
 
 <?php include VIEWS_PATH . '/layout/admin_footer.php'; ?>

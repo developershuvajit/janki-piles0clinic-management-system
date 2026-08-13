@@ -388,3 +388,9 @@
 [2026-08-13 17:09:30] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Login","details":"User branch.kolkata@clinic.com logged in from IP: ::1","user_id":53}
 [2026-08-13 17:10:15] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Logout","details":"User branch_kolkata logged out.","user_id":53}
 [2026-08-13 17:10:26] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Login","details":"User admin logged in from IP: ::1","user_id":52}
+[2026-08-13 17:22:16] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Logout","details":"User admin logged out.","user_id":52}
+[2026-08-13 17:22:23] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Login","details":"User branch.kolkata@clinic.com logged in from IP: ::1","user_id":53}
+[2026-08-13 17:23:12] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Logout","details":"User branch_kolkata logged out.","user_id":53}
+[2026-08-13 17:23:25] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Login","details":"User admin logged in from IP: ::1","user_id":52}
+[2026-08-13 17:27:46] [ERROR] Failed to register patient profile: Non-static method App\Helpers\Database::execute() cannot be called statically
+[2026-08-13 17:28:10] [ERROR] Failed to register patient profile: Non-static method App\Helpers\Database::execute() cannot be called statically
