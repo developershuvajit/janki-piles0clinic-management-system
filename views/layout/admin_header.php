@@ -333,11 +333,7 @@ if ($roleSlug === 'doctor') {
                 <hr style="border-color: rgba(255,255,255,0.06); margin: 0.3rem 0.8rem;">
 
                 <!-- Manual Attendance -->
-                <?php if (\App\Helpers\Permission::has('record_attendance')): ?>
-                    <a class="nav-link <?= $currentPage === 'attendance' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance') ?>" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 8px; color: <?= $currentPage === 'attendance' ? '#60a5fa' : '#94a3b8'; ?>; text-decoration: none; font-size: 0.78rem; transition: all 0.1s; background: <?= $currentPage === 'attendance' ? 'rgba(59,130,246,0.1)' : 'transparent'; ?>; font-weight: <?= $currentPage === 'attendance' ? '500' : '400'; ?>;">
-                        <i class="bi bi-calendar-check" style="font-size: 1rem; color: #06b6d4;"></i> Manual Attendance
-                    </a>
-                <?php endif; ?>
+               
 
                 <!-- QR Attendance Scanner -->
                 <?php if (\App\Helpers\Permission::has('record_attendance')): ?>

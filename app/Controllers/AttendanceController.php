@@ -20,6 +20,14 @@ class AttendanceController
     /**
      * Daily manual attendance logging sheet.
      */
+
+    
+
+
+
+
+
+
     public function register()
     {
         Permission::check('record_attendance');
@@ -562,7 +570,89 @@ public function attendanceReport()
 }
     
 
-
+/**
+ * Generate employee ID cards (AJAX)
+ */
+public function generateIDCards()
+{
+    Permission::check('manage_employees');
+    
+    $input = json_decode(file_get_contents('php://input'), true);
+    $employeeIds = $input['employee_ids'] ?? [];
+    
+    if (empty($employeeIds)) {
+        echo json_encode(['success' => false, 'message' => 'No employees selected']);
+        return;
+    }
+    
+    $employees = Employee::getByIds($employeeIds);
+    $html = '';
+    
+    foreach ($employees as $emp) {
+        // Generate QR code with proper data
+        $qrData = json_encode([
+            'type' => 'employee_id',
+            'id' => $emp['id'],
+            'name' => $emp['username'],
+            'code' => 'EMP-' . str_pad($emp['id'], 5, '0', STR_PAD_LEFT)
+        ]);
+        
+        // Use QR Server API for QR code
+        $qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' . urlencode($qrData);
+        
+        $photoHtml = !empty($emp['photo']) 
+            ? '<img src="' . site_url($emp['photo']) . '" alt="' . htmlspecialchars($emp['username']) . '">' 
+            : '<span class="no-photo">👤</span>';
+        
+        $branchName = $emp['branch_name'] ?? 'Main Branch';
+        $roleName = $emp['role_name'] ?? 'Staff';
+        $empCode = 'EMP-' . str_pad($emp['id'], 5, '0', STR_PAD_LEFT);
+        $empName = strtoupper($emp['username']);
+        
+        $html .= '
+        <div class="id-card-vertical">
+            <div class="id-card-header">
+                <div class="id-card-clinic">
+                    <span class="clinic-icon">🏥</span>
+                    <div>
+                        <div class="clinic-name">Janki Piles Clinic</div>
+                        <div class="clinic-sub">Laser Proctology Center</div>
+                    </div>
+                </div>
+                <div class="id-card-type">Employee ID</div>
+            </div>
+            <div class="id-card-body">
+                <div class="id-card-photo">' . $photoHtml . '</div>
+                <div class="id-card-name">' . htmlspecialchars($empName) . '</div>
+                <div class="id-card-role">' . htmlspecialchars($roleName) . '</div>
+                <div class="id-card-code">' . $empCode . '</div>
+            </div>
+            <div class="id-card-footer">
+                <div class="id-card-qr-wrapper">
+                    <div class="id-card-qr">
+                        <img src="' . $qrCodeUrl . '" alt="QR Code">
+                    </div>
+                    <div class="id-card-branch-info">
+                        <div class="id-card-branch">
+                            <i class="bi bi-building"></i> ' . htmlspecialchars($branchName) . '
+                        </div>
+                        <div class="id-card-branch-detail">
+                            <span><i class="bi bi-telephone"></i> +91 98765 43210</span>
+                            <span><i class="bi bi-envelope"></i> info@jankipiles.com</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="id-card-bottom">
+                <span class="id-card-valid"><i class="bi bi-check-circle-fill"></i> Valid till: ' . date('d M Y', strtotime('+1 year')) . '</span>
+                <span class="id-card-issued">Issued: ' . date('d M Y') . '</span>
+            </div>
+        </div>
+        ';
+    }
+    
+    echo json_encode(['success' => true, 'html' => $html]);
+}
 
 
 

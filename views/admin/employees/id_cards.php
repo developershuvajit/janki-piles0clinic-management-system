@@ -13,106 +13,83 @@ include VIEWS_PATH . '/layout/admin_header.php';
     .id-card-vertical {
         width: 340px;
         min-height: 490px;
-        background: linear-gradient(145deg, #ffffff 0%, #f4f9f4 100%);
-        border-radius: 18px;
-        border: 1px solid #c8e6c9;
-        box-shadow: 0 10px 35px rgba(46, 125, 50, 0.12);
+        background: #ffffff;
+        border-radius: 16px;
+        border: 1px solid #e8ecf0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
         overflow: hidden;
         margin: 0 auto;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        transition: all 0.3s ease;
-        position: relative;
+        transition: all 0.2s ease;
     }
     .id-card-vertical:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 45px rgba(46, 125, 50, 0.18);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1);
     }
 
+    /* Card Header */
     .id-card-header {
-        background: linear-gradient(135deg, #1b5e20, #2e7d32, #388e3c);
-        padding: 1.2rem 1.5rem 0.9rem;
+        background: linear-gradient(135deg, #0b1a2b, #1a365d);
+        padding: 0.8rem 1.2rem 0.6rem;
         color: #fff;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 3px solid #66bb6a;
-        position: relative;
-    }
-    .id-card-header::after {
-        content: '';
-        position: absolute;
-        bottom: -8px;
-        left: 0;
-        right: 0;
-        height: 8px;
-        background: linear-gradient(90deg, transparent, #66bb6a, #a5d6a7, #66bb6a, transparent);
-        opacity: 0.5;
+        border-bottom: 3px solid #3b82f6;
     }
     .id-card-clinic {
         display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-    .id-card-clinic .clinic-icon {
-        font-size: 1.4rem;
-        color: #a5d6a7;
+        flex-direction: column;
+        gap: 0.1rem;
     }
     .id-card-clinic .clinic-name {
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         font-weight: 700;
         letter-spacing: 0.5px;
         text-transform: uppercase;
-        color: #e8f5e9;
+        color: #e2e8f0;
         line-height: 1.2;
     }
     .id-card-clinic .clinic-sub {
-        font-size: 0.55rem;
+        font-size: 0.45rem;
         font-weight: 400;
-        color: #a5d6a7;
+        color: #94a3b8;
         letter-spacing: 0.3px;
+        text-transform: uppercase;
     }
     .id-card-type {
-        font-size: 0.55rem;
+        font-size: 0.5rem;
         font-weight: 600;
-        background: rgba(102, 187, 106, 0.25);
-        padding: 0.2rem 0.8rem;
+        background: rgba(59,130,246,0.2);
+        padding: 0.15rem 0.7rem;
         border-radius: 40px;
-        color: #c8e6c9;
-        letter-spacing: 0.8px;
-        border: 1px solid rgba(102, 187, 106, 0.3);
+        color: #93bbfc;
+        letter-spacing: 0.5px;
+        border: 1px solid rgba(59,130,246,0.15);
         text-transform: uppercase;
     }
 
+    /* Card Body */
     .id-card-body {
-        padding: 1.4rem 1.5rem 0.8rem;
+        padding: 1rem 1.2rem 0.6rem;
         display: flex;
         flex-direction: column;
         align-items: center;
         text-align: center;
     }
     .id-card-photo {
-        width: 100px;
-        height: 100px;
+        width: 85px;
+        height: 85px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-        border: 4px solid #66bb6a;
+        background: #f1f5f9;
+        border: 3px solid #e2e8f0;
         overflow: hidden;
-        margin-bottom: 0.9rem;
+        margin-bottom: 0.6rem;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2);
-        position: relative;
-    }
-    .id-card-photo::after {
-        content: '●';
-        position: absolute;
-        bottom: 2px;
-        right: 4px;
-        color: #4caf50;
-        font-size: 14px;
-        text-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
     }
     .id-card-photo img {
         width: 100%;
@@ -120,135 +97,123 @@ include VIEWS_PATH . '/layout/admin_header.php';
         object-fit: cover;
     }
     .id-card-photo .no-photo {
-        font-size: 2.5rem;
-        color: #66bb6a;
+        font-size: 2.2rem;
+        color: #94a3b8;
     }
     .id-card-name {
-        font-size: 1.15rem;
+        font-size: 1rem;
         font-weight: 700;
-        color: #1b5e20;
-        margin-bottom: 0.1rem;
+        color: #0b1a2b;
+        margin-bottom: 0.05rem;
         letter-spacing: 0.3px;
+        text-transform: uppercase;
     }
     .id-card-role {
-        font-size: 0.8rem;
-        color: #388e3c;
+        font-size: 0.7rem;
+        color: #3b82f6;
         font-weight: 600;
         margin-bottom: 0.2rem;
-        background: #e8f5e9;
-        padding: 0.1rem 1.2rem;
+        background: #e6f0ff;
+        padding: 0.05rem 1rem;
         border-radius: 40px;
         display: inline-block;
     }
     .id-card-code {
-        font-size: 0.7rem;
-        color: #6d8f6d;
+        font-size: 0.6rem;
+        color: #94a3b8;
         font-family: 'Courier New', monospace;
-        background: #e8f5e9;
-        padding: 0.15rem 1rem;
+        background: #f1f5f9;
+        padding: 0.05rem 0.8rem;
         border-radius: 40px;
         display: inline-block;
         letter-spacing: 0.5px;
-        border: 1px solid #c8e6c9;
+        border: 1px solid #e2e8f0;
     }
 
+    /* Card Footer - QR Code Centered */
     .id-card-footer {
-        padding: 0.8rem 1.5rem 1rem;
+        padding: 0.8rem 1.2rem 0.6rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        border-top: 1px solid #e8f5e9;
-        background: linear-gradient(0deg, #fafffa, #ffffff);
-        gap: 0.6rem;
-    }
-    .id-card-qr-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1.5rem;
-        width: 100%;
+        border-top: 1px solid #f1f5f9;
+        background: #fafcff;
     }
     .id-card-qr {
-        width: 180px;
-        height: 180px;
+        width: 140px;
+        height: 140px;
         background: #ffffff;
-        border-radius: 12px;
+        border-radius: 10px;
         padding: 6px;
-        border: 2px solid #c8e6c9;
+        border: 2px solid #e2e8f0;
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
-        box-shadow: 0 2px 10px rgba(46, 125, 50, 0.08);
+        margin: 0 auto 0.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .id-card-qr img {
         width: 100%;
         height: 100%;
         object-fit: contain;
     }
-    .id-card-branch-info {
+
+    /* Card Bottom - Branch & Mobile */
+    .id-card-bottom {
+        padding: 0.5rem 1.2rem 0.7rem;
+        background: #f8fafc;
+        border-top: 1px solid #f1f5f9;
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.2rem;
+        justify-content: center;
+        gap: 1.5rem;
+        align-items: center;
+        flex-wrap: wrap;
     }
-    .id-card-branch {
-        font-size: 0.72rem;
-        color: #2e7d32;
-        font-weight: 500;
+    .id-card-bottom .info-item {
         display: flex;
         align-items: center;
-        gap: 0.4rem;
+        gap: 0.3rem;
+        font-size: 0.65rem;
+        color: #475569;
     }
-    .id-card-branch i {
-        color: #4caf50;
-        font-size: 0.9rem;
-    }
-    .id-card-branch-detail {
-        font-size: 0.6rem;
-        color: #6d8f6d;
-        font-weight: 400;
-        display: flex;
-        align-items: center;
-        gap: 0.8rem;
-    }
-    .id-card-branch-detail span {
-        display: flex;
-        align-items: center;
-        gap: 0.2rem;
-    }
-    .id-card-branch-detail i {
-        color: #81c784;
+    .id-card-bottom .info-item i {
+        color: #3b82f6;
         font-size: 0.7rem;
     }
+    .id-card-bottom .info-item .label {
+        font-weight: 500;
+        color: #0b1a2b;
+    }
 
-    .id-card-bottom {
-        padding: 0.4rem 1.5rem;
-        background: #f4f9f4;
-        border-top: 1px solid #e8f5e9;
+    /* Card Bottom - Validity */
+    .id-card-validity {
+        padding: 0.3rem 1.2rem;
+        background: #f1f5f9;
+        border-top: 1px solid #e2e8f0;
         text-align: center;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }
     .id-card-valid {
-        font-size: 0.55rem;
-        color: #81c784;
-        font-weight: 600;
-        letter-spacing: 0.5px;
+        font-size: 0.5rem;
+        color: #6b7a8f;
+        font-weight: 500;
         text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
     .id-card-valid i {
-        margin-right: 4px;
-        color: #4caf50;
+        margin-right: 3px;
+        color: #0f7b4a;
+        font-size: 0.45rem;
     }
     .id-card-issued {
-        font-size: 0.5rem;
-        color: #a5d6a7;
+        font-size: 0.45rem;
+        color: #94a3b8;
         font-weight: 400;
     }
 
-    /* ===== UI STYLES ===== */
+    /* Grid & UI */
     .id-card-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -258,230 +223,141 @@ include VIEWS_PATH . '/layout/admin_header.php';
     }
 
     .btn-primary-clean {
-        background: #2e7d32;
+        background: #2563eb;
         color: #fff;
-        border: 1px solid #2e7d32;
-        padding: 0.45rem 1.2rem;
+        border: 1px solid #2563eb;
+        padding: 0.4rem 1.2rem;
         border-radius: 40px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 500;
-        transition: all 0.2s;
+        transition: all 0.15s;
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
         cursor: pointer;
+        text-decoration: none;
     }
     .btn-primary-clean:hover {
-        background: #1b5e20;
-        border-color: #1b5e20;
-        color: #fff;
+        background: #1d4ed8;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
-    }
-    .btn-soft-clean {
-        background: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #c8e6c9;
-        padding: 0.45rem 1.2rem;
-        border-radius: 40px;
-        font-size: 0.8rem;
-        font-weight: 500;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        cursor: pointer;
-    }
-    .btn-soft-clean:hover {
-        background: #c8e6c9;
-        border-color: #66bb6a;
-        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37,99,235,0.25);
     }
     .btn-success-clean {
-        background: #43a047;
+        background: #0f7b4a;
         color: #fff;
-        border: 1px solid #43a047;
-        padding: 0.45rem 1.2rem;
+        border: 1px solid #0f7b4a;
+        padding: 0.4rem 1.2rem;
         border-radius: 40px;
-        font-size: 0.8rem;
+        font-size: 0.78rem;
         font-weight: 500;
-        transition: all 0.2s;
+        transition: all 0.15s;
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
         cursor: pointer;
+        text-decoration: none;
     }
     .btn-success-clean:hover {
-        background: #2e7d32;
-        border-color: #2e7d32;
-        color: #fff;
+        background: #0b6e44;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        box-shadow: 0 4px 12px rgba(15,123,74,0.25);
+    }
+    .btn-soft-clean {
+        background: #f1f5f9;
+        color: #1e293b;
+        border: 1px solid #e2e8f0;
+        padding: 0.4rem 1.2rem;
+        border-radius: 40px;
+        font-size: 0.78rem;
+        font-weight: 500;
+        transition: all 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    .btn-soft-clean:hover {
+        background: #e2e8f0;
+        transform: translateY(-1px);
     }
 
     .badge-active {
-        background: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #a5d6a7;
+        background: #e6f5ed;
+        color: #0f7b4a;
+        border: 1px solid #b8e0cf;
         border-radius: 40px;
-        padding: 0.15rem 0.7rem;
+        padding: 0.1rem 0.6rem;
         font-size: 0.65rem;
         font-weight: 500;
     }
     .badge-inactive {
-        background: #fce4ec;
-        color: #c62828;
-        border: 1px solid #ef9a9a;
+        background: #ffe9e9;
+        color: #b33c3c;
+        border: 1px solid #fad5d5;
         border-radius: 40px;
-        padding: 0.15rem 0.7rem;
+        padding: 0.1rem 0.6rem;
         font-size: 0.65rem;
         font-weight: 500;
     }
 
     .card-clean {
         background: #ffffff;
-        border: 1px solid #e8f5e9;
-        border-radius: 16px;
-        padding: 1rem 1.5rem;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        border: 1px solid #f1f5f9;
+        border-radius: 14px;
+        padding: 0.8rem 1.2rem;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
 
-    /* ===== PRINT STYLES - FIXED ===== */
+    /* Print Styles */
     @media print {
-        body * {
-            visibility: hidden;
-        }
-        #idCardContainer, 
-        #idCardContainer * {
-            visibility: visible;
-        }
-        #idCardContainer {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-        }
+        body * { visibility: hidden; }
+        #idCardContainer, #idCardContainer * { visibility: visible; }
+        #idCardContainer { position: absolute; left: 0; top: 0; width: 100%; }
         .id-card-grid {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
-            gap: 10px !important;
-            padding: 10px !important;
+            gap: 8px !important;
+            padding: 8px !important;
             margin: 0 !important;
             justify-items: center !important;
-            align-items: start !important;
         }
         .id-card-vertical {
             width: 100% !important;
-            max-width: 200px !important;
-            min-height: 280px !important;
+            max-width: 190px !important;
+            min-height: 260px !important;
             margin: 0 !important;
             box-shadow: none !important;
-            border: 1px solid #ccc !important;
-            border-radius: 8px !important;
+            border: 1px solid #ddd !important;
+            border-radius: 6px !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
-            transform: none !important;
         }
-        .id-card-vertical:nth-child(9n) {
-            page-break-after: always !important;
-            break-after: page !important;
-        }
-        .id-card-header {
-            padding: 0.5rem 0.8rem 0.4rem !important;
-        }
-        .id-card-header .clinic-icon {
-            font-size: 0.9rem !important;
-        }
-        .id-card-header .clinic-name {
-            font-size: 0.55rem !important;
-        }
-        .id-card-header .clinic-sub {
-            font-size: 0.4rem !important;
-        }
-        .id-card-type {
-            font-size: 0.4rem !important;
-            padding: 0.1rem 0.4rem !important;
-        }
-        .id-card-body {
-            padding: 0.6rem 0.8rem 0.3rem !important;
-        }
-        .id-card-photo {
-            width: 55px !important;
-            height: 55px !important;
-            border-width: 2px !important;
-            margin-bottom: 0.4rem !important;
-        }
-        .id-card-photo::after {
-            font-size: 8px !important;
-        }
-        .id-card-name {
-            font-size: 0.75rem !important;
-        }
-        .id-card-role {
-            font-size: 0.5rem !important;
-            padding: 0.05rem 0.6rem !important;
-        }
-        .id-card-code {
-            font-size: 0.45rem !important;
-            padding: 0.05rem 0.5rem !important;
-        }
-        .id-card-footer {
-            padding: 0.3rem 0.8rem 0.4rem !important;
-            gap: 0.2rem !important;
-        }
-        .id-card-qr-wrapper {
-            gap: 0.6rem !important;
-        }
-        .id-card-qr {
-            width: 150px !important;
-            height: 150px !important;
-            padding: 3px !important;
-        }
-        .id-card-branch {
-            font-size: 0.5rem !important;
-        }
-        .id-card-branch-detail {
-            font-size: 0.4rem !important;
-            gap: 0.3rem !important;
-        }
-        .id-card-bottom {
-            padding: 0.15rem 0.8rem !important;
-        }
-        .id-card-valid {
-            font-size: 0.35rem !important;
-        }
-        .id-card-issued {
-            font-size: 0.35rem !important;
-        }
-        @page {
-            size: A4 portrait;
-            margin: 5mm 5mm !important;
-        }
-        .id-card-grid:empty {
-            display: none !important;
-        }
-        .no-print {
-            display: none !important;
-        }
+        .id-card-vertical:nth-child(9n) { page-break-after: always !important; }
+        .id-card-header { padding: 0.3rem 0.6rem 0.2rem !important; }
+        .id-card-header .clinic-name { font-size: 0.45rem !important; }
+        .id-card-header .clinic-sub { font-size: 0.3rem !important; }
+        .id-card-type { font-size: 0.3rem !important; padding: 0.05rem 0.3rem !important; }
+        .id-card-body { padding: 0.3rem 0.6rem 0.2rem !important; }
+        .id-card-photo { width: 40px !important; height: 40px !important; margin-bottom: 0.2rem !important; }
+        .id-card-name { font-size: 0.55rem !important; }
+        .id-card-role { font-size: 0.4rem !important; padding: 0.02rem 0.4rem !important; }
+        .id-card-code { font-size: 0.35rem !important; padding: 0.02rem 0.3rem !important; }
+        .id-card-footer { padding: 0.3rem 0.6rem 0.2rem !important; }
+        .id-card-qr { width: 80px !important; height: 80px !important; padding: 3px !important; }
+        .id-card-bottom { padding: 0.2rem 0.6rem !important; gap: 0.5rem !important; }
+        .id-card-bottom .info-item { font-size: 0.4rem !important; }
+        .id-card-validity { padding: 0.1rem 0.6rem !important; }
+        .id-card-valid { font-size: 0.3rem !important; }
+        .id-card-issued { font-size: 0.3rem !important; }
+        @page { size: A4 portrait; margin: 4mm 4mm !important; }
+        .no-print { display: none !important; }
     }
 
     @media (max-width: 576px) {
-        .id-card-grid {
-            grid-template-columns: 1fr;
-        }
-        .id-card-vertical {
-            width: 100%;
-            max-width: 340px;
-        }
-        .id-card-qr-wrapper {
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .id-card-branch-info {
-            align-items: center;
-        }
+        .id-card-grid { grid-template-columns: 1fr; }
+        .id-card-vertical { width: 100%; max-width: 340px; }
+        .id-card-qr { width: 120px; height: 120px; }
     }
 </style>
 
@@ -492,21 +368,20 @@ include VIEWS_PATH . '/layout/admin_header.php';
     <div class="datatable-header no-print">
         <h5>Employee ID Cards <small><?= count($employees ?? []) ?> employees</small></h5>
         <div class="d-flex gap-2">
-            <button onclick="window.print()" class="btn-register" style="background: #2e7d32;">
+            <button onclick="window.print()" class="btn-success-clean">
                 <i class="bi bi-printer"></i> Print Cards
             </button>
-            <button onclick="selectAllEmployees()" class="btn-register" style="background: #43a047;">
+            <button onclick="selectAllEmployees()" class="btn-soft-clean">
                 <i class="bi bi-check-all"></i> Select All
             </button>
         </div>
     </div>
 
-    <!-- Selection Controls -->
     <div class="card-clean mb-4 no-print">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-3 flex-wrap">
-                <span style="font-size:0.78rem;color:#2e7d32;">
-                    <i class="bi bi-people me-1"></i> <span id="selectedCount" style="font-weight:600;">0</span> selected
+                <span style="font-size:0.78rem;color:#6b7a8f;">
+                    <i class="bi bi-people me-1"></i> <span id="selectedCount" style="font-weight:600;color:#0b1a2b;">0</span> selected
                 </span>
                 <button onclick="generateSelected()" class="btn-primary-clean">
                     <i class="bi bi-id-card me-1"></i> Generate
@@ -518,14 +393,11 @@ include VIEWS_PATH . '/layout/admin_header.php';
         </div>
     </div>
 
-    <!-- Employee Table with DataTable -->
     <div class="table-responsive">
         <table id="employeesTable" class="table-custom" style="width:100%">
             <thead>
                 <tr>
-                    <th style="width:40px;">
-                        <input type="checkbox" id="selectAll" onchange="toggleAllEmployees(this)" style="accent-color:#2e7d32;">
-                    </th>
+                    <th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleAllEmployees(this)"></th>
                     <th>Employee</th>
                     <th>Role</th>
                     <th>Branch</th>
@@ -536,26 +408,24 @@ include VIEWS_PATH . '/layout/admin_header.php';
                 <?php if (!empty($employees)): ?>
                     <?php foreach ($employees as $emp): ?>
                         <tr class="employee-row" data-id="<?= $emp['id'] ?>" data-name="<?= esc($emp['username']) ?>">
-                            <td>
-                                <input type="checkbox" class="employee-checkbox" value="<?= $emp['id'] ?>" onchange="updateSelectedCount()" style="accent-color:#2e7d32;">
-                            </td>
+                            <td><input type="checkbox" class="employee-checkbox" value="<?= $emp['id'] ?>" onchange="updateSelectedCount()"></td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <?php if (!empty($emp['photo'])): ?>
-                                        <img src="<?= site_url($emp['photo']) ?>" alt="" style="width:35px;height:35px;border-radius:50%;object-fit:cover;border:2px solid #c8e6c9;">
+                                        <img src="<?= site_url($emp['photo']) ?>" alt="" style="width:35px;height:35px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">
                                     <?php else: ?>
-                                        <div style="width:35px;height:35px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;border:2px solid #c8e6c9;">
-                                            <i class="bi bi-person" style="color:#66bb6a;"></i>
+                                        <div style="width:35px;height:35px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;border:2px solid #e2e8f0;">
+                                            <i class="bi bi-person" style="color:#94a3b8;"></i>
                                         </div>
                                     <?php endif; ?>
                                     <div>
-                                        <div style="font-size:0.82rem;font-weight:500;color:#1b5e20;"><?= esc($emp['username']) ?></div>
-                                        <div style="font-size:0.65rem;color:#6d8f6d;"><?= 'EMP-' . str_pad($emp['id'], 5, '0', STR_PAD_LEFT) ?></div>
+                                        <div style="font-size:0.82rem;font-weight:500;color:#0b1a2b;"><?= esc($emp['username']) ?></div>
+                                        <div style="font-size:0.65rem;color:#94a3b8;"><?= 'EMP-' . str_pad($emp['id'], 5, '0', STR_PAD_LEFT) ?></div>
                                     </div>
                                 </div>
                             </td>
-                            <td style="font-size:0.78rem;color:#2e7d32;"><?= esc($emp['role_name'] ?? 'Staff') ?></td>
-                            <td style="font-size:0.78rem;color:#2e7d32;"><?= esc($emp['branch_name'] ?? 'Main Branch') ?></td>
+                            <td style="font-size:0.78rem;"><?= esc($emp['role_name'] ?? 'Staff') ?></td>
+                            <td style="font-size:0.78rem;"><?= esc($emp['branch_name'] ?? 'Main Branch') ?></td>
                             <td>
                                 <span class="<?= ($emp['user_status'] ?? 'active') === 'active' ? 'badge-active' : 'badge-inactive' ?>">
                                     <?= esc(ucfirst($emp['user_status'] ?? 'active')) ?>
@@ -564,18 +434,13 @@ include VIEWS_PATH . '/layout/admin_header.php';
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr>
-                        <td colspan="5" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
-                            No employees found.
-                        </td>
-                    </tr>
+                    <tr><td colspan="5" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">No employees found.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 </div>
 
-<!-- ID Cards Container -->
 <div id="idCardContainer" class="id-card-grid"></div>
 
 <!-- ============================================
@@ -626,7 +491,6 @@ $(document).ready(function() {
     }
 });
 
-// JavaScript functions (preserved from original)
 let selectedEmployees = [];
 
 function toggleAllEmployees(master) {
@@ -660,8 +524,8 @@ function generateAll() {
 function generateIDCards(ids) {
     const container = document.getElementById('idCardContainer');
     container.innerHTML = `<div class="text-center py-5" style="grid-column:1/-1;">
-        <div class="spinner-border text-success" role="status"></div>
-        <div class="mt-2 text-muted" style="color:#6d8f6d;">Generating...</div>
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2 text-muted">Generating ID cards...</div>
     </div>`;
     
     fetch('<?= site_url('/admin/employees/generate-id-cards') ?>', {
@@ -671,15 +535,18 @@ function generateIDCards(ids) {
     })
     .then(res => res.json())
     .then(data => {
-        container.innerHTML = data.success ? data.html : 
-            '<div class="text-center py-5 text-danger" style="grid-column:1/-1;color:#c62828;">Failed to generate cards.</div>';
+        if (data.success && data.html) {
+            container.innerHTML = data.html;
+        } else {
+            container.innerHTML = `<div class="text-center py-5 text-danger" style="grid-column:1/-1;">${data.message || 'Failed to generate ID cards.'}</div>`;
+        }
     })
-    .catch(() => {
-        container.innerHTML = '<div class="text-center py-5 text-danger" style="grid-column:1/-1;color:#c62828;">Error generating cards.</div>';
+    .catch(err => {
+        console.error('Error:', err);
+        container.innerHTML = `<div class="text-center py-5 text-danger" style="grid-column:1/-1;">Error generating ID cards.</div>`;
     });
 }
 
-// Remove the search input since DataTable handles it
 document.addEventListener('DOMContentLoaded', updateSelectedCount);
 </script>
 
