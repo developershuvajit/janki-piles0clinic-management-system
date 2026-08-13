@@ -15,13 +15,37 @@ use App\Helpers\Database;
 class EmployeeController
 {
     /**
+     * Get branch filter for current user
+     * Super Admin ছাড়া সবাই ব্রাঞ্চ ফিল্টার পাবে
+     */
+    private function getBranchFilter(): array
+    {
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+        
+        return [
+            'isSuperAdmin' => $isSuperAdmin,
+            'branchId' => $branchId,
+            'hasFilter' => $hasBranchFilter
+        ];
+    }
+
+    /**
      * Display listing of all employees.
+     * Super Admin - সব দেখবে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের দেখবে
      */
     public function index(): void
     {
         Permission::check('manage_employees');
         
-        $employees = Employee::all();
+        $filter = $this->getBranchFilter();
+        $employees = Employee::all($filter['hasFilter'] ? $filter['branchId'] : null);
+        
         view('admin.employees.index', [
             'title' => 'Employee Roster',
             'employees' => $employees
@@ -30,23 +54,43 @@ class EmployeeController
 
     /**
      * Show Employee Creation Form.
+     * Super Admin - সব ব্রাঞ্চ দেখাবে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চ দেখাবে (Hidden)
      */
     public function create(): void
     {
         Permission::check('manage_employees');
         
-        $branches = Branch::all();
+        $filter = $this->getBranchFilter();
+        
+        $branches = [];
+        if ($filter['isSuperAdmin']) {
+            // Super Admin - সব ব্রাঞ্চ দেখাবে
+            $branches = Branch::all();
+        } elseif ($filter['hasFilter'] && $filter['branchId']) {
+            // বাকি সবাই - শুধু নিজের ব্রাঞ্চ দেখাবে
+            $branch = Branch::find($filter['branchId']);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        }
+        
         $roles = Database::all("SELECT * FROM roles ORDER BY id ASC");
         
         view('admin.employees.create', [
             'title' => 'Enroll Employee',
             'branches' => $branches,
-            'roles' => $roles
+            'roles' => $roles,
+            'isSuperAdmin' => $filter['isSuperAdmin'],
+            'hasBranchFilter' => $filter['hasFilter'],
+            'branchId' => $filter['branchId']
         ]);
     }
 
     /**
      * Store new employee profile.
+     * Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+     * Branch Admin / Receptionist - নিজের ব্রাঞ্চ ফোর্স সেট
      */
     public function store(): void
     {
@@ -57,12 +101,21 @@ class EmployeeController
             redirect('/admin/employees/create');
         }
 
+        $filter = $this->getBranchFilter();
+        
+        // Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+        // বাকি সবাই - নিজের ব্রাঞ্চ ফোর্স সেট
+        $selectedBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null;
+        if ($filter['hasFilter'] && $filter['branchId']) {
+            $selectedBranch = $filter['branchId'];
+        }
+
         $data = [
             'username' => Security::sanitize($_POST['username'] ?? ''),
             'email' => Security::sanitize($_POST['email'] ?? ''),
             'password' => $_POST['password'] ?? '',
             'role_id' => (int)($_POST['role_id'] ?? 0),
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null,
+            'branch_id' => $selectedBranch,
             'salary' => (float)($_POST['salary'] ?? 0.00),
             'shift_start' => Security::sanitize($_POST['shift_start'] ?? '09:00:00'),
             'shift_end' => Security::sanitize($_POST['shift_end'] ?? '17:00:00'),
@@ -91,7 +144,12 @@ class EmployeeController
         $employeeId = Employee::create($data);
 
         if ($employeeId) {
-            ActivityLogger::log('Employee Enrollment', "Enrolled employee user account: {$data['username']}");
+            ActivityLogger::log(
+                'Employee Enrollment',
+                "Enrolled employee user account: {$data['username']}",
+                null,
+                $selectedBranch
+            );
 
             // Process Multiple Document uploads
             if (!empty($_FILES['documents']['name'][0])) {
@@ -129,6 +187,8 @@ class EmployeeController
 
     /**
      * Show Edit Employee Form.
+     * Super Admin - সব ব্রাঞ্চ দেখাবে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চ দেখাবে
      */
     public function edit(array $params): void
     {
@@ -137,11 +197,22 @@ class EmployeeController
         $employee = Employee::find($id);
 
         if (!$employee) {
-            Session::setFlash('error', 'Employee not found.');
+            Session::setFlash('error', 'Employee not found or access denied.');
             redirect('/admin/employees');
         }
 
-        $branches = Branch::all();
+        $filter = $this->getBranchFilter();
+        
+        $branches = [];
+        if ($filter['isSuperAdmin']) {
+            $branches = Branch::all();
+        } elseif ($filter['hasFilter'] && $filter['branchId']) {
+            $branch = Branch::find($filter['branchId']);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        }
+        
         $roles = Database::all("SELECT * FROM roles ORDER BY id ASC");
         $documents = Employee::getDocuments($id);
 
@@ -150,12 +221,17 @@ class EmployeeController
             'employee' => $employee,
             'branches' => $branches,
             'roles' => $roles,
-            'documents' => $documents
+            'documents' => $documents,
+            'isSuperAdmin' => $filter['isSuperAdmin'],
+            'hasBranchFilter' => $filter['hasFilter'],
+            'branchId' => $filter['branchId']
         ]);
     }
 
     /**
      * Update employee credentials.
+     * Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+     * Branch Admin / Receptionist - নিজের ব্রাঞ্চ ফোর্স সেট
      */
     public function update(array $params): void
     {
@@ -164,7 +240,7 @@ class EmployeeController
         $employee = Employee::find($id);
 
         if (!$employee) {
-            Session::setFlash('error', 'Employee not found.');
+            Session::setFlash('error', 'Employee not found or access denied.');
             redirect('/admin/employees');
         }
 
@@ -173,12 +249,21 @@ class EmployeeController
             redirect("/admin/employees/edit/{$id}");
         }
 
+        $filter = $this->getBranchFilter();
+        
+        // Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+        // বাকি সবাই - নিজের ব্রাঞ্চ ফোর্স সেট
+        $selectedBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null;
+        if ($filter['hasFilter'] && $filter['branchId']) {
+            $selectedBranch = $filter['branchId'];
+        }
+
         $data = [
             'username' => Security::sanitize($_POST['username'] ?? ''),
             'email' => Security::sanitize($_POST['email'] ?? ''),
             'password' => $_POST['password'] ?? '', // Empty if not changing
             'role_id' => (int)($_POST['role_id'] ?? 0),
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null,
+            'branch_id' => $selectedBranch,
             'salary' => (float)($_POST['salary'] ?? 0.00),
             'shift_start' => Security::sanitize($_POST['shift_start'] ?? '09:00:00'),
             'shift_end' => Security::sanitize($_POST['shift_end'] ?? '17:00:00'),
@@ -208,7 +293,12 @@ class EmployeeController
         }
 
         if (Employee::update($id, $data)) {
-            ActivityLogger::log('Employee Update', "Updated employee details for user: {$data['username']}");
+            ActivityLogger::log(
+                'Employee Update',
+                "Updated employee details for user: {$data['username']}",
+                null,
+                $selectedBranch
+            );
 
             // Process new document uploads
             if (!empty($_FILES['documents']['name'][0])) {
@@ -246,6 +336,8 @@ class EmployeeController
 
     /**
      * Delete an employee.
+     * Super Admin - সব ডিলিট করতে পারে
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের ডিলিট করতে পারে
      */
     public function delete(array $params): void
     {
@@ -254,7 +346,7 @@ class EmployeeController
         $employee = Employee::find($id);
 
         if (!$employee) {
-            Session::setFlash('error', 'Employee not found.');
+            Session::setFlash('error', 'Employee not found or access denied.');
             redirect('/admin/employees');
         }
 
@@ -272,7 +364,12 @@ class EmployeeController
         }
 
         if (Employee::delete($id)) {
-            ActivityLogger::log('Employee Deletion', "Deleted employee profile: {$employee['username']}");
+            ActivityLogger::log(
+                'Employee Deletion',
+                "Deleted employee profile: {$employee['username']}",
+                null,
+                $employee['branch_id'] ?? null
+            );
             Session::setFlash('success', 'Employee deleted successfully.');
         } else {
             Session::setFlash('error', 'Unable to delete employee.');
@@ -310,12 +407,14 @@ class EmployeeController
     }
 
     /**
-     * Show Attendance Logging Dashboard (Phase 4).
+     * Show Attendance Logging Dashboard.
+     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের অ্যাটেনডেন্স দেখবে
      */
     public function attendance(): void
     {
         Permission::check('record_attendance');
         
+        $filter = $this->getBranchFilter();
         $date = $_GET['date'] ?? date('Y-m-d');
         $attendance = Employee::getAttendanceByDate($date);
         
