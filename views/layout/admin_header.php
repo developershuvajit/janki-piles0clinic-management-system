@@ -23,10 +23,10 @@ if ($roleSlug === 'doctor') {
     return;
 }
 
-// SUPER ADMIN or BRANCH ADMIN - Same header with branch filter
+// SUPER ADMIN or BRANCH ADMIN - Same menu, different data filter
 $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
 $isBranchAdmin = ($roleSlug === 'branch_admin');
-$isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন একই
+$isAdmin = ($isSuperAdmin || $isBranchAdmin);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -440,7 +440,7 @@ $isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন
                 ?>
 
                 <!-- ======================================== -->
-                <!-- 1. DASHBOARD & CLINICAL (Both Roles) -->
+                <!-- 1. DASHBOARD & CLINICAL (Both Roles - Data filtered by branch) -->
                 <!-- ======================================== -->
                 <div style="margin-bottom:0.3rem;">
                     <button class="sidebar-accordion-header <?= $isAdminActive ? 'active-header' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#menu-admin" aria-expanded="<?= $isAdminActive ? 'true' : 'false' ?>">
@@ -458,29 +458,25 @@ $isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন
                             <a class="nav-link <?= $currentPage === 'appointments' ? 'active' : '' ?>" href="<?= site_url('/admin/appointments') ?>">
                                 <i class="bi bi-calendar-check" style="color:#8b5cf6;"></i> Appointments
                             </a>
-                            <!-- শুধু সুপার অ্যাডমিনের জন্য -->
-                            <?php if ($isSuperAdmin): ?>
-                                <a class="nav-link <?= $currentPage === 'appointments_pending' ? 'active' : '' ?>" href="<?= site_url('/admin/appointments/pending') ?>">
-                                    <i class="bi bi-clock-history" style="color:#f59e0b;"></i> Pending Approvals
-                                </a>
-                                <a class="nav-link <?= $currentPage === 'ipd' ? 'active' : '' ?>" href="<?= site_url('/admin/ipd') ?>">
-                                    <i class="bi bi-hospital" style="color:#ec4899;"></i> IPD Admissions
-                                </a>
-                                <a class="nav-link <?= $currentPage === 'billing' ? 'active' : '' ?>" href="<?= site_url('/admin/billing') ?>">
-                                    <i class="bi bi-receipt-cutoff" style="color:#8b5cf6;"></i> Billing
-                                </a>
-                                <a class="nav-link <?= $currentPage === 'inventory' ? 'active' : '' ?>" href="<?= site_url('/admin/inventory') ?>">
-                                    <i class="bi bi-capsule" style="color:#ef4444;"></i> Inventory
-                                </a>
-                            <?php endif; ?>
+                            <a class="nav-link <?= $currentPage === 'appointments_pending' ? 'active' : '' ?>" href="<?= site_url('/admin/appointments/pending') ?>">
+                                <i class="bi bi-clock-history" style="color:#f59e0b;"></i> Pending Approvals
+                            </a>
+                            <a class="nav-link <?= $currentPage === 'ipd' ? 'active' : '' ?>" href="<?= site_url('/admin/ipd') ?>">
+                                <i class="bi bi-hospital" style="color:#ec4899;"></i> IPD Admissions
+                            </a>
+                            <a class="nav-link <?= $currentPage === 'billing' ? 'active' : '' ?>" href="<?= site_url('/admin/billing') ?>">
+                                <i class="bi bi-receipt-cutoff" style="color:#8b5cf6;"></i> Billing
+                            </a>
+                            <a class="nav-link <?= $currentPage === 'inventory' ? 'active' : '' ?>" href="<?= site_url('/admin/inventory') ?>">
+                                <i class="bi bi-capsule" style="color:#ef4444;"></i> Inventory
+                            </a>
                         </div>
                     </div>
                 </div>
 
                 <!-- ======================================== -->
-                <!-- 2. HR & OPERATIONS (Only Super Admin) -->
+                <!-- 2. HR & OPERATIONS (Both Roles - Data filtered by branch) -->
                 <!-- ======================================== -->
-                <?php if ($isSuperAdmin): ?>
                 <div style="margin-bottom:0.3rem;">
                     <button class="sidebar-accordion-header <?= $isHrActive ? 'active-header' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#menu-hr" aria-expanded="<?= $isHrActive ? 'true' : 'false' ?>">
                         <span><i class="bi bi-people-fill" style="color:#3b82f6;margin-right:0.6rem;"></i> HR & Operations</span>
@@ -488,21 +484,30 @@ $isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন
                     </button>
                     <div class="collapse <?= $isHrActive ? 'show' : '' ?>" id="menu-hr">
                         <div class="sidebar-accordion-body">
-                            <a class="nav-link <?= $currentPage === 'branches' ? 'active' : '' ?>" href="<?= site_url('/admin/branches') ?>">
-                                <i class="bi bi-building" style="color:#22c55e;"></i> Branches
-                            </a>
-                            <a class="nav-link <?= $currentPage === 'roles' ? 'active' : '' ?>" href="<?= site_url('/admin/roles') ?>">
-                                <i class="bi bi-shield-lock" style="color:#a855f7;"></i> Roles & Permissions
-                            </a>
-                            <a class="nav-link <?= $currentPage === 'users' ? 'active' : '' ?>" href="<?= site_url('/admin/users') ?>">
-                                <i class="bi bi-person-gear" style="color:#8b5cf6;"></i> Users Management
-                            </a>
+                            <!-- Branches - শুধু Super Admin -->
+                            <?php if ($isSuperAdmin): ?>
+                                <a class="nav-link <?= $currentPage === 'branches' ? 'active' : '' ?>" href="<?= site_url('/admin/branches') ?>">
+                                    <i class="bi bi-building" style="color:#22c55e;"></i> Branches
+                                </a>
+                                <a class="nav-link <?= $currentPage === 'roles' ? 'active' : '' ?>" href="<?= site_url('/admin/roles') ?>">
+                                    <i class="bi bi-shield-lock" style="color:#a855f7;"></i> Roles & Permissions
+                                </a>
+                                <a class="nav-link <?= $currentPage === 'users' ? 'active' : '' ?>" href="<?= site_url('/admin/users') ?>">
+                                    <i class="bi bi-person-gear" style="color:#8b5cf6;"></i> Users Management
+                                </a>
+                            <?php endif; ?>
+                            
+                            <!-- Employees - Both Roles (Branch Admin sees only his branch employees) -->
                             <a class="nav-link <?= $currentPage === 'employees' ? 'active' : '' ?>" href="<?= site_url('/admin/employees') ?>">
                                 <i class="bi bi-person-lines-fill" style="color:#3b82f6;"></i> Employees
                             </a>
+                            
+                            <!-- ID Cards - Both Roles -->
                             <a class="nav-link <?= $currentPage === 'id_cards' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/id-cards') ?>">
                                 <i class="bi bi-credit-card-2-front" style="color:#8b5cf6;"></i> ID Cards
                             </a>
+                            
+                            <!-- Attendance - Both Roles -->
                             <a class="nav-link <?= $currentPage === 'attendance_scan' ? 'active' : '' ?>" href="<?= site_url('/admin/attendance/scan') ?>">
                                 <i class="bi bi-qr-code-scan" style="color:#f59e0b;"></i> QR Attendance
                             </a>
@@ -512,13 +517,14 @@ $isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন
                             <a class="nav-link <?= $currentPage === 'leaves' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance/leaves') ?>">
                                 <i class="bi bi-calendar-minus" style="color:#ec4899;"></i> Leaves
                             </a>
+                            
+                            <!-- Salary - Both Roles (Branch Admin sees only his branch employees) -->
                             <a class="nav-link <?= $currentPage === 'salary' ? 'active' : '' ?>" href="<?= site_url('/admin/salary') ?>">
                                 <i class="bi bi-cash-stack" style="color:#0f7b4a;"></i> Salary
                             </a>
                         </div>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <!-- ======================================== -->
                 <!-- 3. WEBSITE CMS & CRM (Only Super Admin) -->
@@ -653,17 +659,16 @@ $isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন
                             <i class="bi bi-plus-circle"></i> Quick Action
                         </button>
                         <ul class="dropdown-menu dropdown-menu-clean">
+                            <li><a class="dropdown-item" href="<?= site_url('/admin/patients/create') ?>"><i class="bi bi-person-plus text-success"></i> New Patient</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('/admin/appointments/create') ?>"><i class="bi bi-calendar-plus text-primary"></i> New Appointment</a></li>
                             <?php if ($isSuperAdmin): ?>
-                                <li><a class="dropdown-item" href="<?= site_url('/admin/patients/create') ?>"><i class="bi bi-person-plus text-success"></i> New Patient</a></li>
-                                <li><a class="dropdown-item" href="<?= site_url('/admin/appointments/create') ?>"><i class="bi bi-calendar-plus text-primary"></i> New Appointment</a></li>
                                 <li><a class="dropdown-item" href="<?= site_url('/admin/ipd/admit') ?>"><i class="bi bi-hospital text-warning"></i> Admit IPD</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="<?= site_url('/admin/branches/create') ?>"><i class="bi bi-building-add text-info"></i> New Branch</a></li>
                                 <li><a class="dropdown-item" href="<?= site_url('/admin/users/create') ?>"><i class="bi bi-person-plus text-primary"></i> New User</a></li>
-                            <?php else: ?>
-                                <li><a class="dropdown-item" href="<?= site_url('/admin/patients/create') ?>"><i class="bi bi-person-plus text-success"></i> New Patient</a></li>
-                                <li><a class="dropdown-item" href="<?= site_url('/admin/appointments/create') ?>"><i class="bi bi-calendar-plus text-primary"></i> New Appointment</a></li>
                             <?php endif; ?>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="<?= site_url('/admin/employees/create') ?>"><i class="bi bi-person-plus text-primary"></i> New Employee</a></li>
                         </ul>
                     </div>
 
