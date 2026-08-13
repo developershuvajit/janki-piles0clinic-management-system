@@ -492,9 +492,7 @@ $isAdmin = ($isSuperAdmin || $isBranchAdmin);
                                 <a class="nav-link <?= $currentPage === 'roles' ? 'active' : '' ?>" href="<?= site_url('/admin/roles') ?>">
                                     <i class="bi bi-shield-lock" style="color:#a855f7;"></i> Roles & Permissions
                                 </a>
-                                <a class="nav-link <?= $currentPage === 'users' ? 'active' : '' ?>" href="<?= site_url('/admin/users') ?>">
-                                    <i class="bi bi-person-gear" style="color:#8b5cf6;"></i> Users Management
-                                </a>
+                               
                             <?php endif; ?>
                             
                             <!-- Employees - Both Roles (Branch Admin sees only his branch employees) -->

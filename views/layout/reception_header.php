@@ -1,12 +1,24 @@
- <?php
+<?php
 $user = \App\Helpers\Session::user();
+$roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
 $branchId = $user['branch_id'] ?? null;
-$branchName = 'Dehradun Main Clinic'; // Default fallback
+$branchName = 'Main Branch';
+
 if ($branchId) {
     $b = \App\Models\Branch::find((int)$branchId);
     if ($b) {
         $branchName = $b['name'];
     }
+}
+
+// যদি রিসেপশনিস্ট না হয়, তাহলে অন্য হেডার দেখান
+if ($roleSlug !== 'receptionist') {
+    if ($roleSlug === 'doctor') {
+        include __DIR__ . '/doctor_header.php';
+        return;
+    }
+    include __DIR__ . '/admin_header.php';
+    return;
 }
 ?>
 <!DOCTYPE html>
@@ -438,9 +450,12 @@ if ($branchId) {
                         <span style="display:inline-block;width:6px;height:6px;background:#22c55e;border-radius:50%;"></span>
                         Reception Staff
                     </div>
+                    <div style="font-size:0.6rem;color:#94a3b8;margin-top:2px;">
+                        <i class="bi bi-building"></i> <?= esc($branchName) ?>
+                    </div>
                 </div>
             </div>
-            <a class="btn btn-sm btn-outline-danger w-100" href="<?= site_url('/reception/logout') ?>" style="border-radius:10px;font-size:0.78rem;padding:0.5rem;border-color:rgba(239,68,68,0.3);color:#ef4444;background:rgba(239,68,68,0.05);transition:all 0.15s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:0.4rem;" 
+            <a class="btn btn-sm btn-outline-danger w-100" href="<?= site_url('/logout') ?>" style="border-radius:10px;font-size:0.78rem;padding:0.5rem;border-color:rgba(239,68,68,0.3);color:#ef4444;background:rgba(239,68,68,0.05);transition:all 0.15s;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:0.4rem;" 
                data-confirm="Are you sure you want to log out?">
                 <i class="bi bi-box-arrow-left"></i> Sign Out
             </a>
@@ -472,7 +487,7 @@ if ($branchId) {
             <div class="topbar-actions">
                 <!-- Role Badge -->
                 <span class="badge-clean badge-clean-primary d-none-mobile">
-                    <i class="bi bi-shield-check"></i> <?= esc(strtoupper($user['role'] ?? 'RECEPTION')) ?>
+                    <i class="bi bi-shield-check"></i> RECEPTION
                 </span>
 
                 <!-- Branch Badge -->
@@ -505,7 +520,7 @@ if ($branchId) {
                         <li><a class="dropdown-item" href="<?= site_url('/reception/profile') ?>"><i class="bi bi-person-circle"></i> My Profile</a></li>
                         <li><a class="dropdown-item" href="<?= site_url('/reception/reports') ?>"><i class="bi bi-graph-up"></i> Reports</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="<?= site_url('/reception/logout') ?>"><i class="bi bi-box-arrow-right"></i> Sign Out</a></li>
+                        <li><a class="dropdown-item text-danger" href="<?= site_url('/logout') ?>"><i class="bi bi-box-arrow-right"></i> Sign Out</a></li>
                     </ul>
                 </div>
 
@@ -518,21 +533,21 @@ if ($branchId) {
 
         <!-- Flash Messages -->
         <?php if ($error = \App\Helpers\Session::getFlash('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show alert-dismiss-flash mb-4" role="alert" style="border-radius:12px;border-left:4px solid #dc3545;">
+        <div class="alert alert-danger alert-dismissible fade show alert-dismiss-flash mb-4" role="alert" style="border-radius:12px;border-left:4px solid #dc3545;margin:0 1.8rem;">
             <i class="bi bi-exclamation-triangle-fill me-2"></i> <?= esc($error) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
 
         <?php if ($success = \App\Helpers\Session::getFlash('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show alert-dismiss-flash mb-4" role="alert" style="border-radius:12px;border-left:4px solid #198754;">
+        <div class="alert alert-success alert-dismissible fade show alert-dismiss-flash mb-4" role="alert" style="border-radius:12px;border-left:4px solid #198754;margin:0 1.8rem;">
             <i class="bi bi-check-circle-fill me-2"></i> <?= esc($success) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
         <?php endif; ?>
 
         <?php if ($warning = \App\Helpers\Session::getFlash('warning')): ?>
-        <div class="alert alert-warning alert-dismissible fade show alert-dismiss-flash mb-4" role="alert" style="border-radius:12px;border-left:4px solid #ffc107;">
+        <div class="alert alert-warning alert-dismissible fade show alert-dismiss-flash mb-4" role="alert" style="border-radius:12px;border-left:4px solid #ffc107;margin:0 1.8rem;">
             <i class="bi bi-exclamation-circle-fill me-2"></i> <?= esc($warning) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
