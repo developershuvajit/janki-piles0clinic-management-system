@@ -9,7 +9,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <link rel="stylesheet" href="<?= asset('css/datatable.css') ?>">
 
 <style>
-    /* ===== ID CARD STYLES ===== */
     .id-card-vertical {
         width: 340px;
         min-height: 490px;
@@ -26,8 +25,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         transform: translateY(-3px);
         box-shadow: 0 8px 30px rgba(0,0,0,0.1);
     }
-
-    /* Card Header */
     .id-card-header {
         background: linear-gradient(135deg, #0b1a2b, #1a365d);
         padding: 0.8rem 1.2rem 0.6rem;
@@ -68,8 +65,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         border: 1px solid rgba(59,130,246,0.15);
         text-transform: uppercase;
     }
-
-    /* Card Body */
     .id-card-body {
         padding: 1rem 1.2rem 0.6rem;
         display: flex;
@@ -95,10 +90,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         width: 100%;
         height: 100%;
         object-fit: cover;
-    }
-    .id-card-photo .no-photo {
-        font-size: 2.2rem;
-        color: #94a3b8;
     }
     .id-card-name {
         font-size: 1rem;
@@ -129,8 +120,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         letter-spacing: 0.5px;
         border: 1px solid #e2e8f0;
     }
-
-    /* Card Footer - QR Code Centered */
     .id-card-footer {
         padding: 0.8rem 1.2rem 0.6rem;
         display: flex;
@@ -157,8 +146,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         height: 100%;
         object-fit: contain;
     }
-
-    /* Card Bottom - Branch & Mobile */
     .id-card-bottom {
         padding: 0.5rem 1.2rem 0.7rem;
         background: #f8fafc;
@@ -184,8 +171,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         font-weight: 500;
         color: #0b1a2b;
     }
-
-    /* Card Bottom - Validity */
     .id-card-validity {
         padding: 0.3rem 1.2rem;
         background: #f1f5f9;
@@ -212,8 +197,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         color: #94a3b8;
         font-weight: 400;
     }
-
-    /* Grid & UI */
     .id-card-grid {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -221,7 +204,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         margin-top: 1.5rem;
         justify-items: center;
     }
-
     .btn-primary-clean {
         background: #2563eb;
         color: #fff;
@@ -281,7 +263,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         background: #e2e8f0;
         transform: translateY(-1px);
     }
-
     .badge-active {
         background: #e6f5ed;
         color: #0f7b4a;
@@ -300,7 +281,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         font-size: 0.65rem;
         font-weight: 500;
     }
-
     .card-clean {
         background: #ffffff;
         border: 1px solid #f1f5f9;
@@ -308,8 +288,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         padding: 0.8rem 1.2rem;
         box-shadow: 0 1px 4px rgba(0,0,0,0.04);
     }
-
-    /* Print Styles */
     @media print {
         body * { visibility: hidden; }
         #idCardContainer, #idCardContainer * { visibility: visible; }
@@ -353,7 +331,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
         @page { size: A4 portrait; margin: 4mm 4mm !important; }
         .no-print { display: none !important; }
     }
-
     @media (max-width: 576px) {
         .id-card-grid { grid-template-columns: 1fr; }
         .id-card-vertical { width: 100%; max-width: 340px; }
@@ -368,7 +345,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
     <div class="datatable-header no-print">
         <h5>Employee ID Cards <small><?= count($employees ?? []) ?> employees</small></h5>
         <div class="d-flex gap-2">
-            <button onclick="window.print()" class="btn-success-clean">
+            <button onclick="window.print()" class="btn-success-clean" id="printBtn" style="display:none;">
                 <i class="bi bi-printer"></i> Print Cards
             </button>
             <button onclick="selectAllEmployees()" class="btn-soft-clean">
@@ -384,10 +361,13 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <i class="bi bi-people me-1"></i> <span id="selectedCount" style="font-weight:600;color:#0b1a2b;">0</span> selected
                 </span>
                 <button onclick="generateSelected()" class="btn-primary-clean">
-                    <i class="bi bi-id-card me-1"></i> Generate
+                    <i class="bi bi-id-card me-1"></i> Generate Selected
                 </button>
                 <button onclick="generateAll()" class="btn-success-clean">
                     <i class="bi bi-files me-1"></i> Generate All
+                </button>
+                <button onclick="clearCards()" class="btn-soft-clean">
+                    <i class="bi bi-x-circle me-1"></i> Clear
                 </button>
             </div>
         </div>
@@ -407,11 +387,11 @@ include VIEWS_PATH . '/layout/admin_header.php';
             <tbody>
                 <?php if (!empty($employees)): ?>
                     <?php foreach ($employees as $emp): ?>
-                        <tr class="employee-row" data-id="<?= $emp['id'] ?>" data-name="<?= esc($emp['username']) ?>">
+                        <tr class="employee-row" data-id="<?= $emp['id'] ?>">
                             <td><input type="checkbox" class="employee-checkbox" value="<?= $emp['id'] ?>" onchange="updateSelectedCount()"></td>
                             <td>
                                 <div class="d-flex align-items-center gap-2">
-                                    <?php if (!empty($emp['photo'])): ?>
+                                    <?php if (!empty($emp['photo']) && file_exists(PUBLIC_PATH . '/' . $emp['photo'])): ?>
                                         <img src="<?= site_url($emp['photo']) ?>" alt="" style="width:35px;height:35px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;">
                                     <?php else: ?>
                                         <div style="width:35px;height:35px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;border:2px solid #e2e8f0;">
@@ -458,19 +438,17 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 
-<script src="<?= asset('js/datatable.js') ?>"></script>
-
 <script>
 $(document).ready(function() {
     if ($('#employeesTable').length) {
         var table = $('#employeesTable').DataTable({
             dom: '<"d-flex flex-wrap align-items-center justify-content-between gap-2 p-2"lBf>t<"d-flex flex-wrap align-items-center justify-content-between gap-2 p-2"ip>',
             buttons: [
-                { extend: 'copy', text: '<i class="bi bi-copy"></i> Copy', className: 'btn btn-sm' },
-                { extend: 'csv', text: '<i class="bi bi-file-earmark-spreadsheet"></i> CSV', className: 'btn btn-sm' },
-                { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i> Excel', className: 'btn btn-sm' },
-                { extend: 'pdf', text: '<i class="bi bi-file-earmark-pdf"></i> PDF', className: 'btn btn-sm' },
-                { extend: 'print', text: '<i class="bi bi-printer"></i> Print', className: 'btn btn-sm' }
+                { extend: 'copy', text: '<i class="bi bi-copy"></i> Copy', className: 'btn btn-sm btn-outline-secondary' },
+                { extend: 'csv', text: '<i class="bi bi-file-earmark-spreadsheet"></i> CSV', className: 'btn btn-sm btn-outline-secondary' },
+                { extend: 'excel', text: '<i class="bi bi-file-earmark-excel"></i> Excel', className: 'btn btn-sm btn-outline-secondary' },
+                { extend: 'pdf', text: '<i class="bi bi-file-earmark-pdf"></i> PDF', className: 'btn btn-sm btn-outline-secondary' },
+                { extend: 'print', text: '<i class="bi bi-printer"></i> Print', className: 'btn btn-sm btn-outline-secondary' }
             ],
             pageLength: 25,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
@@ -487,6 +465,10 @@ $(document).ready(function() {
                 infoFiltered: "(filtered from _MAX_ total)",
                 zeroRecords: "No matching employees found"
             }
+        });
+        
+        table.on('draw', function() {
+            updateSelectedCount();
         });
     }
 });
@@ -509,45 +491,85 @@ function selectAllEmployees() {
     updateSelectedCount();
 }
 
+function clearCards() {
+    document.getElementById('idCardContainer').innerHTML = '';
+    document.getElementById('printBtn').style.display = 'none';
+}
+
 function generateSelected() {
-    if (!selectedEmployees.length) return alert('Please select at least one employee.');
+    if (!selectedEmployees.length) {
+        alert('Please select at least one employee.');
+        return;
+    }
     generateIDCards(selectedEmployees);
 }
 
 function generateAll() {
     const allIds = [];
     document.querySelectorAll('.employee-checkbox').forEach(cb => allIds.push(cb.value));
-    if (!allIds.length) return alert('No employees found.');
+    if (!allIds.length) {
+        alert('No employees found.');
+        return;
+    }
     generateIDCards(allIds);
 }
 
 function generateIDCards(ids) {
     const container = document.getElementById('idCardContainer');
-    container.innerHTML = `<div class="text-center py-5" style="grid-column:1/-1;">
-        <div class="spinner-border text-primary" role="status"></div>
-        <div class="mt-2 text-muted">Generating ID cards...</div>
-    </div>`;
+    container.innerHTML = '<div class="text-center py-5" style="grid-column:1/-1;">' +
+        '<div class="spinner-border text-primary" role="status"></div>' +
+        '<div class="mt-2 text-muted">Generating ID cards...</div>' +
+    '</div>';
     
+    // Use FormData instead of JSON
+    const formData = new FormData();
+    ids.forEach(id => {
+        formData.append('employee_ids[]', id);
+    });
+
     fetch('<?= site_url('/admin/employees/generate-id-cards') ?>', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ employee_ids: ids })
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success && data.html) {
-            container.innerHTML = data.html;
-        } else {
-            container.innerHTML = `<div class="text-center py-5 text-danger" style="grid-column:1/-1;">${data.message || 'Failed to generate ID cards.'}</div>`;
+    .then(response => response.text())
+    .then(text => {
+        try {
+            const data = JSON.parse(text);
+            if (data.success && data.html) {
+                container.innerHTML = data.html;
+                document.getElementById('printBtn').style.display = 'inline-flex';
+            } else {
+                container.innerHTML = '<div class="text-center py-5 text-danger" style="grid-column:1/-1;">' +
+                    '<i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;"></i>' +
+                    '<div class="mt-2">' + (data.message || 'Failed to generate ID cards.') + '</div>' +
+                '</div>';
+            }
+        } catch (e) {
+            console.error('Parse error:', e);
+            console.error('Response:', text);
+            container.innerHTML = '<div class="text-center py-5 text-danger" style="grid-column:1/-1;">' +
+                '<i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;"></i>' +
+                '<div class="mt-2">Error generating ID cards. Please try again.</div>' +
+                '<div class="mt-1 text-muted" style="font-size:0.8rem;">' + text.substring(0, 100) + '</div>' +
+            '</div>';
         }
     })
     .catch(err => {
         console.error('Error:', err);
-        container.innerHTML = `<div class="text-center py-5 text-danger" style="grid-column:1/-1;">Error generating ID cards.</div>`;
+        container.innerHTML = '<div class="text-center py-5 text-danger" style="grid-column:1/-1;">' +
+            '<i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;"></i>' +
+            '<div class="mt-2">Error generating ID cards. Please try again.</div>' +
+        '</div>';
     });
 }
 
-document.addEventListener('DOMContentLoaded', updateSelectedCount);
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+    document.getElementById('printBtn').style.display = 'none';
+});
 </script>
 
 <?php include VIEWS_PATH . '/layout/admin_footer.php'; ?>

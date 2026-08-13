@@ -16,7 +16,6 @@ class EmployeeController
 {
     /**
      * Get branch filter for current user
-     * Super Admin ছাড়া সবাই ব্রাঞ্চ ফিল্টার পাবে
      */
     private function getBranchFilter(): array
     {
@@ -37,7 +36,7 @@ class EmployeeController
     /**
      * Display listing of all employees.
      * Super Admin - সব দেখবে
-     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের দেখবে
+     * Branch Admin - শুধু নিজের ব্রাঞ্চের দেখবে
      */
     public function index(): void
     {
@@ -48,14 +47,13 @@ class EmployeeController
         
         view('admin.employees.index', [
             'title' => 'Employee Roster',
-            'employees' => $employees
+            'employees' => $employees,
+            'activePage' => 'employees'
         ]);
     }
 
     /**
      * Show Employee Creation Form.
-     * Super Admin - সব ব্রাঞ্চ দেখাবে
-     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চ দেখাবে (Hidden)
      */
     public function create(): void
     {
@@ -83,14 +81,15 @@ class EmployeeController
             'roles' => $roles,
             'isSuperAdmin' => $filter['isSuperAdmin'],
             'hasBranchFilter' => $filter['hasFilter'],
-            'branchId' => $filter['branchId']
+            'branchId' => $filter['branchId'],
+            'activePage' => 'employees'
         ]);
     }
 
     /**
      * Store new employee profile.
      * Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
-     * Branch Admin / Receptionist - নিজের ব্রাঞ্চ ফোর্স সেট
+     * Branch Admin - নিজের ব্রাঞ্চ ফোর্স সেট
      */
     public function store(): void
     {
@@ -187,8 +186,6 @@ class EmployeeController
 
     /**
      * Show Edit Employee Form.
-     * Super Admin - সব ব্রাঞ্চ দেখাবে
-     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চ দেখাবে
      */
     public function edit(array $params): void
     {
@@ -197,7 +194,7 @@ class EmployeeController
         $employee = Employee::find($id);
 
         if (!$employee) {
-            Session::setFlash('error', 'Employee not found or access denied.');
+            Session::setFlash('error', 'Employee not found.');
             redirect('/admin/employees');
         }
 
@@ -224,14 +221,13 @@ class EmployeeController
             'documents' => $documents,
             'isSuperAdmin' => $filter['isSuperAdmin'],
             'hasBranchFilter' => $filter['hasFilter'],
-            'branchId' => $filter['branchId']
+            'branchId' => $filter['branchId'],
+            'activePage' => 'employees'
         ]);
     }
 
     /**
      * Update employee credentials.
-     * Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
-     * Branch Admin / Receptionist - নিজের ব্রাঞ্চ ফোর্স সেট
      */
     public function update(array $params): void
     {
@@ -240,7 +236,7 @@ class EmployeeController
         $employee = Employee::find($id);
 
         if (!$employee) {
-            Session::setFlash('error', 'Employee not found or access denied.');
+            Session::setFlash('error', 'Employee not found.');
             redirect('/admin/employees');
         }
 
@@ -261,7 +257,7 @@ class EmployeeController
         $data = [
             'username' => Security::sanitize($_POST['username'] ?? ''),
             'email' => Security::sanitize($_POST['email'] ?? ''),
-            'password' => $_POST['password'] ?? '', // Empty if not changing
+            'password' => $_POST['password'] ?? '',
             'role_id' => (int)($_POST['role_id'] ?? 0),
             'branch_id' => $selectedBranch,
             'salary' => (float)($_POST['salary'] ?? 0.00),
@@ -336,8 +332,6 @@ class EmployeeController
 
     /**
      * Delete an employee.
-     * Super Admin - সব ডিলিট করতে পারে
-     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের ডিলিট করতে পারে
      */
     public function delete(array $params): void
     {
@@ -346,7 +340,7 @@ class EmployeeController
         $employee = Employee::find($id);
 
         if (!$employee) {
-            Session::setFlash('error', 'Employee not found or access denied.');
+            Session::setFlash('error', 'Employee not found.');
             redirect('/admin/employees');
         }
 
@@ -408,7 +402,6 @@ class EmployeeController
 
     /**
      * Show Attendance Logging Dashboard.
-     * Branch Admin / Receptionist - শুধু নিজের ব্রাঞ্চের অ্যাটেনডেন্স দেখবে
      */
     public function attendance(): void
     {
@@ -416,12 +409,13 @@ class EmployeeController
         
         $filter = $this->getBranchFilter();
         $date = $_GET['date'] ?? date('Y-m-d');
-        $attendance = Employee::getAttendanceByDate($date);
+        $attendance = Employee::getAttendanceByDate($date, $filter['hasFilter'] ? $filter['branchId'] : null);
         
         view('admin.employees.attendance', [
             'title' => 'Daily Attendance Sheet',
             'date' => $date,
-            'records' => $attendance
+            'records' => $attendance,
+            'activePage' => 'attendance'
         ]);
     }
 
@@ -437,6 +431,7 @@ class EmployeeController
             redirect('/admin/employees/attendance');
         }
 
+        $filter = $this->getBranchFilter();
         $date = $_POST['date'] ?? date('Y-m-d');
         $status = $_POST['status'] ?? [];
         $checkIn = $_POST['check_in'] ?? [];

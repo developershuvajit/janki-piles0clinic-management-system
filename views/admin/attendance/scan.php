@@ -305,21 +305,25 @@ function fetchEmployee(employeeId) {
         });
 }
 
- function autoMarkAttendance(employee) {
+function autoMarkAttendance(employee) {
     setStatus('info', `<i class="bi bi-person-check me-2"></i> Detected: <strong>${employee.username}</strong> - Processing...`);
     fetch('<?= site_url('/admin/attendance/mark') ?>', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ employee_id: employee.id })
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            throw new Error('HTTP ' + res.status);
+        }
+        return res.json();
+    })
     .then(data => {
         if (data.success) {
             const isCheckin = data.status === 'checkin';
             const isLate = data.is_late || false;
             const action = isCheckin ? 'checkin' : 'checkout';
             
-            // Get employee details with shift and role
             const employeeDetails = {
                 name: employee.username || 'Unknown',
                 role: employee.role_name || 'Staff',
@@ -329,13 +333,11 @@ function fetchEmployee(employeeId) {
                 lateMinutes: data.late_minutes || 0
             };
             
-            // Update detected card
             showDetectedEmployee(employee, action, isLate, {
                 start: employeeDetails.shiftStart,
                 end: employeeDetails.shiftEnd
             });
             
-            // Show flash message with employee details
             let flashTitle = isCheckin ? '✅ Checked In' : '✅ Checked Out';
             let flashMsg = `${employeeDetails.name} - ${data.message}`;
             let flashSub = `👤 ${employeeDetails.role} | ⏰ ${employeeDetails.shiftStart} - ${employeeDetails.shiftEnd}`;
@@ -363,6 +365,7 @@ function fetchEmployee(employeeId) {
         }
     })
     .catch(err => {
+        console.error('Error:', err);
         showFlash('error', 'Error', 'Failed to mark attendance');
         setStatus('error', '<i class="bi bi-exclamation-circle me-2"></i> Error marking attendance.');
         isProcessing = false;
@@ -380,14 +383,13 @@ function formatTime(time) {
     return `${hour12}:${minutes} ${ampm}`;
 }
 
-  function loadTodayAttendance() {
+function loadTodayAttendance() {
     fetch('<?= site_url('/admin/attendance/today') ?>')
         .then(res => res.json())
         .then(data => {
             const tbody = document.getElementById('attendanceLog');
             if (data.attendance && data.attendance.length > 0) {
                 tbody.innerHTML = data.attendance.map(a => {
-                    // Determine status badge
                     let statusBadge = '';
                     let lateDisplay = '';
                     
@@ -395,7 +397,6 @@ function formatTime(time) {
                         statusBadge = '<span class="badge-soft" style="background:#e6f5ed;color:#0f7b4a;">✅ Present</span>';
                     } else if (a.status === 'late') {
                         statusBadge = '<span class="badge-soft" style="background:#fef7e8;color:#c5711e;">⚠️ Late</span>';
-                        // Show late minutes from API
                         if (a.late_minutes && a.late_minutes > 0) {
                             lateDisplay = `<div style="font-size:0.55rem;color:#c5711e;margin-top:0.1rem;">${a.late_minutes} min late</div>`;
                         }
@@ -403,12 +404,10 @@ function formatTime(time) {
                         statusBadge = '<span class="badge-soft" style="background:#ffe9e9;color:#b33c3c;">❌ Absent</span>';
                     }
                     
-                    // Get role and shift from API data
                     const roleName = a.role_name || 'Staff';
                     const shiftStart = a.shift_start ? formatTime(a.shift_start) : '09:00 AM';
                     const shiftEnd = a.shift_end ? formatTime(a.shift_end) : '05:00 PM';
                     
-                    // Employee photo
                     let photoHtml = a.photo ? 
                         `<img src="${a.photo.startsWith('http') ? a.photo : '<?= site_url('/') ?>' + a.photo}" class="table-avatar">` 
                         : `<div class="table-avatar-placeholder"><i class="bi bi-person"></i></div>`;

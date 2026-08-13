@@ -83,7 +83,12 @@ $router->get('/admin/branches/dashboard/{id}', 'BranchController@dashboard');
 // ============================================================
 // 8. BRANCH ADMIN PORTAL (BRANCH ADMIN ONLY)
 // ============================================================
- 
+$router->get('/branch/dashboard/{id}', 'BranchController@dashboard');
+$router->get('/branch/patients/{id}', 'BranchController@patients');
+$router->get('/branch/appointments/{id}', 'BranchController@appointments');
+$router->get('/branch/employees/{id}', 'BranchController@employees');
+$router->get('/branch/reports/{id}', 'BranchController@reports');
+$router->get('/branch/settings/{id}', 'BranchController@settings');
 
 // ============================================================
 // 9. USER MANAGEMENT (SUPER ADMIN + BRANCH ADMIN)
@@ -109,12 +114,15 @@ $router->get('/admin/employees/delete-doc/{id}', 'EmployeeController@deleteDoc')
 // ============================================================
 // 11. ATTENDANCE MANAGEMENT
 // ============================================================
-$router->get('/admin/employees/attendance', 'AttendanceController@register');
-$router->post('/admin/employees/attendance/save', 'AttendanceController@saveAttendance');
-$router->get('/admin/employees/attendance/leaves', 'AttendanceController@leavesList');
-$router->post('/admin/employees/attendance/leaves/apply', 'AttendanceController@applyLeave');
-$router->get('/admin/employees/attendance/leaves/approve/{id}', 'AttendanceController@approveLeave');
-$router->get('/admin/employees/attendance/leaves/reject/{id}', 'AttendanceController@rejectLeave');
+ // ============================================================
+// ATTENDANCE MANAGEMENT
+// ============================================================
+$router->get('/admin/attendance/register', 'AttendanceController@register');
+$router->post('/admin/attendance/save', 'AttendanceController@saveAttendance');
+$router->get('/admin/attendance/leaves', 'AttendanceController@leavesList');
+$router->post('/admin/attendance/leaves/apply', 'AttendanceController@applyLeave');
+$router->get('/admin/attendance/leaves/approve/{id}', 'AttendanceController@approveLeave');
+$router->get('/admin/attendance/leaves/reject/{id}', 'AttendanceController@rejectLeave');
 
 // QR Code Attendance
 $router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
