@@ -23,9 +23,10 @@ if ($roleSlug === 'doctor') {
     return;
 }
 
-// SUPER ADMIN or BRANCH ADMIN - Same header with role-based menu
+// SUPER ADMIN or BRANCH ADMIN - Same header with branch filter
 $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
 $isBranchAdmin = ($roleSlug === 'branch_admin');
+$isAdmin = ($isSuperAdmin || $isBranchAdmin); // সব অ্যাডমিন একই
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -404,7 +405,7 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
         <aside class="sidebar-super">
             <div class="sidebar-scroll">
                 <!-- Brand -->
-                <a class="sidebar-brand" href="<?= $isSuperAdmin ? site_url('/admin/dashboard') : site_url('/branch/dashboard/' . ($_SESSION['branch_id'] ?? 0)) ?>">
+                <a class="sidebar-brand" href="<?= site_url('/admin/dashboard') ?>">
                     <div class="sidebar-brand-icon" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);">
                         <i class="bi bi-hospital"></i>
                     </div>
@@ -418,6 +419,11 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                 <div class="sidebar-role-badge">
                     <i class="bi bi-shield-fill-check"></i>
                     <?= $isBranchAdmin ? 'BRANCH ADMIN' : 'SUPER ADMIN' ?>
+                    <?php if ($isBranchAdmin && isset($_SESSION['branch_name'])): ?>
+                        <span style="color:#94a3b8;font-weight:400;text-transform:none;font-size:0.7rem;">
+                            | <?= esc($_SESSION['branch_name']) ?>
+                        </span>
+                    <?php endif; ?>
                 </div>
 
                 <hr class="sidebar-divider">
@@ -443,15 +449,16 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                     </button>
                     <div class="collapse <?= $isAdminActive ? 'show' : '' ?>" id="menu-admin">
                         <div class="sidebar-accordion-body">
-                            <a class="nav-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>" href="<?= $isSuperAdmin ? site_url('/admin/dashboard') : site_url('/branch/dashboard/' . $branchId) ?>">
+                            <a class="nav-link <?= $currentPage === 'dashboard' ? 'active' : '' ?>" href="<?= site_url('/admin/dashboard') ?>">
                                 <i class="bi bi-grid-1x2"></i> Dashboard
                             </a>
-                            <a class="nav-link <?= $currentPage === 'patients' ? 'active' : '' ?>" href="<?= $isSuperAdmin ? site_url('/admin/patients') : site_url('/branch/patients/' . $branchId) ?>">
+                            <a class="nav-link <?= $currentPage === 'patients' ? 'active' : '' ?>" href="<?= site_url('/admin/patients') ?>">
                                 <i class="bi bi-person-lines-fill" style="color:#22c55e;"></i> Patients
                             </a>
-                            <a class="nav-link <?= $currentPage === 'appointments' ? 'active' : '' ?>" href="<?= $isSuperAdmin ? site_url('/admin/appointments') : site_url('/branch/appointments/' . $branchId) ?>">
+                            <a class="nav-link <?= $currentPage === 'appointments' ? 'active' : '' ?>" href="<?= site_url('/admin/appointments') ?>">
                                 <i class="bi bi-calendar-check" style="color:#8b5cf6;"></i> Appointments
                             </a>
+                            <!-- শুধু সুপার অ্যাডমিনের জন্য -->
                             <?php if ($isSuperAdmin): ?>
                                 <a class="nav-link <?= $currentPage === 'appointments_pending' ? 'active' : '' ?>" href="<?= site_url('/admin/appointments/pending') ?>">
                                     <i class="bi bi-clock-history" style="color:#f59e0b;"></i> Pending Approvals
@@ -575,27 +582,6 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                 </div>
                 <?php endif; ?>
 
-                <!-- ======================================== -->
-                <!-- 5. BRANCH ADMIN - Quick Links -->
-                <!-- ======================================== -->
-                <?php if ($isBranchAdmin): ?>
-                <div style="margin-bottom:0.3rem;">
-                    <div class="sidebar-accordion-header" style="color:#94a3b8;cursor:default;padding:0.6rem 0.8rem;">
-                        <span><i class="bi bi-link-45deg" style="color:#f59e0b;margin-right:0.6rem;"></i> Quick Links</span>
-                    </div>
-                    <div style="padding:0.2rem 0.5rem 0.2rem 0;">
-                        <div class="sidebar-accordion-body">
-                            <a class="nav-link <?= $currentPage === 'employees' ? 'active' : '' ?>" href="<?= site_url('/branch/employees/' . $branchId) ?>">
-                                <i class="bi bi-person-lines-fill" style="color:#3b82f6;"></i> My Employees
-                            </a>
-                            <a class="nav-link <?= $currentPage === 'reports' ? 'active' : '' ?>" href="<?= site_url('/branch/reports/' . $branchId) ?>">
-                                <i class="bi bi-graph-up-arrow" style="color:#22c55e;"></i> Branch Reports
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
             </div>
 
             <!-- Sidebar Footer -->
@@ -635,7 +621,7 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                     <?php if (!empty($breadcrumb)): ?>
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
-                                <li class="breadcrumb-item"><a href="<?= $isSuperAdmin ? site_url('/admin/dashboard') : site_url('/branch/dashboard/' . $branchId) ?>">Home</a></li>
+                                <li class="breadcrumb-item"><a href="<?= site_url('/admin/dashboard') ?>">Home</a></li>
                                 <?php foreach ($breadcrumb as $label => $url): ?>
                                     <?php if ($url): ?>
                                         <li class="breadcrumb-item"><a href="<?= esc($url) ?>"><?= esc($label) ?></a></li>
@@ -675,8 +661,8 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                                 <li><a class="dropdown-item" href="<?= site_url('/admin/branches/create') ?>"><i class="bi bi-building-add text-info"></i> New Branch</a></li>
                                 <li><a class="dropdown-item" href="<?= site_url('/admin/users/create') ?>"><i class="bi bi-person-plus text-primary"></i> New User</a></li>
                             <?php else: ?>
-                                <li><a class="dropdown-item" href="<?= site_url('/branch/patients/' . $branchId . '/create') ?>"><i class="bi bi-person-plus text-success"></i> New Patient</a></li>
-                                <li><a class="dropdown-item" href="<?= site_url('/branch/appointments/' . $branchId . '/create') ?>"><i class="bi bi-calendar-plus text-primary"></i> New Appointment</a></li>
+                                <li><a class="dropdown-item" href="<?= site_url('/admin/patients/create') ?>"><i class="bi bi-person-plus text-success"></i> New Patient</a></li>
+                                <li><a class="dropdown-item" href="<?= site_url('/admin/appointments/create') ?>"><i class="bi bi-calendar-plus text-primary"></i> New Appointment</a></li>
                             <?php endif; ?>
                         </ul>
                     </div>
@@ -687,7 +673,7 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                             <span class="d-none d-sm-inline" style="font-weight:500;font-size:0.8rem;"><?= esc($user['username'] ?? 'Admin') ?></span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-clean">
-                            <li><a class="dropdown-item" href="<?= $isSuperAdmin ? site_url('/admin/profile') : site_url('/branch/profile/' . $branchId) ?>"><i class="bi bi-person-circle"></i> My Profile</a></li>
+                            <li><a class="dropdown-item" href="<?= site_url('/admin/profile') ?>"><i class="bi bi-person-circle"></i> My Profile</a></li>
                             <?php if ($isSuperAdmin): ?>
                                 <li><a class="dropdown-item" href="<?= site_url('/admin/settings') ?>"><i class="bi bi-gear"></i> Settings</a></li>
                             <?php endif; ?>
