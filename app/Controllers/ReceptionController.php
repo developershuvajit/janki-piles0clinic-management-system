@@ -21,6 +21,22 @@ use App\Helpers\Upload;
 class ReceptionController
 {
     /**
+     * Get branch filter for receptionist
+     */
+    private function getBranchFilter(): array
+    {
+        $user = Session::user();
+        $branchId = $user['branch_id'] ?? null;
+        
+        return [
+            'branchId' => $branchId,
+            'hasFilter' => ($branchId !== null),
+            'sql' => $branchId ? " AND branch_id = ? " : "",
+            'params' => $branchId ? [$branchId] : []
+        ];
+    }
+
+    /**
      * Display the Receptionist dashboard panel.
      */
     public function dashboard(): void
@@ -29,57 +45,71 @@ class ReceptionController
         
         $user = Session::user();
         $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        $filter = $this->getBranchFilter();
         $date = date('Y-m-d');
         
         // Retrieve statistics aggregates filtered by branch
-        $patientSql = "SELECT COUNT(*) as count FROM patients WHERE DATE(created_at) = :date";
-        $pParams = ['date' => $date];
+        $patientSql = "SELECT COUNT(*) as count FROM patients WHERE DATE(created_at) = ?";
+        $pParams = [$date];
         if ($branchId) {
-            $patientSql .= " AND branch_id = :branch_id";
-            $pParams['branch_id'] = $branchId;
+            $patientSql .= " AND branch_id = ?";
+            $pParams[] = $branchId;
         }
         $patientsCount = Database::row($patientSql, $pParams)['count'] ?? 0;
 
-        $apptSql = "SELECT COUNT(*) as count FROM appointments WHERE date = :date";
-        $aParams = ['date' => $date];
+        $apptSql = "SELECT COUNT(*) as count FROM appointments WHERE date = ?";
+        $aParams = [$date];
         if ($branchId) {
-            $apptSql .= " AND branch_id = :branch_id";
-            $aParams['branch_id'] = $branchId;
+            $apptSql .= " AND branch_id = ?";
+            $aParams[] = $branchId;
         }
         $apptsCount = Database::row($apptSql, $aParams)['count'] ?? 0;
 
-        $opdCount = Database::row("SELECT COUNT(*) as count FROM appointments WHERE date = :date AND type = 'walk-in'" . ($branchId ? " AND branch_id = {$branchId}" : ""), ['date' => $date])['count'] ?? 0;
+        $opdSql = "SELECT COUNT(*) as count FROM appointments WHERE date = ? AND type = 'walk-in'";
+        $oParams = [$date];
+        if ($branchId) {
+            $opdSql .= " AND branch_id = ?";
+            $oParams[] = $branchId;
+        }
+        $opdCount = Database::row($opdSql, $oParams)['count'] ?? 0;
         
         $ipdCount = count(Ipd::getActiveAdmissions($branchId));
 
         $pendingIssues = count(Prescription::getPendingMedicineIssues($branchId));
         
-        $revSql = "SELECT SUM(paid_amount) as total FROM billing WHERE DATE(created_at) = :date AND payment_status = 'paid'";
-        $rParams = ['date' => $date];
+        $revSql = "SELECT SUM(paid_amount) as total FROM billing WHERE DATE(created_at) = ? AND payment_status = 'paid'";
+        $rParams = [$date];
         if ($branchId) {
-            $revSql .= " AND branch_id = :branch_id";
-            $rParams['branch_id'] = $branchId;
+            $revSql .= " AND branch_id = ?";
+            $rParams[] = $branchId;
         }
         $revRow = Database::row($revSql, $rParams);
         $revenue = (float)($revRow['total'] ?? 0.00);
 
-        $pendingBillsCount = Database::row("SELECT COUNT(*) as count FROM billing WHERE payment_status IN ('unpaid', 'partial')" . ($branchId ? " AND branch_id = {$branchId}" : ""))['count'] ?? 0;
+        $pendingSql = "SELECT COUNT(*) as count FROM billing WHERE payment_status IN ('unpaid', 'partial')";
+        $pendingParams = [];
+        if ($branchId) {
+            $pendingSql .= " AND branch_id = ?";
+            $pendingParams[] = $branchId;
+        }
+        $pendingBillsCount = Database::row($pendingSql, $pendingParams)['count'] ?? 0;
 
         // Fetch active queue
-        $qSql = "SELECT a.*, p.name as patient_name, u.username as doctor_name 
+        $qSql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
+                       u.username as doctor_name 
                  FROM appointments a 
                  JOIN patients p ON a.patient_id = p.id
                  JOIN users u ON a.doctor_id = u.id
-                 WHERE a.date = :date AND a.status = 'approved' AND a.queue_status IN ('waiting', 'in_consultation')";
-        $qParams = ['date' => $date];
+                 WHERE a.date = ? AND a.status = 'approved' AND a.queue_status IN ('waiting', 'in_consultation')";
+        $qParams = [$date];
         if ($branchId) {
-            $qSql .= " AND a.branch_id = :branch_id";
-            $qParams['branch_id'] = $branchId;
+            $qSql .= " AND a.branch_id = ?";
+            $qParams[] = $branchId;
         }
         $qSql .= " ORDER BY a.token_number ASC LIMIT 10";
         
         $queue = Database::all($qSql, $qParams);
-        $lowStockMeds = Inventory::getLowStockMedicines();
+        $lowStockMeds = Inventory::getLowStockMedicines($branchId);
 
         view('admin.reception.dashboard', [
             'title' => 'Reception Console',
@@ -91,7 +121,8 @@ class ReceptionController
             'revenue_today' => $revenue,
             'pending_bills_count' => $pendingBillsCount,
             'active_queue' => $queue,
-            'low_stock_meds' => $lowStockMeds
+            'low_stock_meds' => $lowStockMeds,
+            'branchId' => $branchId
         ]);
     }
 
@@ -117,10 +148,25 @@ class ReceptionController
     public function createPatientForm(): void
     {
         Permission::checkPortal('reception');
-        $branches = Branch::all();
+        $user = Session::user();
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        
+        $branches = [];
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        } else {
+            $branches = Branch::all();
+        }
+        
         view('admin.patients.create', [
             'title' => 'Register New Patient',
-            'branches' => $branches
+            'branches' => $branches,
+            'isBranchAdmin' => false,
+            'isSuperAdmin' => false,
+            'branchId' => $branchId
         ]);
     }
 
@@ -138,8 +184,9 @@ class ReceptionController
 
         $user = Session::user();
         $userBranch = $user['branch_id'] ? (int)$user['branch_id'] : null;
-        $postBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1;
-        $branchId = $userBranch ?? $postBranch;
+        
+        // Receptionist এর নিজের ব্রাঞ্চ ফোর্স সেট
+        $branchId = $userBranch ?? (!empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null);
 
         $data = [
             'name' => Security::sanitize($_POST['name'] ?? ''),
@@ -164,11 +211,11 @@ class ReceptionController
         $patientId = Patient::create($data);
 
         if ($patientId) {
-            ActivityLogger::log('Patient Registered', "Registered new patient {$data['name']} (ID: {$patientId})");
+            ActivityLogger::log('Patient Registered', "Registered new patient {$data['name']} (ID: {$patientId})", null, $branchId);
             Session::setFlash('success', 'Patient registered successfully.');
             redirect('/reception/patients');
         } else {
-            Session::setFlash('error', 'Failed to register patient record.');
+            Session::setFlash('error', 'Failed to register patient record. Email/Phone may be duplicate.');
             redirect('/reception/patients/create');
         }
     }
@@ -187,11 +234,26 @@ class ReceptionController
             redirect('/reception/patients');
         }
 
-        $branches = Branch::all();
+        $user = Session::user();
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        
+        $branches = [];
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        } else {
+            $branches = Branch::all();
+        }
+        
         view('admin.patients.edit', [
             'title' => 'Edit Patient - ' . $patient['name'],
             'patient' => $patient,
-            'branches' => $branches
+            'branches' => $branches,
+            'isBranchAdmin' => false,
+            'isSuperAdmin' => false,
+            'branchId' => $branchId
         ]);
     }
 
@@ -208,6 +270,9 @@ class ReceptionController
             redirect("/reception/patients/edit/{$id}");
         }
 
+        $user = Session::user();
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+
         $data = [
             'name' => Security::sanitize($_POST['name'] ?? ''),
             'email' => Security::sanitize($_POST['email'] ?? ''),
@@ -219,11 +284,13 @@ class ReceptionController
             'emergency_contact' => Security::sanitize($_POST['emergency_contact'] ?? ''),
             'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
             'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
-            'family_history' => Security::sanitize($_POST['family_history'] ?? '')
+            'family_history' => Security::sanitize($_POST['family_history'] ?? ''),
+            'branch_id' => $branchId,
+            'status' => Security::sanitize($_POST['status'] ?? 'active')
         ];
 
         if (Patient::update($id, $data)) {
-            ActivityLogger::log('Patient Updated', "Updated profile details for patient ID {$id}");
+            ActivityLogger::log('Patient Updated', "Updated profile details for patient ID {$id}", null, $branchId);
             Session::setFlash('success', 'Patient record updated successfully.');
             redirect('/reception/patients');
         } else {
@@ -238,16 +305,24 @@ class ReceptionController
     public function patientHistory(array $params): void
     {
         Permission::checkPortal('reception');
-        $id = (int)($params['patientId'] ?? $params['id'] ?? 0);
-        $patient = Patient::find($id);
+        $patientCode = Security::sanitize($params['patientId'] ?? $params['id'] ?? '');
+        $patient = Patient::findByPatientId($patientCode);
+
+        if (!$patient) {
+            // Try by ID
+            $id = (int)$patientCode;
+            if ($id > 0) {
+                $patient = Patient::find($id);
+            }
+        }
 
         if (!$patient) {
             Session::setFlash('error', 'Patient record not found.');
             redirect('/reception/patients');
         }
 
-        $timeline = Patient::getTimeline($id);
-        $documents = Patient::getDocuments($id);
+        $timeline = Patient::getTimeline((int)$patient['id']);
+        $documents = Patient::getDocuments((int)$patient['id']);
 
         view('admin.patients.history', [
             'title' => 'Patient History - ' . $patient['name'],
@@ -265,18 +340,25 @@ class ReceptionController
         Permission::checkPortal('reception');
         $patientId = (int)($params['id'] ?? 0);
 
-        if (!empty($_FILES['document']['name'])) {
-            $uploaded = Upload::file($_FILES['document'], 'uploads/patients');
-            if ($uploaded) {
-                $docName = Security::sanitize($_POST['document_name'] ?? $_FILES['document']['name']);
-                Patient::addDocument($patientId, $docName, $uploaded);
+        if (!empty($_FILES['report']['name'])) {
+            $uploader = new Upload([
+                'allowedExtensions' => ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'],
+                'maxSize' => 5 * 1024 * 1024
+            ]);
+            $result = $uploader->file($_FILES['report'], 'patients/reports');
+            
+            if ($result['success']) {
+                $docName = Security::sanitize($_POST['document_name'] ?? $_FILES['report']['name']);
+                Patient::addDocument($patientId, $docName, $result['path']);
                 ActivityLogger::log('Patient Document Uploaded', "Uploaded document for patient ID {$patientId}");
                 Session::setFlash('success', 'Document uploaded successfully.');
             } else {
-                Session::setFlash('error', 'Failed to upload document file.');
+                Session::setFlash('error', 'Upload failed: ' . $result['error']);
             }
+        } else {
+            Session::setFlash('error', 'No file selected.');
         }
-        redirect("/reception/patients/history/{$patientId}");
+        redirect("/reception/patients/history/" . ($patientId));
     }
 
     /**
@@ -293,19 +375,32 @@ class ReceptionController
                    JOIN roles r ON u.role_id = r.id
                    LEFT JOIN branches b ON u.branch_id = b.id
                    WHERE r.slug = 'doctor' AND u.status = 'active'";
+        $docParams = [];
         if ($branchId) {
-            $docSql .= " AND u.branch_id = {$branchId}";
+            $docSql .= " AND u.branch_id = ?";
+            $docParams[] = $branchId;
         }
 
-        $doctors = Database::all($docSql);
-        $branches = Branch::all();
+        $doctors = Database::all($docSql, $docParams);
+        
+        $branches = [];
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        } else {
+            $branches = Branch::all();
+        }
+        
         $patients = Patient::all($branchId);
 
         view('admin.reception.walk_in', [
             'title' => 'Register Walk-In Patient',
             'doctors' => $doctors,
             'branches' => $branches,
-            'patients' => $patients
+            'patients' => $patients,
+            'branchId' => $branchId
         ]);
     }
 
@@ -324,7 +419,7 @@ class ReceptionController
         $patientId = (int)($_POST['patient_id'] ?? 0);
         $doctorId = (int)($_POST['doctor_id'] ?? 0);
         $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : (!empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : 1);
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : (!empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null);
         $consultationFee = (float)($_POST['consultation_fee'] ?? 500.00);
 
         if ($patientId === 0 || $doctorId === 0) {
@@ -349,7 +444,7 @@ class ReceptionController
         $apptId = Appointment::create($apptData);
 
         if ($apptId) {
-            ActivityLogger::log('Walk-In Booking', "Registered walk-in appointment (ID: {$apptId}) for patient ID {$patientId}");
+            ActivityLogger::log('Walk-In Booking', "Registered walk-in appointment (ID: {$apptId}) for patient ID {$patientId}", null, $branchId);
 
             $billData = [
                 'patient_id' => $patientId,
@@ -391,12 +486,12 @@ class ReceptionController
                 JOIN patients p ON a.patient_id = p.id
                 JOIN users u ON a.doctor_id = u.id
                 JOIN branches b ON a.branch_id = b.id
-                WHERE a.date = :date AND a.status = 'approved'";
-        $params = ['date' => $date];
+                WHERE a.date = ? AND a.status = 'approved'";
+        $params = [$date];
 
         if ($branchId) {
-            $sql .= " AND a.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
+            $sql .= " AND a.branch_id = ?";
+            $params[] = $branchId;
         }
 
         $sql .= " ORDER BY u.username ASC, a.token_number ASC";
@@ -404,7 +499,8 @@ class ReceptionController
         $queues = Database::all($sql, $params);
         view('admin.reception.queues', [
             'title' => 'Roster Token Queues',
-            'queues' => $queues
+            'queues' => $queues,
+            'branchId' => $branchId
         ]);
     }
 
@@ -443,7 +539,8 @@ class ReceptionController
         view('admin.ipd.index', [
             'title' => 'IPD Ward Admissions',
             'admissions' => $admissions,
-            'discharged' => $discharged
+            'discharged' => $discharged,
+            'branchId' => $branchId
         ]);
     }
 
@@ -466,7 +563,8 @@ class ReceptionController
             'title' => 'Admit Inpatient to Bed',
             'patients' => $patients,
             'doctors' => $doctors,
-            'beds' => $beds
+            'beds' => $beds,
+            'branchId' => $branchId
         ]);
     }
 
@@ -482,17 +580,21 @@ class ReceptionController
             redirect('/reception/ipd/admit');
         }
 
+        $user = Session::user();
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+
         $data = [
             'patient_id' => (int)($_POST['patient_id'] ?? 0),
             'doctor_id' => (int)($_POST['doctor_id'] ?? 0),
             'bed_id' => (int)($_POST['bed_id'] ?? 0),
+            'branch_id' => $branchId,
             'admission_date' => Security::sanitize($_POST['admission_date'] ?? date('Y-m-d H:i:s')),
             'symptoms' => Security::sanitize($_POST['symptoms'] ?? ''),
             'diagnosis' => Security::sanitize($_POST['diagnosis'] ?? '')
         ];
 
         if (Ipd::admit($data)) {
-            ActivityLogger::log('IPD Admission', "Admitted patient ID {$data['patient_id']} to bed ID {$data['bed_id']}");
+            ActivityLogger::log('IPD Admission', "Admitted patient ID {$data['patient_id']} to bed ID {$data['bed_id']}", null, $branchId);
             Session::setFlash('success', 'Patient admitted to ward bed successfully.');
             redirect('/reception/ipd');
         } else {
@@ -537,8 +639,8 @@ class ReceptionController
         $params = [];
 
         if ($branchId) {
-            $sql .= " AND b.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
+            $sql .= " AND b.branch_id = ?";
+            $params[] = $branchId;
         }
 
         $sql .= " ORDER BY b.id DESC";
@@ -546,7 +648,8 @@ class ReceptionController
         $bills = Database::all($sql, $params);
         view('admin.reception.billing', [
             'title' => 'Cashier Billing & Payments',
-            'bills' => $bills
+            'bills' => $bills,
+            'branchId' => $branchId
         ]);
     }
 
@@ -592,6 +695,8 @@ class ReceptionController
         }
 
         $paidAmount = (float)($bill['total']);
+        $user = Session::user();
+        $branchId = $user['branch_id'] ?? $bill['branch_id'];
 
         $paymentData = [
             'paid_amount' => $paidAmount,
@@ -600,7 +705,7 @@ class ReceptionController
         ];
 
         if (Billing::recordPayment($billId, $paymentData)) {
-            ActivityLogger::log('Payment Collected', "Collected ₹{$paidAmount} for bill #{$billId} via {$method}");
+            ActivityLogger::log('Payment Collected', "Collected ₹{$paidAmount} for bill #{$billId} via {$method}", null, $branchId);
             Session::setFlash('success', 'Payment recorded successfully.');
             redirect("/reception/billing/receipt/{$billId}");
         } else {
@@ -665,9 +770,12 @@ class ReceptionController
         $refundAmount = (float)($_POST['refund_amount'] ?? 0.00);
         $reason = Security::sanitize($_POST['refund_reason'] ?? '');
 
-        $sql = "UPDATE billing SET refunded_amount = :refund, refund_reason = :reason, payment_status = 'refunded' WHERE id = :id";
-        if (Database::execute($sql, ['refund' => $refundAmount, 'reason' => $reason, 'id' => $billId])) {
-            ActivityLogger::log('Payment Refunded', "Issued refund of ₹{$refundAmount} for bill #{$billId}. Reason: {$reason}");
+        $user = Session::user();
+        $branchId = $user['branch_id'] ?? null;
+
+        $sql = "UPDATE billing SET refunded_amount = ?, refund_reason = ?, payment_status = 'refunded' WHERE id = ?";
+        if (Database::execute($sql, [$refundAmount, $reason, $billId])) {
+            ActivityLogger::log('Payment Refunded', "Issued refund of ₹{$refundAmount} for bill #{$billId}. Reason: {$reason}", null, $branchId);
             Session::setFlash('success', 'Refund processed successfully.');
         } else {
             Session::setFlash('error', 'Failed processing refund.');
@@ -689,7 +797,8 @@ class ReceptionController
 
         view('admin.reception.medicine_dispatch', [
             'title' => 'Dispense Prescribed Medicines',
-            'pending' => $pending
+            'pending' => $pending,
+            'branchId' => $branchId
         ]);
     }
 
@@ -716,11 +825,15 @@ class ReceptionController
     public function medicinesIndex(): void
     {
         Permission::checkPortal('reception');
-        $medicines = Inventory::getMedicines();
+        $user = Session::user();
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        
+        $medicines = Inventory::getMedicines($branchId);
         view('admin.inventory.index', [
             'title' => 'Medicine Stock View (Read Only)',
             'medicines' => $medicines,
-            'is_read_only' => true
+            'is_read_only' => true,
+            'branchId' => $branchId
         ]);
     }
 
@@ -730,11 +843,15 @@ class ReceptionController
     public function lowStockMedicines(): void
     {
         Permission::checkPortal('reception');
-        $lowStock = Inventory::getLowStockMedicines();
+        $user = Session::user();
+        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+        
+        $lowStock = Inventory::getLowStockMedicines($branchId);
         view('admin.inventory.low_stock', [
             'title' => 'Low Medicine Stock Alert',
             'low_stock' => $lowStock,
-            'is_read_only' => true
+            'is_read_only' => true,
+            'branchId' => $branchId
         ]);
     }
 
@@ -757,15 +874,16 @@ class ReceptionController
                         WHERE a.status = 'admitted' AND a.discharge_approval = 'approved'";
         $params = [];
         if ($branchId) {
-            $approvedSql .= " AND p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
+            $approvedSql .= " AND p.branch_id = ?";
+            $params[] = $branchId;
         }
 
         $approvedDischarges = Database::all($approvedSql, $params);
 
         view('admin.ipd.discharge_list', [
             'title' => 'Doctor Approved Discharge List',
-            'approved' => $approvedDischarges
+            'approved' => $approvedDischarges,
+            'branchId' => $branchId
         ]);
     }
 
@@ -800,7 +918,8 @@ class ReceptionController
 
         view('admin.reception.report', [
             'title' => 'Daily Branch Collections & Reports',
-            'report' => $report
+            'report' => $report,
+            'branchId' => $branchId
         ]);
     }
 
@@ -817,7 +936,8 @@ class ReceptionController
 
         view('admin.reception.report', [
             'title' => 'Branch Operations & Revenue Reports',
-            'report' => $report
+            'report' => $report,
+            'branchId' => $branchId
         ]);
     }
 
@@ -828,7 +948,7 @@ class ReceptionController
     {
         Permission::checkPortal('reception');
         $user = Session::user();
-        $dbUser = Database::row("SELECT * FROM users WHERE id = :id", ['id' => (int)$user['id']]);
+        $dbUser = Database::row("SELECT * FROM users WHERE id = ?", [(int)$user['id']]);
 
         view('admin.profile', [
             'title' => 'My Profile & Account Security',
@@ -862,11 +982,12 @@ class ReceptionController
                 redirect('/reception/profile');
             }
 
-            $hash = Security::hashPassword($password);
-            Database::execute("UPDATE users SET password_hash = :hash WHERE id = :id", ['hash' => $hash, 'id' => $userId]);
+            $hash = password_hash($password, PASSWORD_DEFAULT);
+            Database::execute("UPDATE users SET password = ? WHERE id = ?", [$hash, $userId]);
             ActivityLogger::log('Password Updated', "User ID {$userId} updated their password.");
+            Session::setFlash('success', 'Password updated successfully.');
         } else {
-            Session::setFlash('info', 'Profile information updated.');
+            Session::setFlash('info', 'No changes made to password.');
         }
 
         redirect('/reception/profile');
@@ -889,7 +1010,8 @@ class ReceptionController
             'title' => 'Patient Follow-up Management Tracker',
             'active_tab' => $tab,
             'followups' => $followups,
-            'metrics' => $metrics
+            'metrics' => $metrics,
+            'branchId' => $branchId
         ]);
     }
 
@@ -912,7 +1034,8 @@ class ReceptionController
             'title' => 'CRM Lead Inquiries & Pipeline',
             'active_status' => $status,
             'leads' => $leads,
-            'counts' => $counts
+            'counts' => $counts,
+            'branchId' => $branchId
         ]);
     }
 
@@ -932,13 +1055,13 @@ class ReceptionController
 
         $data = [
             'branch_id' => $branchId,
-            'name' => $_POST['name'] ?? '',
-            'phone' => $_POST['phone'] ?? '',
-            'email' => $_POST['email'] ?? '',
-            'source' => $_POST['source'] ?? 'Walk-In',
+            'name' => Security::sanitize($_POST['name'] ?? ''),
+            'phone' => Security::sanitize($_POST['phone'] ?? ''),
+            'email' => Security::sanitize($_POST['email'] ?? ''),
+            'source' => Security::sanitize($_POST['source'] ?? 'Walk-In'),
             'status' => 'new',
-            'follow_up_date' => $_POST['follow_up_date'] ?? null,
-            'notes' => $_POST['notes'] ?? ''
+            'follow_up_date' => Security::sanitize($_POST['follow_up_date'] ?? null),
+            'notes' => Security::sanitize($_POST['notes'] ?? '')
         ];
 
         if (empty($data['name']) || empty($data['phone'])) {
@@ -947,7 +1070,7 @@ class ReceptionController
         }
 
         $leadId = \App\Models\Lead::create($data);
-        ActivityLogger::log('Lead Inquiry Created', "New lead #{$leadId} registered for {$data['name']} ({$data['phone']})");
+        ActivityLogger::log('Lead Inquiry Created', "New lead #{$leadId} registered for {$data['name']} ({$data['phone']})", null, $branchId);
         Session::setFlash('success', "Lead inquiry for {$data['name']} registered successfully!");
         redirect('/reception/leads');
     }
@@ -1004,7 +1127,8 @@ class ReceptionController
             'title' => 'Daily Staff Attendance Register',
             'date' => $date,
             'roster' => $roster,
-            'summary' => $summary
+            'summary' => $summary,
+            'branchId' => $branchId
         ]);
     }
 
@@ -1031,7 +1155,7 @@ class ReceptionController
 
         if ($userId > 0) {
             \App\Models\Attendance::mark($userId, $date, $status, $checkIn, $checkOut, $notes, $branchId);
-            ActivityLogger::log('Attendance Marked', "Marked attendance status '{$status}' for User ID {$userId} on {$date}");
+            ActivityLogger::log('Attendance Marked', "Marked attendance status '{$status}' for User ID {$userId} on {$date}", null, $branchId);
             Session::setFlash('success', 'Attendance record updated.');
         }
 
@@ -1050,31 +1174,43 @@ class ReceptionController
             jsonResponse(['patients' => [], 'appointments' => [], 'leads' => []]);
         }
 
-        $patients = Database::all(
-            "SELECT id, patient_id as code, name, phone, email, gender, dob 
-             FROM patients 
-             WHERE name LIKE :q OR phone LIKE :q OR patient_id LIKE :q 
-             LIMIT 5",
-            ['q' => '%' . $q . '%']
-        );
+        $user = Session::user();
+        $branchId = $user['branch_id'] ?? null;
 
-        $appointments = Database::all(
-            "SELECT a.id, a.token_number, a.date, a.status, p.name as patient_name, u.username as doctor_name 
-             FROM appointments a 
-             JOIN patients p ON a.patient_id = p.id 
-             JOIN users u ON a.doctor_id = u.id 
-             WHERE p.name LIKE :q OR p.phone LIKE :q OR a.id = :id 
-             LIMIT 5",
-            ['q' => '%' . $q . '%', 'id' => is_numeric($q) ? (int)$q : 0]
-        );
+        $patientSql = "SELECT id, patient_id as code, name, phone, email, gender, dob 
+                       FROM patients 
+                       WHERE name LIKE ? OR phone LIKE ? OR patient_id LIKE ?";
+        $patientParams = ["%{$q}%", "%{$q}%", "%{$q}%"];
+        if ($branchId) {
+            $patientSql .= " AND branch_id = ?";
+            $patientParams[] = $branchId;
+        }
+        $patientSql .= " LIMIT 5";
+        $patients = Database::all($patientSql, $patientParams);
 
-        $leads = Database::all(
-            "SELECT id, name, phone, source, status 
-             FROM leads 
-             WHERE name LIKE :q OR phone LIKE :q 
-             LIMIT 5",
-            ['q' => '%' . $q . '%']
-        );
+        $apptSql = "SELECT a.id, a.token_number, a.date, a.status, p.name as patient_name, u.username as doctor_name 
+                    FROM appointments a 
+                    JOIN patients p ON a.patient_id = p.id 
+                    JOIN users u ON a.doctor_id = u.id 
+                    WHERE p.name LIKE ? OR p.phone LIKE ? OR a.id = ?";
+        $apptParams = ["%{$q}%", "%{$q}%", is_numeric($q) ? (int)$q : 0];
+        if ($branchId) {
+            $apptSql .= " AND a.branch_id = ?";
+            $apptParams[] = $branchId;
+        }
+        $apptSql .= " LIMIT 5";
+        $appointments = Database::all($apptSql, $apptParams);
+
+        $leadSql = "SELECT id, name, phone, source, status 
+                    FROM leads 
+                    WHERE name LIKE ? OR phone LIKE ?";
+        $leadParams = ["%{$q}%", "%{$q}%"];
+        if ($branchId) {
+            $leadSql .= " AND branch_id = ?";
+            $leadParams[] = $branchId;
+        }
+        $leadSql .= " LIMIT 5";
+        $leads = Database::all($leadSql, $leadParams);
 
         jsonResponse([
             'patients' => $patients,
@@ -1083,4 +1219,3 @@ class ReceptionController
         ]);
     }
 }
-
