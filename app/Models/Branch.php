@@ -16,10 +16,17 @@ class Branch
     }
 
     /**
-     * Find a branch by ID.
+     * Find a branch by ID (accepts both int and string).
      */
-    public static function find(int $id): ?array
+    public static function find($id): ?array
     {
+        // Cast to int if it's a string or numeric
+        $id = is_numeric($id) ? (int)$id : 0;
+        
+        if ($id <= 0) {
+            return null;
+        }
+        
         return Database::row("SELECT * FROM branches WHERE id = :id LIMIT 1", ['id' => $id]);
     }
 

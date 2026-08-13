@@ -1,13 +1,17 @@
 <?php
 declare(strict_types=1);
 
-// Bootstrapping the application configurations
+// ============================================================
+// BOOTSTRAP APPLICATION
+// ============================================================
 require_once dirname(__DIR__) . '/config/config.php';
 
 // Instantiate the Router
 $router = new \App\Router();
 
-// Public / Website Routes
+// ============================================================
+// 1. PUBLIC / WEBSITE ROUTES
+// ============================================================
 $router->get('/', 'WebsiteController@home');
 $router->get('/about', 'WebsiteController@about');
 $router->get('/doctors', 'WebsiteController@doctors');
@@ -23,11 +27,16 @@ $router->post('/blog/comment/save', 'WebsiteController@saveComment');
 $router->get('/contact', 'WebsiteController@contact');
 $router->post('/contact/enquiry/save', 'WebsiteController@saveEnquiry');
 
+// ============================================================
+// 2. AUTHENTICATION ROUTES
+// ============================================================
 $router->get('/login', 'AuthController@showLogin');
 $router->post('/login', 'AuthController@login');
 $router->get('/logout', 'AuthController@logout');
 
-// Forgot Password / Verification (OTP) Routes
+// ============================================================
+// 3. FORGOT PASSWORD / OTP ROUTES
+// ============================================================
 $router->get('/forgot-password', 'AuthController@showForgotPassword');
 $router->post('/forgot-password', 'AuthController@sendOtp');
 $router->get('/verify-otp', 'AuthController@showVerifyOtp');
@@ -35,23 +44,60 @@ $router->post('/verify-otp', 'AuthController@verifyOtp');
 $router->get('/reset-password', 'AuthController@showResetPassword');
 $router->post('/reset-password', 'AuthController@resetPassword');
 
-
-// Admin Panel Core Routes
+// ============================================================
+// 4. SUPER ADMIN / ADMIN CORE ROUTES
+// ============================================================
 $router->get('/admin/dashboard', 'AdminController@dashboard');
 $router->get('/admin/settings', 'AdminController@settings');
 $router->post('/admin/settings/save', 'AdminController@saveSettings');
 $router->get('/admin/logs', 'AdminController@logs');
 
-// Multi-Branch Management (Phase 3) Routes
+// ============================================================
+// 5. ROLE & PERMISSION MANAGEMENT (SUPER ADMIN ONLY)
+// ============================================================
+$router->get('/admin/roles', 'RoleController@index');
+$router->get('/admin/roles/create', 'RoleController@create');
+$router->post('/admin/roles/save', 'RoleController@store');
+$router->get('/admin/roles/edit/{id}', 'RoleController@edit');
+$router->post('/admin/roles/update/{id}', 'RoleController@update');
+$router->get('/admin/roles/delete/{id}', 'RoleController@delete');
+$router->get('/admin/roles/permissions/{id}', 'RoleController@permissions');
+$router->post('/admin/roles/permissions/save', 'RoleController@savePermissions');
+$router->get('/admin/permissions', 'RoleController@permissionList');
+
+// ============================================================
+// 6. BRANCH MANAGEMENT (SUPER ADMIN ONLY)
+// ============================================================
 $router->get('/admin/branches', 'BranchController@index');
 $router->get('/admin/branches/create', 'BranchController@create');
 $router->post('/admin/branches/save', 'BranchController@store');
 $router->get('/admin/branches/edit/{id}', 'BranchController@edit');
 $router->post('/admin/branches/update/{id}', 'BranchController@update');
 $router->get('/admin/branches/delete/{id}', 'BranchController@delete');
+
+// ============================================================
+// 7. BRANCH DASHBOARD (BOTH SUPER ADMIN & BRANCH ADMIN)
+// ============================================================
 $router->get('/admin/branches/dashboard/{id}', 'BranchController@dashboard');
 
-// Employee Management (Phase 4) Routes
+// ============================================================
+// 8. BRANCH ADMIN PORTAL (BRANCH ADMIN ONLY)
+// ============================================================
+ 
+
+// ============================================================
+// 9. USER MANAGEMENT (SUPER ADMIN + BRANCH ADMIN)
+// ============================================================
+$router->get('/admin/users', 'UserController@index');
+$router->get('/admin/users/create', 'UserController@create');
+$router->post('/admin/users/save', 'UserController@store');
+$router->get('/admin/users/edit/{id}', 'UserController@edit');
+$router->post('/admin/users/update/{id}', 'UserController@update');
+$router->get('/admin/users/delete/{id}', 'UserController@delete');
+
+// ============================================================
+// 10. EMPLOYEE MANAGEMENT (SUPER ADMIN + BRANCH ADMIN)
+// ============================================================
 $router->get('/admin/employees', 'EmployeeController@index');
 $router->get('/admin/employees/create', 'EmployeeController@create');
 $router->post('/admin/employees/save', 'EmployeeController@store');
@@ -60,57 +106,45 @@ $router->post('/admin/employees/update/{id}', 'EmployeeController@update');
 $router->get('/admin/employees/delete/{id}', 'EmployeeController@delete');
 $router->get('/admin/employees/delete-doc/{id}', 'EmployeeController@deleteDoc');
 
-// Attendance Logs (Phase 4) Routes
-$router->get('/admin/employees/attendance', 'EmployeeController@attendance');
-$router->post('/admin/employees/attendance/save', 'EmployeeController@saveAttendance');
+// ============================================================
+// 11. ATTENDANCE MANAGEMENT
+// ============================================================
+$router->get('/admin/employees/attendance', 'AttendanceController@register');
+$router->post('/admin/employees/attendance/save', 'AttendanceController@saveAttendance');
+$router->get('/admin/employees/attendance/leaves', 'AttendanceController@leavesList');
+$router->post('/admin/employees/attendance/leaves/apply', 'AttendanceController@applyLeave');
+$router->get('/admin/employees/attendance/leaves/approve/{id}', 'AttendanceController@approveLeave');
+$router->get('/admin/employees/attendance/leaves/reject/{id}', 'AttendanceController@rejectLeave');
 
-// Online Appointment Booking (Phase 8) public routes
-$router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
-$router->post('/appointments/book/otp', 'AppointmentController@sendBookingOtp');
-$router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
+// QR Code Attendance
+$router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
+$router->get('/admin/attendance/fetch-employee', 'AttendanceController@fetchEmployee');
+$router->post('/admin/attendance/mark', 'AttendanceController@markAttendance');
+$router->get('/admin/attendance/today', 'AttendanceController@todayAttendance');
 
+// Attendance Report
+$router->get('/admin/attendance/report', 'AttendanceController@attendanceReport');
 
+// Employee ID Cards
+$router->get('/admin/employees/id-cards', 'AttendanceController@idCards');
+$router->post('/admin/employees/generate-id-cards', 'AttendanceController@generateIDCards');
 
+// QR Code Generation
+$router->get('/admin/qr/generate', 'AttendanceController@generateQR');
 
+// HR Reports
+$router->get('/admin/hr/reports', 'AttendanceController@hrReports');
 
+// ============================================================
+// 12. SALARY / PAYROLL MANAGEMENT
+// ============================================================
+$router->get('/admin/salary', 'SalaryController@index');
+$router->post('/admin/salary/settle', 'SalaryController@settleSalary');
+$router->get('/admin/salary/payslip/{id}', 'SalaryController@paySlip');
 
-
-
-// Core Appointments Management Routes
- // ============================================
-// APPOINTMENT ROUTES
-// ============================================
-
-// Admin Appointment Management
-$router->get('/admin/appointments', 'AppointmentController@index');
-$router->get('/admin/appointments/pending', 'AppointmentController@pendingList');
-$router->get('/admin/appointments/approve/{id}', 'AppointmentController@approve');
-$router->get('/admin/appointments/cancel/{id}', 'AppointmentController@cancel');
-
-// Doctor Schedule Management
-$router->get('/admin/appointments/schedule', 'AppointmentController@schedule');
-$router->post('/admin/appointments/schedule/save', 'AppointmentController@saveSchedule');
-
-// Get Available Slots (AJAX - Public)
-$router->get('/admin/appointments/slots', 'AppointmentController@getSlotsAjax');
-
-// Public Online Booking
-$router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
-$router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
-$router->get('/appointments/book/success', 'AppointmentController@bookingSuccess');
-
-
-
-
-
-
-
-
-
-
-
-
-// Patient Management (Phase 7) Routes
+// ============================================================
+// 13. PATIENT MANAGEMENT
+// ============================================================
 $router->get('/admin/patients', 'PatientController@index');
 $router->get('/admin/patients/create', 'PatientController@create');
 $router->post('/admin/patients/save', 'PatientController@store');
@@ -121,9 +155,95 @@ $router->get('/admin/patients/history/{patientId}', 'PatientController@history')
 $router->post('/admin/patients/upload-doc/{id}', 'PatientController@uploadDoc');
 $router->get('/admin/patients/delete-doc/{id}', 'PatientController@deleteDoc');
 
-// Reception Portal (Dedicated Independent Routes)
-$router->get('/reception/login', 'AuthController@showReceptionLogin');
-$router->get('/reception/logout', 'AuthController@receptionLogout');
+// ============================================================
+// 14. APPOINTMENT MANAGEMENT
+// ============================================================
+$router->get('/admin/appointments', 'AppointmentController@index');
+$router->get('/admin/appointments/pending', 'AppointmentController@pendingList');
+$router->get('/admin/appointments/approve/{id}', 'AppointmentController@approve');
+$router->get('/admin/appointments/cancel/{id}', 'AppointmentController@cancel');
+$router->get('/admin/appointments/schedule', 'AppointmentController@schedule');
+$router->post('/admin/appointments/schedule/save', 'AppointmentController@saveSchedule');
+$router->get('/admin/appointments/slots', 'AppointmentController@getSlotsAjax');
+
+// ============================================================
+// 15. IPD WARD ADMISSIONS
+// ============================================================
+$router->get('/admin/ipd', 'IpdController@index');
+$router->get('/admin/ipd/admit', 'IpdController@admitForm');
+$router->post('/admin/ipd/admit/save', 'IpdController@saveAdmission');
+$router->get('/admin/ipd/nursing-logs/{id}', 'IpdController@nursingLogs');
+$router->post('/admin/ipd/nursing-logs/{id}/save', 'IpdController@saveNursingLog');
+$router->post('/admin/ipd/procedures/{id}/save', 'IpdController@saveProcedure');
+$router->post('/admin/ipd/discharge/{id}', 'IpdController@discharge');
+$router->get('/admin/ipd/discharge-summary/{id}', 'DischargeController@summaryForm');
+$router->post('/admin/ipd/discharge-summary/save', 'DischargeController@saveSummary');
+$router->get('/admin/ipd/discharge-summary/print/{id}', 'DischargeController@printSummary');
+$router->get('/admin/ipd/discharge-summary/pdf/{id}', 'DischargeController@pdfSummary');
+
+// ============================================================
+// 16. BILLING MANAGEMENT
+// ============================================================
+$router->get('/admin/billing', 'BillingController@index');
+$router->get('/admin/billing/collect/{id}', 'BillingController@collectForm');
+$router->post('/admin/billing/pay', 'BillingController@processPayment');
+$router->get('/admin/billing/refund/{id}', 'BillingController@refundForm');
+$router->post('/admin/billing/refund/save', 'BillingController@processRefund');
+$router->get('/admin/billing/receipt/{id}', 'BillingController@receiptPrint');
+
+// ============================================================
+// 17. INVENTORY MANAGEMENT
+// ============================================================
+$router->get('/admin/inventory', 'InventoryController@index');
+$router->get('/admin/inventory/low-stock', 'InventoryController@lowStockList');
+$router->get('/admin/inventory/purchase', 'InventoryController@purchaseForm');
+$router->post('/admin/inventory/purchase/save', 'InventoryController@savePurchase');
+$router->post('/admin/inventory/supplier/save', 'InventoryController@saveSupplier');
+
+// ============================================================
+// 18. REPORTS & ANALYTICS
+// ============================================================
+$router->get('/admin/reports', 'ReportsController@dashboard');
+
+// ============================================================
+// 19. WEBSITE CMS & BLOG MANAGEMENT
+// ============================================================
+$router->get('/admin/cms/settings', 'CmsController@index');
+$router->post('/admin/cms/settings/save', 'CmsController@saveSettings');
+$router->get('/admin/cms/gallery', 'CmsController@gallery');
+$router->post('/admin/cms/gallery/album/save', 'CmsController@saveAlbum');
+$router->post('/admin/cms/gallery/media/save', 'CmsController@saveMedia');
+$router->get('/admin/cms/testimonials', 'CmsController@testimonials');
+$router->post('/admin/cms/testimonials/save', 'CmsController@saveTestimonial');
+
+// Blog Management
+$router->get('/admin/cms/blogs', 'BlogController@index');
+$router->post('/admin/cms/blogs/save', 'BlogController@save');
+$router->get('/admin/cms/comments', 'BlogController@comments');
+$router->get('/admin/cms/comments/approve/{id}', 'BlogController@approveComment');
+$router->get('/admin/cms/comments/reject/{id}', 'BlogController@rejectComment');
+
+// Treatment Management
+$router->get('/admin/cms/treatments', 'TreatmentController@index');
+$router->post('/admin/cms/treatments/save', 'TreatmentController@save');
+
+// ============================================================
+// 20. CRM / ENQUIRY MANAGEMENT
+// ============================================================
+$router->get('/admin/cms/enquiries', 'EnquiryController@index');
+$router->post('/admin/cms/enquiries/update', 'EnquiryController@update');
+
+// ============================================================
+// 21. ONLINE APPOINTMENT BOOKING (PUBLIC)
+// ============================================================
+$router->get('/appointments/book', 'AppointmentController@showOnlineBooking');
+$router->post('/appointments/book/otp', 'AppointmentController@sendBookingOtp');
+$router->post('/appointments/book/submit', 'AppointmentController@submitOnlineBooking');
+$router->get('/appointments/book/success', 'AppointmentController@bookingSuccess');
+
+// ============================================================
+// 22. RECEPTION PORTAL (RECEPTIONIST ONLY)
+// ============================================================
 $router->get('/reception', 'ReceptionController@dashboard');
 $router->get('/reception/dashboard', 'ReceptionController@dashboard');
 $router->get('/reception/patients', 'ReceptionController@patientsIndex');
@@ -166,10 +286,9 @@ $router->get('/reception/attendance', 'ReceptionController@attendanceIndex');
 $router->post('/reception/attendance/save', 'ReceptionController@markAttendance');
 $router->get('/reception/search', 'ReceptionController@globalSearchAjax');
 
-
-// Doctor Portal (Dedicated Independent Routes)
-$router->get('/doctor/login', 'AuthController@showDoctorLogin');
-$router->get('/doctor/logout', 'AuthController@doctorLogout');
+// ============================================================
+// 23. DOCTOR PORTAL (DOCTOR ONLY)
+// ============================================================
 $router->get('/doctor', 'DoctorController@dashboard');
 $router->get('/doctor/dashboard', 'DoctorController@dashboard');
 $router->get('/doctor/patients', 'DoctorController@patientsIndex');
@@ -199,133 +318,35 @@ $router->get('/doctor/reports', 'DoctorController@reportsDashboard');
 $router->get('/doctor/profile', 'DoctorController@profile');
 $router->post('/doctor/profile/update', 'DoctorController@updateProfile');
 
-// IPD Ward Admissions (Phase 10) Routes
-$router->get('/admin/ipd', 'IpdController@index');
-$router->get('/admin/ipd/admit', 'IpdController@admitForm');
-$router->post('/admin/ipd/admit/save', 'IpdController@saveAdmission');
-$router->get('/admin/ipd/nursing-logs/{id}', 'IpdController@nursingLogs');
-$router->post('/admin/ipd/nursing-logs/{id}/save', 'IpdController@saveNursingLog');
-$router->post('/admin/ipd/procedures/{id}/save', 'IpdController@saveProcedure');
-$router->post('/admin/ipd/discharge/{id}', 'IpdController@discharge');
-
-// Advanced Billing Module (Phase 11) Routes
-$router->get('/admin/billing', 'BillingController@index');
-$router->get('/admin/billing/collect/{id}', 'BillingController@collectForm');
-$router->post('/admin/billing/pay', 'BillingController@processPayment');
-$router->get('/admin/billing/refund/{id}', 'BillingController@refundForm');
-$router->post('/admin/billing/refund/save', 'BillingController@processRefund');
-$router->get('/admin/billing/receipt/{id}', 'BillingController@receiptPrint');
-
-// Medicine Inventory Module (Phase 12) Routes
-$router->get('/admin/inventory', 'InventoryController@index');
-$router->get('/admin/inventory/low-stock', 'InventoryController@lowStockList');
-$router->get('/admin/inventory/purchase', 'InventoryController@purchaseForm');
-$router->post('/admin/inventory/purchase/save', 'InventoryController@savePurchase');
-$router->post('/admin/inventory/supplier/save', 'InventoryController@saveSupplier');
-
-// IPD Discharge Summary (Phase 13) Routes
-$router->get('/admin/ipd/discharge-summary/{id}', 'DischargeController@summaryForm');
-$router->post('/admin/ipd/discharge-summary/save', 'DischargeController@saveSummary');
-$router->get('/admin/ipd/discharge-summary/print/{id}', 'DischargeController@printSummary');
-$router->get('/admin/ipd/discharge-summary/pdf/{id}', 'DischargeController@pdfSummary');
-
-
-
-
-// Employee Leaves & Attendance Upgrades (Phase 14) Routes
-// Attendance Routes
-// Attendance Routes
-$router->get('/admin/employees/attendance', 'AttendanceController@register');
-$router->post('/admin/employees/attendance/save', 'AttendanceController@saveAttendance');
-$router->get('/admin/employees/attendance/leaves', 'AttendanceController@leavesList');
-$router->post('/admin/employees/attendance/leaves/apply', 'AttendanceController@applyLeave');
-$router->get('/admin/employees/attendance/leaves/approve/{id}', 'AttendanceController@approveLeave');
-$router->get('/admin/employees/attendance/leaves/reject/{id}', 'AttendanceController@rejectLeave');
-
-// QR Code Attendance
-$router->get('/admin/attendance/scan', 'AttendanceController@scanAttendance');
-$router->get('/admin/attendance/fetch-employee', 'AttendanceController@fetchEmployee');
-$router->post('/admin/attendance/mark', 'AttendanceController@markAttendance');
-$router->get('/admin/attendance/today', 'AttendanceController@todayAttendance');
-
-// Attendance Report
-$router->get('/admin/attendance/report', 'AttendanceController@attendanceReport');
-
-// Employee ID Cards
-$router->get('/admin/employees/id-cards', 'AttendanceController@idCards');
-$router->post('/admin/employees/generate-id-cards', 'AttendanceController@generateIDCards');
-
-// QR Code Generation
-$router->get('/admin/qr/generate', 'AttendanceController@generateQR');
-
-// HR Reports
-$router->get('/admin/hr/reports', 'AttendanceController@hrReports');
-
-
-
-
-
-
-// Salary Payroll Module (Phase 15) Routes
-$router->get('/admin/salary', 'SalaryController@index');
-$router->post('/admin/salary/settle', 'SalaryController@settleSalary');
-$router->get('/admin/salary/payslip/{id}', 'SalaryController@paySlip');
-
-// Reports and Analytics Module (Phase 16) Routes
-$router->get('/admin/reports', 'ReportsController@dashboard');
-
-// Website CMS & Blog Management (Phases 17-22) Routes
-$router->get('/admin/cms/settings', 'CmsController@index');
-$router->post('/admin/cms/settings/save', 'CmsController@saveSettings');
-$router->get('/admin/cms/gallery', 'CmsController@gallery');
-$router->post('/admin/cms/gallery/album/save', 'CmsController@saveAlbum');
-$router->post('/admin/cms/gallery/media/save', 'CmsController@saveMedia');
-$router->get('/admin/cms/testimonials', 'CmsController@testimonials');
-$router->post('/admin/cms/testimonials/save', 'CmsController@saveTestimonial');
-
-$router->get('/admin/cms/blogs', 'BlogController@index');
-$router->post('/admin/cms/blogs/save', 'BlogController@save');
-$router->get('/admin/cms/comments', 'BlogController@comments');
-$router->get('/admin/cms/comments/approve/{id}', 'BlogController@approveComment');
-$router->get('/admin/cms/comments/reject/{id}', 'BlogController@rejectComment');
-
-$router->get('/admin/cms/treatments', 'TreatmentController@index');
-$router->post('/admin/cms/treatments/save', 'TreatmentController@save');
-
-// Contact CRM Lead Enquiries (Phase 23) Routes
-$router->get('/admin/cms/enquiries', 'EnquiryController@index');
-$router->post('/admin/cms/enquiries/update', 'EnquiryController@update');
-
-// System Test / Demo Verification Routes
+// ============================================================
+// 24. SYSTEM TEST ROUTES
+// ============================================================
 $router->get('/admin/pdf-test', 'AdminController@pdfTest');
 $router->get('/admin/qr-test', 'AdminController@qrTest');
 $router->post('/admin/upload-test', 'AdminController@uploadTest');
 
-// Resolve the relative URI matching to handle subfolders dynamically (like /clinic/public/)
+// ============================================================
+// ROUTER DISPATCH
+// ============================================================
 $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 $basePath = dirname($scriptName);
 
-// Clean Windows directory slashes if any
 $basePath = str_replace('\\', '/', $basePath);
 if ($basePath === '/') {
     $basePath = '';
 }
 
-// Strip out base path prefix from URI if present
 $routeUri = $requestUri;
 if ($basePath !== '' && strpos($requestUri, $basePath) === 0) {
     $routeUri = substr($requestUri, strlen($basePath));
 }
 
-// Ensure the URI starts with a slash
 if (!str_starts_with($routeUri, '/')) {
     $routeUri = '/' . $routeUri;
 }
 
-// Strip query variables for router matching
 $routeUri = explode('?', $routeUri, 2)[0];
 $requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// Dispatch request to Router
 $router->dispatch($routeUri, $requestMethod);

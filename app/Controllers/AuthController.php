@@ -20,15 +20,14 @@ class AuthController
             $user = Session::user();
             $role = $user['role_slug'] ?? $user['role'] ?? '';
             
-            // Redirect based on role
+            // সবাই অ্যাডমিন ড্যাশবোর্ডে যাবে (ব্রাঞ্চ অ্যাডমিন সহ)
+            // শুধু ডক্টর ও রিসেপশনিস্ট আলাদা
             if ($role === 'doctor') {
                 redirect('/doctor');
             } elseif ($role === 'receptionist') {
                 redirect('/reception');
-            } elseif ($role === 'branch_admin') {
-                $branchId = $user['branch_id'] ?? 0;
-                redirect("/branch/dashboard/{$branchId}");
             } else {
+                // super_admin, admin, branch_admin সবাই এখানে
                 redirect('/admin/dashboard');
             }
         }
@@ -87,9 +86,9 @@ class AuthController
         ActivityLogger::log('User Login', "User {$username} logged in from IP: {$ip}", (int)$user['id']);
         Security::rateLimitClear($rateLimitKey);
 
-        // Get role and redirect
+        // Get role and redirect - সবাই অ্যাডমিন ড্যাশবোর্ডে (ডক্টর/রিসেপশনিস্ট বাদে)
         $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
-        $targetUrl = $this->getRedirectUrl($roleSlug, $user['branch_id'] ?? null);
+        $targetUrl = $this->getRedirectUrl($roleSlug);
 
         if ($isAjax) {
             jsonResponse([
@@ -119,16 +118,14 @@ class AuthController
 
     /**
      * Get redirect URL based on role
+     * সবাই অ্যাডমিন ড্যাশবোর্ডে যাবে (ডক্টর/রিসেপশনিস্ট বাদে)
      */
-    private function getRedirectUrl(string $role, ?int $branchId = null): string
+    private function getRedirectUrl(string $role): string
     {
         return match($role) {
             'doctor'        => '/doctor',
             'receptionist'  => '/reception',
-            'branch_admin'  => "/branch/dashboard/{$branchId}",
-            'super_admin'   => '/admin/dashboard',
-            'admin'         => '/admin/dashboard',
-            default         => '/admin/dashboard'
+            default         => '/admin/dashboard' // super_admin, admin, branch_admin সবাই এখানে
         };
     }
 
