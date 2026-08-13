@@ -15,15 +15,39 @@ use App\Helpers\ActivityLogger;
 class AppointmentController
 {
     /**
+     * Get branch filter for current user
+     */
+    private function getBranchFilter(): array
+    {
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+        
+        return [
+            'isSuperAdmin' => $isSuperAdmin,
+            'branchId' => $branchId,
+            'hasFilter' => $hasBranchFilter
+        ];
+    }
+
+    /**
      * Display a list of all appointments.
      */
     public function index(): void
     {
         Permission::check('manage_appointments');
-        $appointments = Appointment::all();
+        
+        $filter = $this->getBranchFilter();
+        $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
+        
+        $appointments = Appointment::all($branchId);
         view('admin.appointments.index', [
             'title' => 'Scheduled Appointments',
-            'appointments' => $appointments
+            'appointments' => $appointments,
+            'activePage' => 'appointments'
         ]);
     }
 
@@ -34,19 +58,30 @@ class AppointmentController
     {
         Permission::check('manage_appointments');
         
+        $filter = $this->getBranchFilter();
+        
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone, 
                        u.username as doctor_name, b.name as branch_name 
                 FROM appointments a
                 JOIN patients p ON a.patient_id = p.id
                 JOIN users u ON a.doctor_id = u.id
                 JOIN branches b ON a.branch_id = b.id
-                WHERE a.status = 'pending'
-                ORDER BY a.date ASC, a.time_slot ASC";
+                WHERE a.status = 'pending'";
         
-        $appointments = Database::all($sql);
+        $params = [];
+        
+        if ($filter['hasFilter']) {
+            $sql .= " AND a.branch_id = ?";
+            $params[] = $filter['branchId'];
+        }
+        
+        $sql .= " ORDER BY a.date ASC, a.time_slot ASC";
+        
+        $appointments = Database::all($sql, $params);
         view('admin.appointments.pending', [
             'title' => 'Pending Online Approvals',
-            'appointments' => $appointments
+            'appointments' => $appointments,
+            'activePage' => 'appointments_pending'
         ]);
     }
 
@@ -107,34 +142,59 @@ class AppointmentController
             redirect('/login');
         }
 
-        $userId = (int)Session::get('user_id');
+        $user = Session::user();
+        $userId = (int)($user['id'] ?? 0);
         $role = Session::get('role');
+        $roleSlug = Session::get('role_slug') ?? '';
         
         $doctorId = $userId;
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
         
-        if (($role === 'super_admin' || $role === 'admin') && !empty($_GET['doctor_id'])) {
+        // Super Admin can select any doctor
+        if ($isSuperAdmin && !empty($_GET['doctor_id'])) {
             $doctorId = (int)$_GET['doctor_id'];
         }
+        
+        // If not super admin, they can only see their own schedule
+        if (!$isSuperAdmin) {
+            $doctorId = $userId;
+        }
 
-        $doctor = Database::row("SELECT id, username FROM users WHERE id = :id", ['id' => $doctorId]);
+        $doctor = Database::row("SELECT id, username, branch_id FROM users WHERE id = :id", ['id' => $doctorId]);
         if (!$doctor) {
             Session::setFlash('error', 'Doctor not found.');
             redirect('/admin/dashboard');
         }
 
-        $schedules = Database::all("SELECT * FROM doctor_schedules WHERE doctor_id = :id", ['id' => $doctorId]);
-        
-        $doctors = Database::all(
-            "SELECT u.id, u.username FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE r.slug = 'doctor' AND u.status = 'active'"
+        // Get schedules for the selected doctor
+        $schedules = Database::all("SELECT * FROM doctor_schedules WHERE doctor_id = :id ORDER BY 
+            FIELD(day_of_week, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')", 
+            ['id' => $doctorId]
         );
+        
+        // Get all doctors for dropdown (only for super admin)
+        $doctors = [];
+        if ($isSuperAdmin) {
+            $doctors = Database::all(
+                "SELECT u.id, u.username, u.branch_id, b.name as branch_name 
+                 FROM users u
+                 JOIN roles r ON u.role_id = r.id 
+                 LEFT JOIN branches b ON u.branch_id = b.id
+                 WHERE r.slug = 'doctor' AND u.status = 'active'
+                 ORDER BY u.username ASC"
+            );
+        } else {
+            // For doctor role, just show themselves
+            $doctors = [$doctor];
+        }
 
         view('admin.appointments.schedule', [
             'title' => 'Configure Shift Schedules',
             'schedules' => $schedules,
             'selected_doctor' => $doctor,
-            'doctors' => $doctors
+            'doctors' => $doctors,
+            'isSuperAdmin' => $isSuperAdmin,
+            'activePage' => 'appointments'
         ]);
     }
 
@@ -167,11 +227,17 @@ class AppointmentController
             'status' => Security::sanitize($_POST['status'] ?? 'active')
         ];
 
+        // Validate times
+        if ($data['start_time'] >= $data['end_time']) {
+            Session::setFlash('error', 'Start time must be before end time.');
+            redirect('/admin/appointments/schedule?doctor_id=' . $doctorId);
+        }
+
         if (Appointment::saveDoctorSchedule($doctorId, $data)) {
             ActivityLogger::log('Schedule Configuration', "Updated schedule for day: {$data['day_of_week']} (Doctor ID: {$doctorId})");
-            Session::setFlash('success', 'Doctor schedule configuration saved.');
+            Session::setFlash('success', '✅ Doctor schedule configuration saved successfully.');
         } else {
-            Session::setFlash('error', 'Unable to save schedule configuration.');
+            Session::setFlash('error', 'Unable to save schedule configuration. Please try again.');
         }
 
         redirect('/admin/appointments/schedule?doctor_id=' . $doctorId);
@@ -180,67 +246,51 @@ class AppointmentController
     /**
      * JSON API Endpoint: Fetch available slots of a doctor on a specific date.
      */
-     /**
- * JSON API Endpoint: Fetch available slots of a doctor on a specific date.
- */
-public function getSlotsAjax(): void
-{
-    header('Content-Type: application/json');
-    
-    $doctorId = (int)($_GET['doctor_id'] ?? 0);
-    $date = Security::sanitize($_GET['date'] ?? '');
+    public function getSlotsAjax(): void
+    {
+        header('Content-Type: application/json');
+        
+        $doctorId = (int)($_GET['doctor_id'] ?? 0);
+        $date = Security::sanitize($_GET['date'] ?? '');
 
-    // Debug logging
-    error_log("=== getSlotsAjax called ===");
-    error_log("Doctor ID: " . $doctorId);
-    error_log("Date: " . $date);
+        if ($doctorId === 0 || empty($date)) {
+            echo json_encode(['success' => false, 'slots' => [], 'message' => 'Doctor ID and date required']);
+            return;
+        }
 
-    if ($doctorId === 0 || empty($date)) {
-        echo json_encode(['success' => false, 'slots' => [], 'message' => 'Doctor ID and date required']);
-        return;
-    }
+        // Get day of week
+        $dayOfWeek = date('l', strtotime($date));
 
-    // Get day of week
-    $dayOfWeek = date('l', strtotime($date));
-    error_log("Day of week: " . $dayOfWeek);
+        // Direct database query to check schedule
+        $schedule = Database::row(
+            "SELECT * FROM doctor_schedules 
+             WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
+            ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
+        );
 
-    // Direct database query to check schedule
-    $schedule = Database::row(
-        "SELECT * FROM doctor_schedules 
-         WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
-        ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
-    );
-    
-    error_log("Schedule found: " . ($schedule ? 'Yes' : 'No'));
-    if ($schedule) {
-        error_log("Schedule: " . print_r($schedule, true));
-    }
+        // If no schedule found, return empty
+        if (!$schedule) {
+            echo json_encode([
+                'success' => true, 
+                'slots' => [], 
+                'message' => 'No schedule found for this doctor on ' . $dayOfWeek
+            ]);
+            return;
+        }
 
-    // If no schedule found, return empty
-    if (!$schedule) {
+        // Get slots using the model
+        $slots = Appointment::getAvailableSlots($doctorId, $date);
+        
         echo json_encode([
-            'success' => true, 
-            'slots' => [], 
-            'message' => 'No schedule found for this doctor on ' . $dayOfWeek
+            'success' => true,
+            'slots' => $slots,
+            'debug' => [
+                'day' => $dayOfWeek,
+                'schedule' => $schedule,
+                'slots_count' => count($slots)
+            ]
         ]);
-        return;
     }
-
-    // Get slots using the model
-    $slots = Appointment::getAvailableSlots($doctorId, $date);
-    
-    error_log("Slots generated: " . count($slots));
-    
-    echo json_encode([
-        'success' => true,
-        'slots' => $slots,
-        'debug' => [
-            'day' => $dayOfWeek,
-            'schedule' => $schedule,
-            'slots_count' => count($slots)
-        ]
-    ]);
-}
 
     /**
      * Guest/Patient facing online booking panel.

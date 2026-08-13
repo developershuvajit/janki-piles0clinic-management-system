@@ -66,7 +66,7 @@ class Appointment
             $sql = "INSERT INTO appointments (patient_id, doctor_id, branch_id, date, time_slot, status, type, token_number, queue_status, created_at, updated_at) 
                     VALUES (:patient_id, :doctor_id, :branch_id, :date, :time_slot, :status, :type, :token_number, :queue_status, NOW(), NOW())";
             
-            $success = Database::execute($sql, [
+            $success = Database::exec($sql, [
                 'patient_id' => $data['patient_id'],
                 'doctor_id' => $data['doctor_id'],
                 'branch_id' => $data['branch_id'],
@@ -102,7 +102,7 @@ class Appointment
                     updated_at = NOW() 
                 WHERE id = :id";
         
-        return Database::execute($sql, [
+        return Database::exec($sql, [
             'id' => $id,
             'patient_id' => $data['patient_id'],
             'doctor_id' => $data['doctor_id'],
@@ -120,7 +120,7 @@ class Appointment
      */
     public static function delete(int $id): bool
     {
-        return Database::execute("DELETE FROM appointments WHERE id = :id", ['id' => $id]);
+        return Database::exec("DELETE FROM appointments WHERE id = :id", ['id' => $id]);
     }
 
     /**
@@ -144,7 +144,7 @@ class Appointment
      */
     public static function updateQueueStatus(int $apptId, string $status): bool
     {
-        return Database::execute(
+        return Database::exec(
             "UPDATE appointments SET queue_status = :status, updated_at = NOW() WHERE id = :id", 
             ['status' => $status, 'id' => $apptId]
         );
@@ -155,7 +155,7 @@ class Appointment
      */
     public static function updateStatus(int $apptId, string $status): bool
     {
-        return Database::execute(
+        return Database::exec(
             "UPDATE appointments SET status = :status, updated_at = NOW() WHERE id = :id", 
             ['status' => $status, 'id' => $apptId]
         );
@@ -174,24 +174,29 @@ class Appointment
      */
     public static function saveDoctorSchedule(int $doctorId, array $data): bool
     {
-        // First delete existing schedule parameters for that day
-        Database::execute(
-            "DELETE FROM doctor_schedules WHERE doctor_id = :doctor_id AND day_of_week = :day",
-            ['doctor_id' => $doctorId, 'day' => $data['day_of_week']]
-        );
+        try {
+            // First delete existing schedule parameters for that day
+            Database::exec(
+                "DELETE FROM doctor_schedules WHERE doctor_id = :doctor_id AND day_of_week = :day",
+                ['doctor_id' => $doctorId, 'day' => $data['day_of_week']]
+            );
 
-        $sql = "INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, slot_duration, max_patients, status) 
-                VALUES (:doctor_id, :day_of_week, :start_time, :end_time, :slot_duration, :max_patients, :status)";
-        
-        return Database::execute($sql, [
-            'doctor_id' => $doctorId,
-            'day_of_week' => $data['day_of_week'],
-            'start_time' => $data['start_time'],
-            'end_time' => $data['end_time'],
-            'slot_duration' => $data['slot_duration'] ?? 15,
-            'max_patients' => $data['max_patients'] ?? 20,
-            'status' => $data['status'] ?? 'active'
-        ]);
+            $sql = "INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, slot_duration, max_patients, status) 
+                    VALUES (:doctor_id, :day_of_week, :start_time, :end_time, :slot_duration, :max_patients, :status)";
+            
+            return Database::exec($sql, [
+                'doctor_id' => $doctorId,
+                'day_of_week' => $data['day_of_week'],
+                'start_time' => $data['start_time'],
+                'end_time' => $data['end_time'],
+                'slot_duration' => $data['slot_duration'] ?? 15,
+                'max_patients' => $data['max_patients'] ?? 20,
+                'status' => $data['status'] ?? 'active'
+            ]);
+        } catch (\Throwable $e) {
+            Logger::error("Failed to save doctor schedule: " . $e->getMessage());
+            return false;
+        }
     }
 
     /**
@@ -354,7 +359,7 @@ class Appointment
             return false;
         }
 
-        return Database::execute(
+        return Database::exec(
             "UPDATE appointments SET date = :date, time_slot = :time_slot, updated_at = NOW() WHERE id = :id",
             [
                 'id' => $apptId,
