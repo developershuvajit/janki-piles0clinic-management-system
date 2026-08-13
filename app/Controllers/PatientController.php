@@ -14,7 +14,7 @@ use App\Helpers\ActivityLogger;
 class PatientController
 {
     /**
-     * Display a list of all patients.
+     * Display a list of all patients with branch filter.
      */
     public function index(): void
     {
@@ -40,10 +40,31 @@ class PatientController
     public function create(): void
     {
         Permission::check('manage_patients');
-        $branches = Branch::all();
+        
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        
+        $branches = [];
+        if ($isSuperAdmin) {
+            // Super Admin - সব ব্রাঞ্চ দেখাবে
+            $branches = Branch::all();
+        } elseif ($isBranchAdmin && $branchId) {
+            // Branch Admin - শুধু নিজের ব্রাঞ্চ দেখাবে
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        }
+        
         view('admin.patients.create', [
             'title' => 'Register New Patient',
-            'branches' => $branches
+            'branches' => $branches,
+            'isBranchAdmin' => $isBranchAdmin,
+            'isSuperAdmin' => $isSuperAdmin,
+            'branchId' => $branchId
         ]);
     }
 
@@ -59,6 +80,17 @@ class PatientController
             redirect('/admin/patients/create');
         }
 
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        
+        // Branch Admin হলে নিজের ব্রাঞ্চ ফোর্স সেট
+        $selectedBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null;
+        if ($isBranchAdmin && $branchId) {
+            $selectedBranch = $branchId;
+        }
+
         $data = [
             'name' => Security::sanitize($_POST['name'] ?? ''),
             'email' => Security::sanitize($_POST['email'] ?? ''),
@@ -71,7 +103,7 @@ class PatientController
             'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
             'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
             'family_history' => Security::sanitize($_POST['family_history'] ?? ''),
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null
+            'branch_id' => $selectedBranch
         ];
 
         if (empty($data['name']) || empty($data['phone']) || empty($data['dob']) || empty($data['address'])) {
@@ -82,7 +114,12 @@ class PatientController
         $patientId = Patient::create($data);
 
         if ($patientId) {
-            ActivityLogger::log('Patient Registration', "Registered patient: {$data['name']} (ID: {$patientId})");
+            ActivityLogger::log(
+                'Patient Registration',
+                "Registered patient: {$data['name']} (ID: {$patientId})",
+                null,
+                $selectedBranch
+            );
             Session::setFlash('success', 'Patient registered successfully.');
             redirect('/admin/patients');
         } else {
@@ -101,15 +138,33 @@ class PatientController
         $patient = Patient::find($id);
 
         if (!$patient) {
-            Session::setFlash('error', 'Patient not found.');
+            Session::setFlash('error', 'Patient not found or access denied.');
             redirect('/admin/patients');
         }
 
-        $branches = Branch::all();
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        
+        $branches = [];
+        if ($isSuperAdmin) {
+            $branches = Branch::all();
+        } elseif ($isBranchAdmin && $branchId) {
+            $branch = Branch::find($branchId);
+            if ($branch) {
+                $branches = [$branch];
+            }
+        }
+
         view('admin.patients.edit', [
             'title' => 'Edit Patient Details',
             'patient' => $patient,
-            'branches' => $branches
+            'branches' => $branches,
+            'isBranchAdmin' => $isBranchAdmin,
+            'isSuperAdmin' => $isSuperAdmin,
+            'branchId' => $branchId
         ]);
     }
 
@@ -123,13 +178,24 @@ class PatientController
         $patient = Patient::find($id);
 
         if (!$patient) {
-            Session::setFlash('error', 'Patient not found.');
+            Session::setFlash('error', 'Patient not found or access denied.');
             redirect('/admin/patients');
         }
 
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             Session::setFlash('error', 'Security token expired.');
             redirect("/admin/patients/edit/{$id}");
+        }
+
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        
+        // Branch Admin অন্য ব্রাঞ্চ সিলেক্ট করতে পারবে না
+        $selectedBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null;
+        if ($isBranchAdmin && $branchId) {
+            $selectedBranch = $branchId;
         }
 
         $data = [
@@ -144,7 +210,7 @@ class PatientController
             'allergies' => Security::sanitize($_POST['allergies'] ?? ''),
             'medical_history' => Security::sanitize($_POST['medical_history'] ?? ''),
             'family_history' => Security::sanitize($_POST['family_history'] ?? ''),
-            'branch_id' => !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null,
+            'branch_id' => $selectedBranch,
             'status' => Security::sanitize($_POST['status'] ?? 'active')
         ];
 
@@ -154,7 +220,12 @@ class PatientController
         }
 
         if (Patient::update($id, $data)) {
-            ActivityLogger::log('Patient Record Update', "Updated patient profile: {$data['name']}");
+            ActivityLogger::log(
+                'Patient Record Update',
+                "Updated patient profile: {$data['name']} (ID: {$id})",
+                null,
+                $selectedBranch
+            );
             Session::setFlash('success', 'Patient updated successfully.');
             redirect('/admin/patients');
         } else {
@@ -173,12 +244,17 @@ class PatientController
         $patient = Patient::find($id);
 
         if (!$patient) {
-            Session::setFlash('error', 'Patient not found.');
+            Session::setFlash('error', 'Patient not found or access denied.');
             redirect('/admin/patients');
         }
 
         if (Patient::delete($id)) {
-            ActivityLogger::log('Patient Deletion', "Deleted patient profile: {$patient['name']}");
+            ActivityLogger::log(
+                'Patient Deletion',
+                "Deleted patient profile: {$patient['name']} (ID: {$id})",
+                null,
+                $patient['branch_id'] ?? null
+            );
             Session::setFlash('success', 'Patient deleted successfully.');
         } else {
             Session::setFlash('error', 'Unable to delete patient records.');
@@ -191,7 +267,7 @@ class PatientController
      */
     public function history(array $params): void
     {
-        // Accessible by any authenticated doctor, receptionist, or administrator
+        // Accessible by any authenticated user
         if (!Session::isLoggedIn()) {
             Session::setFlash('error', 'Please log in to view patient timeline records.');
             redirect('/login');
@@ -201,7 +277,7 @@ class PatientController
         $patient = Patient::findByPatientId($patientCode);
 
         if (!$patient) {
-            Session::setFlash('error', 'Patient not found.');
+            Session::setFlash('error', 'Patient not found or access denied.');
             redirect('/admin/patients');
         }
 
@@ -228,7 +304,7 @@ class PatientController
         $patientId = (int)($params['id'] ?? 0);
         $patient = Patient::find($patientId);
         if (!$patient) {
-            Session::setFlash('error', 'Patient not found.');
+            Session::setFlash('error', 'Patient not found or access denied.');
             redirect('/admin/patients');
         }
 
@@ -240,7 +316,12 @@ class PatientController
             $res = $uploader->file($_FILES['report'], 'patients/reports');
             if ($res['success']) {
                 Patient::addDocument($patientId, $_FILES['report']['name'], $res['path']);
-                ActivityLogger::log('Medical Document Upload', "Uploaded document for patient: {$patient['name']}");
+                ActivityLogger::log(
+                    'Medical Document Upload',
+                    "Uploaded document for patient: {$patient['name']}",
+                    null,
+                    $patient['branch_id'] ?? null
+                );
                 Session::setFlash('success', 'Medical report uploaded successfully.');
             } else {
                 Session::setFlash('error', 'Upload failed: ' . $res['error']);
