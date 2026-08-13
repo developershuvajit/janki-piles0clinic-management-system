@@ -1,14 +1,12 @@
 <?php
 if (!defined('ROOT_PATH')) exit('No direct script access allowed');
-// Remove header include - we want standalone page
-// include VIEWS_PATH . '/layout/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login -Janki Piles Admin</title>
+    <title>Login - Janki Piles Admin</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -33,6 +31,7 @@ if (!defined('ROOT_PATH')) exit('No direct script access allowed');
         .input-group .form-control{border-radius:0 10px 10px 0;border-left:0}
         .btn-login{background:#2563eb;color:#fff;border:0;border-radius:40px;padding:.6rem;font-weight:600;font-size:.85rem;width:100%;cursor:pointer;transition:.2s}
         .btn-login:hover{background:#1d4ed8;box-shadow:0 4px 12px rgba(37,99,235,.3)}
+        .btn-login:disabled{opacity:.7;cursor:not-allowed}
         .form-check{display:flex;align-items:center;gap:.4rem}
         .form-check-input{width:15px;height:15px;cursor:pointer;accent-color:#2563eb}
         .form-check-label{font-size:.75rem;color:#64748b;cursor:pointer}
@@ -55,6 +54,8 @@ if (!defined('ROOT_PATH')) exit('No direct script access allowed');
         .me-1{margin-right:.25rem}
         .me-2{margin-right:.5rem}
         .py-1{padding-top:.25rem;padding-bottom:.25rem}
+        .spinner-border{display:inline-block;width:1rem;height:1rem;vertical-align:middle;border:.2em solid currentColor;border-right-color:transparent;border-radius:50%;animation:spinner-border .75s linear infinite}
+        @keyframes spinner-border{to{transform:rotate(360deg)}}
         @media(max-width:768px){.login-wrap{flex-direction:column}.login-left{flex:1;padding:2rem 1.5rem}.login-right{flex:0 0 200px;min-height:200px}.login-right .overlay h3{font-size:1.1rem}}
     </style>
 </head>
@@ -73,7 +74,7 @@ if (!defined('ROOT_PATH')) exit('No direct script access allowed');
             <label class="form-label">Username or Email</label>
             <div class="input-group">
                <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
-               <input type="text" class="form-control" name="username" value="<?= esc(old('username')) ?>" required autofocus placeholder="Enter username">
+               <input type="text" class="form-control" name="username" id="username" value="<?= esc(old('username')) ?>" required autofocus placeholder="Enter username">
             </div>
          </div>
 
@@ -81,24 +82,26 @@ if (!defined('ROOT_PATH')) exit('No direct script access allowed');
             <label class="form-label">Password</label>
             <div class="input-group">
                <span class="input-group-text"><i class="bi bi-key-fill"></i></span>
-               <input type="password" class="form-control" name="password" required placeholder="Enter password">
+               <input type="password" class="form-control" name="password" id="password" required placeholder="Enter password">
             </div>
          </div>
 
          <div class="d-flex justify-between align-center mb-3">
             <label class="form-check">
-               <input type="checkbox" class="form-check-input" name="remember_me">
+               <input type="checkbox" class="form-check-input" name="remember_me" id="remember_me">
                <span class="form-check-label">Remember Me</span>
             </label>
             <a href="<?= site_url('/forgot-password') ?>" class="text-primary text-decoration-none small fw-semibold">Forgot?</a>
          </div>
 
-         <button type="submit" class="btn-login"><i class="bi bi-box-arrow-in-right me-1"></i>Sign In</button>
+         <button type="submit" class="btn-login" id="loginBtn">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+         </button>
       </form>
 
       <div class="login-foot">
          <i class="bi bi-info-circle text-primary me-1"></i>
-         Demo: <strong>admin</strong> <span style="color:#cbd5e1">|</span> <strong>doctor</strong> <span style="color:#cbd5e1">|</span> <strong>receptionist</strong>
+         Demo: <strong>admin</strong> <span style="color:#cbd5e1">|</span> <strong>doctor</strong> <span style="color:#cbd5e1">|</span> <strong>receptionist</strong> <span style="color:#cbd5e1">|</span> <strong>branch_kolkata</strong>
          <br>Password: <strong>Admin@1234</strong>
       </div>
    </div>
@@ -116,37 +119,75 @@ if (!defined('ROOT_PATH')) exit('No direct script access allowed');
 document.addEventListener('DOMContentLoaded', function() {
    const form = document.getElementById('login-form');
    const alert = document.getElementById('alert-container');
+   const loginBtn = document.getElementById('loginBtn');
+   const username = document.getElementById('username');
+   const password = document.getElementById('password');
+
+   // Clear error when user starts typing
+   username.addEventListener('input', function() {
+      alert.classList.add('d-none');
+   });
+   password.addEventListener('input', function() {
+      alert.classList.add('d-none');
+   });
 
    form.addEventListener('submit', function(e) {
       e.preventDefault();
+      
+      // Show loading state
+      const originalText = loginBtn.innerHTML;
+      loginBtn.innerHTML = '<span class="spinner-border me-1"></span> Signing in...';
+      loginBtn.disabled = true;
+      
+      // Hide previous alerts
+      alert.classList.add('d-none');
+
       const data = new FormData(form);
 
       fetch(form.action, {
          method: 'POST',
          body: data,
-         headers: { 'X-Requested-With': 'XMLHttpRequest' }
-      })
-      .then(r => r.json())
-      .then(d => {
-         alert.className = `alert alert-${d.success ? 'success' : 'danger'} py-1 small`;
-         alert.textContent = d.message || (d.success ? 'Login successful. Redirecting...' : 'Invalid credentials.');
-         alert.classList.remove('d-none');
-
-         if (d.success) {
-            setTimeout(() => window.location.href = d.redirect || '<?= site_url("/dashboard") ?>', 800);
+         headers: { 
+            'X-Requested-With': 'XMLHttpRequest'
          }
       })
-      .catch(() => {
-         alert.className = 'alert alert-danger py-1 small';
-         alert.textContent = 'Error occurred. Please refresh.';
+      .then(response => {
+         if (!response.ok) {
+            return response.text().then(text => {
+               try {
+                  return JSON.parse(text);
+               } catch {
+                  throw new Error('Server error: ' + response.status);
+               }
+            });
+         }
+         return response.json();
+      })
+      .then(data => {
+         alert.className = `alert alert-${data.success ? 'success' : 'danger'} py-1 small`;
+         alert.textContent = data.message || (data.success ? 'Login successful. Redirecting...' : 'Invalid credentials.');
          alert.classList.remove('d-none');
+
+         if (data.success) {
+            loginBtn.innerHTML = '<span class="spinner-border me-1"></span> Redirecting...';
+            setTimeout(() => {
+               window.location.href = data.redirect || '<?= site_url("/dashboard") ?>';
+            }, 800);
+         } else {
+            loginBtn.innerHTML = originalText;
+            loginBtn.disabled = false;
+         }
+      })
+      .catch(error => {
+         console.error('Login error:', error);
+         alert.className = 'alert alert-danger py-1 small';
+         alert.textContent = error.message || 'Error occurred. Please refresh and try again.';
+         alert.classList.remove('d-none');
+         loginBtn.innerHTML = originalText;
+         loginBtn.disabled = false;
       });
    });
 });
 </script>
 </body>
 </html>
-<?php 
-// Remove footer include
-// include VIEWS_PATH . '/layout/footer.php'; 
-?>

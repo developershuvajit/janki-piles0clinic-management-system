@@ -14,7 +14,6 @@ class Session
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
                 || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
             
-            // Apply secure cookies session configurations if headers not yet sent (important for CLI/tests)
             if (!headers_sent()) {
                 session_set_cookie_params([
                     'lifetime' => 0,
@@ -50,16 +49,14 @@ class Session
     private static function checkInactivity(): void
     {
         $lastActive = self::get('last_active_time');
-        $timeout = 900; // 15 minutes in seconds
+        $timeout = 900;
 
         if ($lastActive !== null && (time() - (int)$lastActive) > $timeout) {
             $userId = (int)self::get('user_id');
             $username = self::get('username');
             
-            // Log session timeout event
             ActivityLogger::log('Session Timeout', "User {$username} was logged out due to inactivity.", $userId);
             
-            // Update last logout timestamp in history
             try {
                 $lastHistory = Database::row(
                     "SELECT id FROM login_history WHERE user_id = :user_id AND logged_out_at IS NULL ORDER BY id DESC LIMIT 1",
@@ -72,7 +69,7 @@ class Session
                     );
                 }
             } catch (\Throwable $e) {
-                Logger::error("Failed updating history logout timestamp during timeout: " . $e->getMessage());
+                // Fail silently
             }
 
             self::destroy();
@@ -81,10 +78,8 @@ class Session
             redirect('/login');
         }
 
-        // Renew active timestamp
         self::set('last_active_time', time());
         
-        // Throttled database active time update (once every 60 seconds)
         $lastDbUpdate = self::get('last_db_update', 0);
         if (time() - $lastDbUpdate > 60) {
             try {
@@ -92,7 +87,7 @@ class Session
                 Database::execute("UPDATE users SET last_active_at = NOW() WHERE id = :id", ['id' => $userId]);
                 self::set('last_db_update', time());
             } catch (\Throwable $e) {
-                // Ignore transient db failure during keepalive updates
+                // Fail silently
             }
         }
     }
@@ -117,11 +112,11 @@ class Session
         $userId = (int)$userId;
 
         try {
-            // Find active user profile
             $user = Database::row(
-                "SELECT u.*, r.slug as role_slug 
+                "SELECT u.*, r.slug as role_slug, b.id as branch_id, b.name as branch_name 
                  FROM users u 
                  LEFT JOIN roles r ON u.role_id = r.id 
+                 LEFT JOIN branches b ON u.branch_id = b.id
                  WHERE u.id = :id AND u.status = 'active'", 
                 ['id' => $userId]
             );
@@ -131,11 +126,9 @@ class Session
                 $actualHash = hash('sha256', $token);
                 
                 if (hash_equals($expectedHash, $actualHash)) {
-                    // Map details and log user in
                     $user['role'] = $user['role_slug'] ?? $user['role'] ?? 'admin';
                     self::login($user);
                     
-                    // Track login audit history
                     $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
                     $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
                     Database::execute(
@@ -152,10 +145,9 @@ class Session
                 }
             }
         } catch (\Throwable $e) {
-            Logger::error("Remember me authentication exception: " . $e->getMessage());
+            // Fail silently
         }
 
-        // Clear invalid cookie
         self::clearRememberMeCookie();
     }
 
@@ -171,24 +163,36 @@ class Session
         }
     }
 
+    /**
+     * Set a session value.
+     */
     public static function set(string $key, mixed $value): void
     {
         self::start();
         $_SESSION[$key] = $value;
     }
 
+    /**
+     * Get a session value.
+     */
     public static function get(string $key, mixed $default = null): mixed
     {
         self::start();
         return $_SESSION[$key] ?? $default;
     }
 
+    /**
+     * Check if session key exists.
+     */
     public static function has(string $key): bool
     {
         self::start();
         return isset($_SESSION[$key]);
     }
 
+    /**
+     * Remove a session key.
+     */
     public static function remove(string $key): void
     {
         self::start();
@@ -244,6 +248,9 @@ class Session
         return null;
     }
 
+    /**
+     * Check if flash message exists.
+     */
     public static function hasFlash(string $key): bool
     {
         self::start();
@@ -251,7 +258,7 @@ class Session
     }
 
     /**
-     * Store login session parameters, regenerating ID to block Session Fixation.
+     * Store login session parameters.
      */
     public static function login(array $user, bool $rememberMe = false): void
     {
@@ -259,13 +266,28 @@ class Session
         if (!headers_sent()) {
             session_regenerate_id(true);
         }
+        
+        // Basic user info
         self::set('user_id', $user['id']);
         self::set('username', $user['username']);
         self::set('email', $user['email']);
         self::set('role', $user['role_slug'] ?? $user['role'] ?? 'admin');
         self::set('role_slug', $user['role_slug'] ?? $user['role'] ?? '');
         self::set('role_id', $user['role_id'] ?? null);
+        
+        // Branch info
         self::set('branch_id', $user['branch_id'] ?? null);
+        self::set('branch_name', $user['branch_name'] ?? null);
+        self::set('branch_code', $user['branch_code'] ?? null);
+        
+        // Role flags
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        self::set('is_branch_admin', ($roleSlug === 'branch_admin'));
+        self::set('is_super_admin', in_array($roleSlug, ['super_admin', 'admin']));
+        self::set('is_doctor', ($roleSlug === 'doctor'));
+        self::set('is_receptionist', ($roleSlug === 'receptionist'));
+        
+        // Session flags
         self::set('logged_in', true);
         self::set('last_active_time', time());
         self::set('last_db_update', time());
@@ -277,28 +299,25 @@ class Session
             $hash = hash('sha256', $token);
             
             try {
-                // Update remember token and login timestamps
                 Database::execute(
                     "UPDATE users SET remember_token = :token, last_login_at = NOW(), last_active_at = NOW() WHERE id = :id", 
                     ['token' => $hash, 'id' => $userId]
                 );
                 
-                // Set cookie for 30 days
                 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') 
                     || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
                 setcookie('remember_me', $userId . ':' . $token, time() + 30 * 86400, '/', '', $secure, true);
             } catch (\Throwable $e) {
-                Logger::error("Failed to update remember token in db: " . $e->getMessage());
+                // Fail silently
             }
         } else {
             try {
-                // Update timestamps in DB without remember token
                 Database::execute(
                     "UPDATE users SET remember_token = NULL, last_login_at = NOW(), last_active_at = NOW() WHERE id = :id", 
                     ['id' => $userId]
                 );
             } catch (\Throwable $e) {
-                Logger::error("Failed to update login timestamps in db: " . $e->getMessage());
+                // Fail silently
             }
         }
     }
@@ -313,10 +332,8 @@ class Session
         
         if ($userId > 0) {
             try {
-                // Clear remember token in DB
                 Database::execute("UPDATE users SET remember_token = NULL WHERE id = :id", ['id' => $userId]);
                 
-                // Log logout history
                 $lastHistory = Database::row(
                     "SELECT id FROM login_history WHERE user_id = :user_id AND logged_out_at IS NULL ORDER BY id DESC LIMIT 1", 
                     ['user_id' => $userId]
@@ -328,7 +345,7 @@ class Session
                     );
                 }
             } catch (\Throwable $e) {
-                Logger::error("Logout database updates failed: " . $e->getMessage());
+                // Fail silently
             }
         }
         
@@ -359,7 +376,94 @@ class Session
             'role' => self::get('role'),
             'role_slug' => self::get('role_slug'),
             'role_id' => self::get('role_id'),
-            'branch_id' => self::get('branch_id')
+            'branch_id' => self::get('branch_id'),
+            'branch_name' => self::get('branch_name'),
+            'branch_code' => self::get('branch_code'),
+            'is_branch_admin' => self::get('is_branch_admin', false),
+            'is_super_admin' => self::get('is_super_admin', false),
+            'is_doctor' => self::get('is_doctor', false),
+            'is_receptionist' => self::get('is_receptionist', false)
         ];
+    }
+
+    /**
+     * Check if current user is branch admin
+     */
+    public static function isBranchAdmin(): bool
+    {
+        return self::get('is_branch_admin', false) === true;
+    }
+
+    /**
+     * Check if current user is super admin
+     */
+    public static function isSuperAdmin(): bool
+    {
+        return self::get('is_super_admin', false) === true;
+    }
+
+    /**
+     * Check if current user is doctor
+     */
+    public static function isDoctor(): bool
+    {
+        return self::get('is_doctor', false) === true;
+    }
+
+    /**
+     * Check if current user is receptionist
+     */
+    public static function isReceptionist(): bool
+    {
+        return self::get('is_receptionist', false) === true;
+    }
+
+    /**
+     * Get current user's branch ID
+     */
+    public static function getBranchId(): ?int
+    {
+        return self::get('branch_id');
+    }
+
+    /**
+     * Get current user's branch name
+     */
+    public static function getBranchName(): ?string
+    {
+        return self::get('branch_name');
+    }
+
+    /**
+     * Get current user's role
+     */
+    public static function getRole(): ?string
+    {
+        return self::get('role_slug');
+    }
+
+    /**
+     * Get current user's role name
+     */
+    public static function getRoleName(): ?string
+    {
+        return self::get('role');
+    }
+
+    /**
+     * Check if user has specific role
+     */
+    public static function hasRole(string $role): bool
+    {
+        return self::get('role_slug') === $role;
+    }
+
+    /**
+     * Check if user has any of the given roles
+     */
+    public static function hasAnyRole(array $roles): bool
+    {
+        $userRole = self::get('role_slug');
+        return in_array($userRole, $roles);
     }
 }

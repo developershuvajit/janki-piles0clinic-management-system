@@ -20,6 +20,7 @@ class AuthController
             $user = Session::user();
             $role = $user['role_slug'] ?? $user['role'] ?? '';
             
+            // Redirect based on role
             if ($role === 'doctor') {
                 redirect('/doctor');
             } elseif ($role === 'receptionist') {
@@ -31,6 +32,7 @@ class AuthController
                 redirect('/admin/dashboard');
             }
         }
+        
         view('website.login', ['title' => 'Portal Login']);
     }
 
@@ -46,8 +48,8 @@ class AuthController
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $rateLimitKey = 'login_' . hash('sha256', $ip);
         
-        if (Security::rateLimit($rateLimitKey, 5, 300)) {
-            $this->handleError('Too many login attempts. Please wait 5 minutes.', $isAjax);
+        if (Security::rateLimit($rateLimitKey, 1, 60)) {
+            $this->handleError('Too many login attempts. Please wait 1 minutes.', $isAjax);
             return;
         }
 
@@ -78,19 +80,14 @@ class AuthController
             return;
         }
 
-        // Login success
+        // Login success - Session::login() handles everything
         Session::login($user, $rememberMe);
-        
-        // Store branch info in session
-        $_SESSION['branch_id'] = $user['branch_id'] ?? null;
-        $_SESSION['branch_name'] = $user['branch_name'] ?? null;
-        $_SESSION['role_slug'] = $user['role_slug'] ?? $user['role'] ?? '';
         
         // Log login
         ActivityLogger::log('User Login', "User {$username} logged in from IP: {$ip}", (int)$user['id']);
         Security::rateLimitClear($rateLimitKey);
 
-        // Role-based redirect
+        // Get role and redirect
         $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
         $targetUrl = $this->getRedirectUrl($roleSlug, $user['branch_id'] ?? null);
 
@@ -115,6 +112,7 @@ class AuthController
             $user = Session::user();
             ActivityLogger::log('User Logout', "User {$user['username']} logged out.", (int)$user['id']);
         }
+        
         Session::logout();
         redirect('/login');
     }
@@ -125,10 +123,12 @@ class AuthController
     private function getRedirectUrl(string $role, ?int $branchId = null): string
     {
         return match($role) {
-            'doctor'      => '/doctor',
-            'receptionist'=> '/reception',
-            'branch_admin'=> "/branch/dashboard/{$branchId}",
-            default       => '/admin/dashboard'
+            'doctor'        => '/doctor',
+            'receptionist'  => '/reception',
+            'branch_admin'  => "/branch/dashboard/{$branchId}",
+            'super_admin'   => '/admin/dashboard',
+            'admin'         => '/admin/dashboard',
+            default         => '/admin/dashboard'
         };
     }
 
