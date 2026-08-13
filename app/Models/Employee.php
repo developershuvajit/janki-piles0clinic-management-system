@@ -6,46 +6,85 @@ namespace App\Models;
 use App\Helpers\Database;
 use App\Helpers\Security;
 use App\Helpers\Logger;
+use App\Helpers\Session;
 
 class Employee
 {
+    /**
+     * Get branch filter for current user
+     * Super Admin ছাড়া সবাই ব্রাঞ্চ ফিল্টার পাবে
+     */
+    private static function getBranchFilter(): array
+    {
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+        
+        return [
+            'isSuperAdmin' => $isSuperAdmin,
+            'branchId' => $branchId,
+            'hasFilter' => $hasBranchFilter
+        ];
+    }
+
     /**
      * Get all employees, optionally filtered by branch.
      */
     public static function all(?int $branchId = null): array
     {
-        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, r.name as role_name, r.slug as role_slug, b.name as branch_name 
+        $db = Database::getInstance();
+        $filter = self::getBranchFilter();
+        $useBranchId = $branchId ?? $filter['branchId'];
+        $hasFilter = ($branchId !== null) || $filter['hasFilter'];
+        
+        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, 
+                       r.name as role_name, r.slug as role_slug, 
+                       b.name as branch_name 
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id";
         
         $params = [];
-        if ($branchId !== null) {
-            $sql .= " WHERE u.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
+        if ($hasFilter && $useBranchId) {
+            $sql .= " WHERE u.branch_id = ?";
+            $params[] = $useBranchId;
         }
 
         $sql .= " ORDER BY e.id DESC";
-        return Database::all($sql, $params);
+        return $db->getAll($sql, $params);
     }
 
     /**
-     * Find employee details by employee ID.
+     * Find employee details by employee ID with branch check.
      */
     public static function find(int $id): ?array
     {
-        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, u.role_id, u.branch_id, 
-                       r.name as role_name, r.slug as role_slug, b.name as branch_name 
+        $db = Database::getInstance();
+        $filter = self::getBranchFilter();
+        
+        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, 
+                       u.role_id, u.branch_id, 
+                       r.name as role_name, r.slug as role_slug, 
+                       b.name as branch_name 
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id
-                WHERE e.id = :id LIMIT 1";
+                WHERE e.id = ?";
+        $params = [$id];
         
-        $result = Database::row($sql, ['id' => $id]);
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
+        if ($filter['hasFilter']) {
+            $sql .= " AND u.branch_id = ?";
+            $params[] = $filter['branchId'];
+        }
         
-        // Set default values if null
+        $result = $db->getRow($sql, $params);
+        
         if ($result) {
             $result['shift_start'] = $result['shift_start'] ?? '09:00:00';
             $result['shift_end'] = $result['shift_end'] ?? '17:00:00';
@@ -56,26 +95,34 @@ class Employee
     }
 
     /**
-     * Find employee details by linked User ID.
+     * Find employee details by linked User ID with branch check.
      */
     public static function findByUserId(int $userId): ?array
     {
-        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, u.role_id, u.branch_id, 
-                       r.name as role_name, r.slug as role_slug, b.name as branch_name 
+        $db = Database::getInstance();
+        $filter = self::getBranchFilter();
+        
+        $sql = "SELECT e.*, u.username, u.email, u.status as user_status, 
+                       u.role_id, u.branch_id, 
+                       r.name as role_name, r.slug as role_slug, 
+                       b.name as branch_name 
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id
-                WHERE e.user_id = :user_id LIMIT 1";
+                WHERE e.user_id = ?";
+        $params = [$userId];
         
-        return Database::row($sql, ['user_id' => $userId]);
+        if ($filter['hasFilter']) {
+            $sql .= " AND u.branch_id = ?";
+            $params[] = $filter['branchId'];
+        }
+        
+        return $db->getRow($sql, $params);
     }
 
     /**
      * Get multiple employees by their IDs (for ID card generation, etc.)
-     * 
-     * @param array $ids Array of employee IDs
-     * @return array
      */
     public static function getByIds(array $ids): array
     {
@@ -83,6 +130,8 @@ class Employee
             return [];
         }
         
+        $db = Database::getInstance();
+        $filter = self::getBranchFilter();
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
         
         $sql = "SELECT e.*, u.username, u.email, u.status as user_status, 
@@ -92,10 +141,17 @@ class Employee
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id
-                WHERE e.id IN ($placeholders)
-                ORDER BY e.id DESC";
+                WHERE e.id IN ($placeholders)";
+        $params = $ids;
         
-        return Database::all($sql, $ids);
+        if ($filter['hasFilter']) {
+            $sql .= " AND u.branch_id = ?";
+            $params[] = $filter['branchId'];
+        }
+        
+        $sql .= " ORDER BY e.id DESC";
+        
+        return $db->getAll($sql, $params);
     }
 
     /**
@@ -103,41 +159,49 @@ class Employee
      */
     public static function create(array $data): ?int
     {
-        Database::beginTransaction();
+        $db = Database::getInstance();
+        $filter = self::getBranchFilter();
+        
+        // Super Admin ছাড়া বাকি সবাই নিজের ব্রাঞ্চ ফোর্স সেট
+        if ($filter['hasFilter']) {
+            $data['branch_id'] = $filter['branchId'];
+        }
+        
+        $db->beginTransaction();
         try {
             // 1. Create linked User credentials account
             $passwordHash = Security::hashPassword($data['password']);
             $userSql = "INSERT INTO users (username, email, password_hash, role_id, branch_id, status, created_at, updated_at) 
-                        VALUES (:username, :email, :password_hash, :role_id, :branch_id, 'active', NOW(), NOW())";
+                        VALUES (?, ?, ?, ?, ?, 'active', NOW(), NOW())";
             
-            Database::execute($userSql, [
-                'username' => $data['username'],
-                'email' => $data['email'],
-                'password_hash' => $passwordHash,
-                'role_id' => $data['role_id'],
-                'branch_id' => $data['branch_id']
+            $db->execute($userSql, [
+                $data['username'],
+                $data['email'],
+                $passwordHash,
+                $data['role_id'],
+                $data['branch_id']
             ]);
 
-            $userId = (int)Database::lastInsertId();
+            $userId = (int)$db->lastInsertId();
 
             // 2. Create the core Employee details record
             $empSql = "INSERT INTO employees (user_id, photo, salary, shift_start, shift_end, created_at, updated_at) 
-                       VALUES (:user_id, :photo, :salary, :shift_start, :shift_end, NOW(), NOW())";
+                       VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
             
-            Database::execute($empSql, [
-                'user_id' => $userId,
-                'photo' => $data['photo'] ?? null,
-                'salary' => $data['salary'],
-                'shift_start' => $data['shift_start'] ?? '09:00:00',
-                'shift_end' => $data['shift_end'] ?? '17:00:00'
+            $db->execute($empSql, [
+                $userId,
+                $data['photo'] ?? null,
+                $data['salary'],
+                $data['shift_start'] ?? '09:00:00',
+                $data['shift_end'] ?? '17:00:00'
             ]);
 
-            $employeeId = (int)Database::lastInsertId();
-            Database::commit();
+            $employeeId = (int)$db->lastInsertId();
+            $db->commit();
 
             return $employeeId;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            $db->rollBack();
             Logger::error("Failed to commit employee creation transaction: " . $e->getMessage());
             return null;
         }
@@ -148,61 +212,69 @@ class Employee
      */
     public static function update(int $id, array $data): bool
     {
+        $db = Database::getInstance();
         $employee = self::find($id);
         if (!$employee) {
             return false;
         }
 
-        Database::beginTransaction();
+        $filter = self::getBranchFilter();
+        
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ পরিবর্তন করতে পারবে না
+        if ($filter['hasFilter']) {
+            $data['branch_id'] = $filter['branchId'];
+        }
+
+        $db->beginTransaction();
         try {
             $userId = (int)$employee['user_id'];
 
             // 1. Update user fields
             $userSql = "UPDATE users SET 
-                            username = :username, 
-                            email = :email, 
-                            role_id = :role_id, 
-                            branch_id = :branch_id 
-                        WHERE id = :id";
+                            username = ?, 
+                            email = ?, 
+                            role_id = ?, 
+                            branch_id = ? 
+                        WHERE id = ?";
             
-            Database::execute($userSql, [
-                'id' => $userId,
-                'username' => $data['username'],
-                'email' => $data['email'],
-                'role_id' => $data['role_id'],
-                'branch_id' => $data['branch_id']
+            $db->execute($userSql, [
+                $data['username'],
+                $data['email'],
+                $data['role_id'],
+                $data['branch_id'],
+                $userId
             ]);
 
             // Update user password if provided
             if (!empty($data['password'])) {
                 $hash = Security::hashPassword($data['password']);
-                Database::execute("UPDATE users SET password_hash = :hash WHERE id = :id", [
-                    'hash' => $hash,
-                    'id' => $userId
+                $db->execute("UPDATE users SET password_hash = ? WHERE id = ?", [
+                    $hash,
+                    $userId
                 ]);
             }
 
             // 2. Update employee records
             $empSql = "UPDATE employees SET 
-                            photo = :photo, 
-                            salary = :salary, 
-                            shift_start = :shift_start, 
-                            shift_end = :shift_end, 
+                            photo = ?, 
+                            salary = ?, 
+                            shift_start = ?, 
+                            shift_end = ?, 
                             updated_at = NOW() 
-                       WHERE id = :id";
+                       WHERE id = ?";
             
-            Database::execute($empSql, [
-                'id' => $id,
-                'photo' => $data['photo'] ?? $employee['photo'],
-                'salary' => $data['salary'],
-                'shift_start' => $data['shift_start'] ?? $employee['shift_start'],
-                'shift_end' => $data['shift_end'] ?? $employee['shift_end']
+            $db->execute($empSql, [
+                $data['photo'] ?? $employee['photo'],
+                $data['salary'],
+                $data['shift_start'] ?? $employee['shift_start'],
+                $data['shift_end'] ?? $employee['shift_end'],
+                $id
             ]);
 
-            Database::commit();
+            $db->commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            $db->rollBack();
             Logger::error("Failed to commit employee update transaction: " . $e->getMessage());
             return false;
         }
@@ -213,23 +285,24 @@ class Employee
      */
     public static function delete(int $id): bool
     {
+        $db = Database::getInstance();
         $employee = self::find($id);
         if (!$employee) {
             return false;
         }
 
-        Database::beginTransaction();
+        $db->beginTransaction();
         try {
             $userId = (int)$employee['user_id'];
             
             // Delete user record (foreign keys clean cascades automatic user employees and logs)
-            Database::execute("DELETE FROM users WHERE id = :id", ['id' => $userId]);
-            Database::execute("DELETE FROM employees WHERE id = :id", ['id' => $id]);
+            $db->execute("DELETE FROM users WHERE id = ?", [$userId]);
+            $db->execute("DELETE FROM employees WHERE id = ?", [$id]);
             
-            Database::commit();
+            $db->commit();
             return true;
         } catch (\Throwable $e) {
-            Database::rollBack();
+            $db->rollBack();
             Logger::error("Failed to delete employee: " . $e->getMessage());
             return false;
         }
@@ -240,13 +313,10 @@ class Employee
      */
     public static function addDocument(int $employeeId, string $docName, string $filePath): bool
     {
+        $db = Database::getInstance();
         $sql = "INSERT INTO employee_documents (employee_id, document_name, file_path, uploaded_at) 
-                VALUES (:employee_id, :document_name, :file_path, NOW())";
-        return Database::execute($sql, [
-            'employee_id' => $employeeId,
-            'document_name' => $docName,
-            'file_path' => $filePath
-        ]);
+                VALUES (?, ?, ?, NOW())";
+        return $db->execute($sql, [$employeeId, $docName, $filePath]);
     }
 
     /**
@@ -254,7 +324,8 @@ class Employee
      */
     public static function getDocuments(int $employeeId): array
     {
-        return Database::all("SELECT * FROM employee_documents WHERE employee_id = :id ORDER BY id DESC", ['id' => $employeeId]);
+        $db = Database::getInstance();
+        return $db->getAll("SELECT * FROM employee_documents WHERE employee_id = ? ORDER BY id DESC", [$employeeId]);
     }
 
     /**
@@ -262,7 +333,8 @@ class Employee
      */
     public static function deleteDocument(int $docId): bool
     {
-        return Database::execute("DELETE FROM employee_documents WHERE id = :id", ['id' => $docId]);
+        $db = Database::getInstance();
+        return $db->execute("DELETE FROM employee_documents WHERE id = ?", [$docId]);
     }
 
     /**
@@ -270,7 +342,8 @@ class Employee
      */
     public static function getDocument(int $docId): ?array
     {
-        return Database::row("SELECT * FROM employee_documents WHERE id = :id LIMIT 1", ['id' => $docId]);
+        $db = Database::getInstance();
+        return $db->getRow("SELECT * FROM employee_documents WHERE id = ? LIMIT 1", [$docId]);
     }
 
     /**
@@ -278,15 +351,25 @@ class Employee
      */
     public static function getAttendanceByDate(string $date): array
     {
+        $db = Database::getInstance();
+        $filter = self::getBranchFilter();
+        
         $sql = "SELECT e.id as employee_id, u.username, r.name as role_name, b.name as branch_name, 
                        a.status, a.check_in_time, a.check_out_time
                 FROM employees e
                 JOIN users u ON e.user_id = u.id
                 LEFT JOIN roles r ON u.role_id = r.id
                 LEFT JOIN branches b ON u.branch_id = b.id
-                LEFT JOIN attendance a ON e.id = a.employee_id AND a.date = :date
-                ORDER BY e.id ASC";
-        return Database::all($sql, ['date' => $date]);
+                LEFT JOIN attendance a ON e.id = a.employee_id AND a.date = ?";
+        $params = [$date];
+        
+        if ($filter['hasFilter']) {
+            $sql .= " WHERE u.branch_id = ?";
+            $params[] = $filter['branchId'];
+        }
+        
+        $sql .= " ORDER BY e.id ASC";
+        return $db->getAll($sql, $params);
     }
 
     /**
@@ -294,22 +377,23 @@ class Employee
      */
     public static function recordAttendance(int $employeeId, string $date, string $status, ?string $checkIn, ?string $checkOut): bool
     {
+        $db = Database::getInstance();
         $sql = "INSERT INTO attendance (employee_id, date, status, check_in_time, check_out_time, created_at) 
-                VALUES (:employee_id, :date, :status, :check_in, :check_out, NOW())
+                VALUES (?, ?, ?, ?, ?, NOW())
                 ON DUPLICATE KEY UPDATE 
-                    status = :status_update, 
-                    check_in_time = :check_in_update, 
-                    check_out_time = :check_out_update";
+                    status = ?, 
+                    check_in_time = ?, 
+                    check_out_time = ?";
         
-        return Database::execute($sql, [
-            'employee_id' => $employeeId,
-            'date' => $date,
-            'status' => $status,
-            'check_in' => !empty($checkIn) ? $checkIn : null,
-            'check_out' => !empty($checkOut) ? $checkOut : null,
-            'status_update' => $status,
-            'check_in_update' => !empty($checkIn) ? $checkIn : null,
-            'check_out_update' => !empty($checkOut) ? $checkOut : null
+        return $db->execute($sql, [
+            $employeeId,
+            $date,
+            $status,
+            !empty($checkIn) ? $checkIn : null,
+            !empty($checkOut) ? $checkOut : null,
+            $status,
+            !empty($checkIn) ? $checkIn : null,
+            !empty($checkOut) ? $checkOut : null
         ]);
     }
 }

@@ -13,14 +13,16 @@ include VIEWS_PATH . '/layout/admin_header.php';
             <span class="ms-auto badge bg-light text-secondary border fs-6">ID: <?= esc($patient['patient_id']) ?></span>
         </div>
         
-        <?php if ($isBranchAdmin && !empty($branchId)): ?>
-            <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
-                <i class="bi bi-building me-2"></i>
-                <strong>Branch:</strong> <?= esc($branches[0]['name'] ?? '') ?>
-                <span class="badge bg-primary ms-2">Branch Admin</span>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            <input type="hidden" name="branch_id" value="<?= $branchId ?>">
+        <?php if ((isset($isBranchAdmin) && $isBranchAdmin) || (isset($isReceptionist) && $isReceptionist)): ?>
+            <?php if (!empty($branchId) && !empty($branches)): ?>
+                <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
+                    <i class="bi bi-building me-2"></i>
+                    <strong>Branch:</strong> <?= esc($branches[0]['name'] ?? '') ?>
+                    <span class="badge bg-primary ms-2"><?= isset($isBranchAdmin) && $isBranchAdmin ? 'Branch Admin' : 'Receptionist' ?></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <input type="hidden" name="branch_id" value="<?= $branchId ?>">
+            <?php endif; ?>
         <?php endif; ?>
         
         <div class="row g-3 mb-4">
@@ -69,8 +71,8 @@ include VIEWS_PATH . '/layout/admin_header.php';
                 </select>
             </div>
 
-            <!-- Branch - Super Admin দেখতে পাবে, Branch Admin দেখতে পাবে না (hidden) -->
-            <?php if ($isSuperAdmin): ?>
+            <!-- Branch - শুধু Super Admin দেখতে পাবে -->
+            <?php if (isset($isSuperAdmin) && $isSuperAdmin): ?>
             <div class="col-md-2">
                 <label for="branch_id" class="form-label small fw-semibold">Primary Branch Office</label>
                 <select class="form-control form-control-sm form-select" id="branch_id" name="branch_id">

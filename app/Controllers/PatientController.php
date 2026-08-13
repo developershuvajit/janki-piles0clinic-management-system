@@ -15,6 +15,8 @@ class PatientController
 {
     /**
      * Display a list of all patients with branch filter.
+     * Super Admin - সব দেখবে
+     * বাকি সবাই - নিজের ব্রাঞ্চের দেখবে
      */
     public function index(): void
     {
@@ -37,36 +39,43 @@ class PatientController
     /**
      * Show Patient Registration Form.
      */
-    public function create(): void
-    {
-        Permission::check('manage_patients');
-        
-        $user = Session::user();
-        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
-        $branchId = $user['branch_id'] ?? null;
-        $isBranchAdmin = ($roleSlug === 'branch_admin');
-        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
-        
-        $branches = [];
-        if ($isSuperAdmin) {
-            // Super Admin - সব ব্রাঞ্চ দেখাবে
-            $branches = Branch::all();
-        } elseif ($isBranchAdmin && $branchId) {
-            // Branch Admin - শুধু নিজের ব্রাঞ্চ দেখাবে
-            $branch = Branch::find($branchId);
-            if ($branch) {
-                $branches = [$branch];
-            }
+    /**
+ * Show Patient Registration Form.
+ */
+public function create(): void
+{
+    Permission::check('manage_patients');
+    
+    $user = Session::user();
+    $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+    $branchId = $user['branch_id'] ?? null;
+    $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+    $isBranchAdmin = ($roleSlug === 'branch_admin');
+    $isReceptionist = ($roleSlug === 'receptionist');
+    $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+    
+    $branches = [];
+    if ($isSuperAdmin) {
+        // Super Admin - সব ব্রাঞ্চ দেখাবে
+        $branches = Branch::all();
+    } elseif ($hasBranchFilter && $branchId) {
+        // বাকি সবাই - শুধু নিজের ব্রাঞ্চ দেখাবে
+        $branch = Branch::find($branchId);
+        if ($branch) {
+            $branches = [$branch];
         }
-        
-        view('admin.patients.create', [
-            'title' => 'Register New Patient',
-            'branches' => $branches,
-            'isBranchAdmin' => $isBranchAdmin,
-            'isSuperAdmin' => $isSuperAdmin,
-            'branchId' => $branchId
-        ]);
     }
+    
+    view('admin.patients.create', [
+        'title' => 'Register New Patient',
+        'branches' => $branches,
+        'isSuperAdmin' => $isSuperAdmin,
+        'isBranchAdmin' => $isBranchAdmin,
+        'isReceptionist' => $isReceptionist,
+        'hasBranchFilter' => $hasBranchFilter,
+        'branchId' => $branchId
+    ]);
+}
 
     /**
      * Store new patient profile.
@@ -83,11 +92,13 @@ class PatientController
         $user = Session::user();
         $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
         $branchId = $user['branch_id'] ?? null;
-        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
         
-        // Branch Admin হলে নিজের ব্রাঞ্চ ফোর্স সেট
+        // Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+        // বাকি সবাই - নিজের ব্রাঞ্চ ফোর্স সেট
         $selectedBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null;
-        if ($isBranchAdmin && $branchId) {
+        if ($hasBranchFilter && $branchId) {
             $selectedBranch = $branchId;
         }
 
@@ -131,42 +142,49 @@ class PatientController
     /**
      * Show Edit Patient Form.
      */
-    public function edit(array $params): void
-    {
-        Permission::check('manage_patients');
-        $id = (int)($params['id'] ?? 0);
-        $patient = Patient::find($id);
+    /**
+ * Show Edit Patient Form.
+ */
+public function edit(array $params): void
+{
+    Permission::check('manage_patients');
+    $id = (int)($params['id'] ?? 0);
+    $patient = Patient::find($id);
 
-        if (!$patient) {
-            Session::setFlash('error', 'Patient not found or access denied.');
-            redirect('/admin/patients');
-        }
-
-        $user = Session::user();
-        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
-        $branchId = $user['branch_id'] ?? null;
-        $isBranchAdmin = ($roleSlug === 'branch_admin');
-        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
-        
-        $branches = [];
-        if ($isSuperAdmin) {
-            $branches = Branch::all();
-        } elseif ($isBranchAdmin && $branchId) {
-            $branch = Branch::find($branchId);
-            if ($branch) {
-                $branches = [$branch];
-            }
-        }
-
-        view('admin.patients.edit', [
-            'title' => 'Edit Patient Details',
-            'patient' => $patient,
-            'branches' => $branches,
-            'isBranchAdmin' => $isBranchAdmin,
-            'isSuperAdmin' => $isSuperAdmin,
-            'branchId' => $branchId
-        ]);
+    if (!$patient) {
+        Session::setFlash('error', 'Patient not found or access denied.');
+        redirect('/admin/patients');
     }
+
+    $user = Session::user();
+    $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+    $branchId = $user['branch_id'] ?? null;
+    $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+    $isBranchAdmin = ($roleSlug === 'branch_admin');
+    $isReceptionist = ($roleSlug === 'receptionist');
+    $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+    
+    $branches = [];
+    if ($isSuperAdmin) {
+        $branches = Branch::all();
+    } elseif ($hasBranchFilter && $branchId) {
+        $branch = Branch::find($branchId);
+        if ($branch) {
+            $branches = [$branch];
+        }
+    }
+
+    view('admin.patients.edit', [
+        'title' => 'Edit Patient Details',
+        'patient' => $patient,
+        'branches' => $branches,
+        'isSuperAdmin' => $isSuperAdmin,
+        'isBranchAdmin' => $isBranchAdmin,
+        'isReceptionist' => $isReceptionist,
+        'hasBranchFilter' => $hasBranchFilter,
+        'branchId' => $branchId
+    ]);
+}
 
     /**
      * Update patient details.
@@ -190,11 +208,13 @@ class PatientController
         $user = Session::user();
         $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
         $branchId = $user['branch_id'] ?? null;
-        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
         
-        // Branch Admin অন্য ব্রাঞ্চ সিলেক্ট করতে পারবে না
+        // Super Admin - ফর্ম থেকে ব্রাঞ্চ নেবে
+        // বাকি সবাই - নিজের ব্রাঞ্চ ফোর্স সেট
         $selectedBranch = !empty($_POST['branch_id']) ? (int)$_POST['branch_id'] : null;
-        if ($isBranchAdmin && $branchId) {
+        if ($hasBranchFilter && $branchId) {
             $selectedBranch = $branchId;
         }
 
@@ -267,7 +287,6 @@ class PatientController
      */
     public function history(array $params): void
     {
-        // Accessible by any authenticated user
         if (!Session::isLoggedIn()) {
             Session::setFlash('error', 'Please log in to view patient timeline records.');
             redirect('/login');
@@ -351,7 +370,6 @@ class PatientController
 
         $patient = Patient::find((int)$doc['patient_id']);
         
-        // Delete physical file
         if (file_exists(PUBLIC_PATH . '/' . $doc['file_path'])) {
             @unlink(PUBLIC_PATH . '/' . $doc['file_path']);
         }

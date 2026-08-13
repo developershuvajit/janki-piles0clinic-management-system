@@ -12,23 +12,31 @@ class Patient
 {
     /**
      * Get branch filter for current user
+     * Super Admin ছাড়া সবাই ব্রাঞ্চ ফিল্টার পাবে
      */
     private static function getBranchFilter(): array
     {
         $user = Session::user();
         $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
         $branchId = $user['branch_id'] ?? null;
-        $isBranchAdmin = ($roleSlug === 'branch_admin');
+        
+        // Super Admin - কোন ফিল্টার নেই
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        
+        // Branch Admin, Receptionist, Doctor - সবাই ব্রাঞ্চ ফিল্টার পাবে
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
         
         return [
-            'isBranchAdmin' => $isBranchAdmin,
+            'isSuperAdmin' => $isSuperAdmin,
             'branchId' => $branchId,
-            'hasFilter' => ($isBranchAdmin && $branchId)
+            'hasFilter' => $hasBranchFilter
         ];
     }
 
     /**
      * Retrieve all patients with branch filter.
+     * Super Admin - সব দেখবে
+     * বাকি সবাই - শুধু নিজের ব্রাঞ্চের দেখবে
      */
     public static function all(): array
     {
@@ -40,6 +48,7 @@ class Patient
                 LEFT JOIN branches b ON p.branch_id = b.id";
         $params = [];
         
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " WHERE p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -51,17 +60,30 @@ class Patient
     }
 
     /**
-     * Retrieve patients by branch ID.
+     * Search patient records by criteria with branch filter.
      */
-    public static function getByBranch(int $branchId): array
+    public static function search(string $query): array
     {
         $db = Database::getInstance();
+        $filter = self::getBranchFilter();
+        
         $sql = "SELECT p.*, b.name as branch_name 
                 FROM patients p 
                 LEFT JOIN branches b ON p.branch_id = b.id 
-                WHERE p.branch_id = ? 
-                ORDER BY p.id DESC";
-        return $db->getAll($sql, [$branchId]);
+                WHERE (p.name LIKE ? 
+                   OR p.phone LIKE ? 
+                   OR p.email LIKE ? 
+                   OR p.patient_id LIKE ?)";
+        $params = ["%{$query}%", "%{$query}%", "%{$query}%", "%{$query}%"];
+        
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
+        if ($filter['hasFilter']) {
+            $sql .= " AND p.branch_id = ?";
+            $params[] = $filter['branchId'];
+        }
+
+        $sql .= " ORDER BY p.name ASC LIMIT 25";
+        return $db->getAll($sql, $params);
     }
 
     /**
@@ -78,7 +100,7 @@ class Patient
                 WHERE p.id = ?";
         $params = [$id];
         
-        // Branch Admin শুধু নিজের ব্রাঞ্চের পেশেন্ট দেখতে পারবে
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " AND p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -101,6 +123,7 @@ class Patient
                 WHERE p.patient_id = ?";
         $params = [$patientId];
         
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " AND p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -110,40 +133,16 @@ class Patient
     }
 
     /**
-     * Search patient records by criteria with branch filter.
-     */
-    public static function search(string $query): array
-    {
-        $db = Database::getInstance();
-        $filter = self::getBranchFilter();
-        
-        $sql = "SELECT p.*, b.name as branch_name 
-                FROM patients p 
-                LEFT JOIN branches b ON p.branch_id = b.id 
-                WHERE (p.name LIKE ? 
-                   OR p.phone LIKE ? 
-                   OR p.email LIKE ? 
-                   OR p.patient_id LIKE ?)";
-        $params = ["%{$query}%", "%{$query}%", "%{$query}%", "%{$query}%"];
-        
-        if ($filter['hasFilter']) {
-            $sql .= " AND p.branch_id = ?";
-            $params[] = $filter['branchId'];
-        }
-
-        $sql .= " ORDER BY p.name ASC LIMIT 25";
-        return $db->getAll($sql, $params);
-    }
-
-    /**
-     * Create a new patient and generate a unique ID & QR code.
+     * Create a new patient.
+     * Super Admin - যে কোন ব্রাঞ্চে তৈরি করতে পারে
+     * বাকি সবাই - নিজের ব্রাঞ্চে ফোর্স তৈরি হবে
      */
     public static function create(array $data): ?int
     {
         $db = Database::getInstance();
         $filter = self::getBranchFilter();
         
-        // Branch Admin হলে নিজের ব্রাঞ্চ ফোর্স সেট
+        // Super Admin ছাড়া বাকি সবাই নিজের ব্রাঞ্চ ফোর্স সেট
         if ($filter['hasFilter']) {
             $data['branch_id'] = $filter['branchId'];
         }
@@ -155,7 +154,7 @@ class Patient
             $seq = ((int)$countRow) + 1;
             $patientId = sprintf("PAT-%s-%04d", $year, $seq);
 
-            // 2. Generate QR Code containing patient portal details link
+            // 2. Generate QR Code
             $qrFilename = 'patient_' . $patientId . '.png';
             $qrUrl = site_url('/admin/patients/history/' . $patientId);
             $qrCodePath = QRHelper::generate($qrUrl, $qrFilename);
@@ -187,7 +186,6 @@ class Patient
             
             return (int) $db->lastInsertId();
         } catch (\PDOException $e) {
-            // Duplicate entry error (email or phone)
             if ($e->getCode() == 23000) {
                 Logger::error("Duplicate entry for patient: " . ($data['email'] ?? $data['phone']));
                 return null;
@@ -205,7 +203,7 @@ class Patient
         $db = Database::getInstance();
         $filter = self::getBranchFilter();
         
-        // Branch Admin ব্রাঞ্চ পরিবর্তন করতে পারবে না
+        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ পরিবর্তন করতে পারবে না
         if ($filter['hasFilter']) {
             $data['branch_id'] = $filter['branchId'];
         }
@@ -244,7 +242,7 @@ class Patient
                 $id
             ];
             
-            // Branch Admin হলে শুধু নিজের ব্রাঞ্চের পেশেন্ট আপডেট করতে পারবে
+            // Super Admin ছাড়া বাকি সবাই শুধু নিজের ব্রাঞ্চের পেশেন্ট আপডেট করতে পারবে
             if ($filter['hasFilter']) {
                 $sql .= " AND branch_id = ?";
                 $params[] = $filter['branchId'];
@@ -268,6 +266,7 @@ class Patient
         $sql = "DELETE FROM patients WHERE id = ?";
         $params = [$id];
         
+        // Super Admin ছাড়া বাকি সবাই শুধু নিজের ব্রাঞ্চের পেশেন্ট ডিলিট করতে পারবে
         if ($filter['hasFilter']) {
             $sql .= " AND branch_id = ?";
             $params[] = $filter['branchId'];
@@ -360,7 +359,6 @@ class Patient
         );
         foreach ($prescs as $pr) {
             $timestamp = strtotime($pr['created_at']);
-            // Fetch medicines
             $meds = $db->getAll(
                 "SELECT * FROM prescription_medicines WHERE prescription_id = ?",
                 [$pr['id']]
