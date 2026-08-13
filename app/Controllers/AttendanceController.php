@@ -174,7 +174,6 @@ class AttendanceController
 
     public function fetchEmployee()
     {
-        error_log("fetchEmployee called with ID: " . ($_GET['id'] ?? 'none'));
         header('Content-Type: application/json');
         
         try {
@@ -235,27 +234,21 @@ class AttendanceController
                     $employee['already_marked'] = false;
                 }
                 
-                error_log("Employee found: " . $employee['username']);
                 echo json_encode(['success' => true, 'employee' => $employee]);
             } else {
-                error_log("Employee not found for ID: " . $id);
                 echo json_encode(['success' => false, 'message' => 'Employee not found or access denied']);
             }
         } catch (Exception $e) {
-            error_log("fetchEmployee error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
 
     public function markAttendance()
     {
-        error_log("markAttendance called");
         header('Content-Type: application/json');
         
         try {
             $rawInput = file_get_contents('php://input');
-            error_log("Raw input: " . $rawInput);
-            
             $input = json_decode($rawInput, true);
             
             if ($input === null) {
@@ -372,13 +365,6 @@ class AttendanceController
             if ($result) {
                 $attendance = Attendance::getToday($employeeId, $date);
                 
-                ActivityLogger::log(
-                    'QR Attendance', 
-                    "Employee {$employeeData['username']} marked {$status} via QR code",
-                    $employeeId
-                );
-                
-                error_log("Attendance marked successfully for employee: " . $employeeId);
                 echo json_encode([
                     'success' => true,
                     'message' => $message,
@@ -390,19 +376,16 @@ class AttendanceController
                     'attendance' => $attendance
                 ]);
             } else {
-                error_log("Failed to record attendance for employee: " . $employeeId);
                 echo json_encode(['success' => false, 'message' => 'Failed to record attendance']);
             }
             
         } catch (Exception $e) {
-            error_log("markAttendance error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
 
     public function todayAttendance()
     {
-        error_log("todayAttendance called");
         header('Content-Type: application/json');
         
         try {
@@ -447,7 +430,6 @@ class AttendanceController
             echo json_encode(['success' => true, 'attendance' => $attendance]);
             
         } catch (Exception $e) {
-            error_log("todayAttendance error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }

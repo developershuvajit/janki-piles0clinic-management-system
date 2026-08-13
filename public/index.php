@@ -105,6 +105,9 @@ $router->post('/admin/employees/update/{id}', 'EmployeeController@update');
 $router->get('/admin/employees/delete/{id}', 'EmployeeController@delete');
 $router->get('/admin/employees/delete-doc/{id}', 'EmployeeController@deleteDoc');
 
+
+
+
 // ============================================================
 // 10. ATTENDANCE & QR SCANNER ROUTES
 // ============================================================
@@ -135,6 +138,21 @@ $router->get('/admin/qr/generate', 'AttendanceController@generateQR');
 // 13. HR REPORTS
 // ============================================================
 $router->get('/admin/hr/reports', 'AttendanceController@hrReports');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ============================================================
 // 14. SALARY / PAYROLL MANAGEMENT
