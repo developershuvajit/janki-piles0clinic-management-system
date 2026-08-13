@@ -30,6 +30,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <th>Phone</th>
                     <th style="min-width:120px;">Email</th>
                     <th style="width:60px;">Blood</th>
+                    <th style="width:100px;">Branch</th>
                     <th style="width:80px;">Status</th>
                     <th style="width:110px;">Actions</th>
                 </tr>
@@ -52,6 +53,11 @@ include VIEWS_PATH . '/layout/admin_header.php';
                             <td class="email"><?= esc($pat['email']) ?></td>
                             <td><span class="blood"><?= esc($pat['blood_group'] ?: '—') ?></span></td>
                             <td>
+                                <span class="badge bg-secondary bg-opacity-10 text-dark">
+                                    <?= esc($pat['branch_name'] ?? 'N/A') ?>
+                                </span>
+                            </td>
+                            <td>
                                 <span class="badge-status <?= ($pat['status'] ?? 'inactive') === 'active' ? 'active' : 'inactive' ?>">
                                     <?= esc($pat['status'] ?? 'inactive') ?>
                                 </span>
@@ -73,7 +79,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <?php endforeach;
                 else: ?>
                     <tr>
-                        <td colspan="9" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
+                        <td colspan="10" style="text-align:center;padding:2.5rem 1rem;color:#94a3b8;">
                             No patients registered yet.
                         </td>
                     </tr>
