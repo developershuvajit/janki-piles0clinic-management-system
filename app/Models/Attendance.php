@@ -44,7 +44,7 @@ class Attendance
     }
 
     /**
-     * Log attendance record (Insert or Update)
+     * Log attendance record (Insert)
      */
     public static function logAttendance(array $data): bool
     {

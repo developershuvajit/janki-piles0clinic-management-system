@@ -9,6 +9,7 @@ use App\Helpers\Session;
 use App\Helpers\Permission;
 use App\Helpers\Database;
 use App\Helpers\ActivityLogger;
+use Throwable;
 
 class AttendanceController
 {
@@ -177,6 +178,11 @@ class AttendanceController
         header('Content-Type: application/json');
         
         try {
+            if (!Session::isLoggedIn()) {
+                echo json_encode(['success' => false, 'message' => 'Please login first']);
+                return;
+            }
+
             $id = (int)($_GET['id'] ?? 0);
             
             if (!$id) {
@@ -243,152 +249,156 @@ class AttendanceController
         }
     }
 
-    public function markAttendance()
-    {
-        header('Content-Type: application/json');
-        
-        try {
-            $rawInput = file_get_contents('php://input');
-            $input = json_decode($rawInput, true);
-            
-            if ($input === null) {
-                echo json_encode(['success' => false, 'message' => 'Invalid request data']);
-                return;
-            }
-            
-            $employeeId = isset($input['employee_id']) ? (int)$input['employee_id'] : 0;
-            
-            if (!$employeeId) {
-                echo json_encode(['success' => false, 'message' => 'Invalid employee ID']);
-                return;
-            }
-            
-            $filter = $this->getBranchFilter();
-            
-            $sql = "SELECT e.*, u.branch_id, u.username 
-                    FROM employees e 
-                    JOIN users u ON e.user_id = u.id 
-                    WHERE e.id = ?";
-            $params = [$employeeId];
-            
-            if ($filter['hasFilter']) {
-                $sql .= " AND u.branch_id = ?";
-                $params[] = $filter['branchId'];
-            }
-            
-            $employeeData = Database::row($sql, $params);
-            
-            if (!$employeeData) {
-                echo json_encode(['success' => false, 'message' => 'Employee not found or access denied']);
-                return;
-            }
-            
-            $date = date('Y-m-d');
-            $currentTime = date('H:i:s');
-            $currentTimestamp = strtotime($currentTime);
-            
-            $employee = Employee::find($employeeId);
-            if (!$employee) {
-                echo json_encode(['success' => false, 'message' => 'Employee record not found']);
-                return;
-            }
-            
-            $shiftStart = $employee['shift_start'] ?? '09:00:00';
-            $shiftEnd = $employee['shift_end'] ?? '17:00:00';
-            $shiftStartTimestamp = strtotime($shiftStart);
-            $shiftEndTimestamp = strtotime($shiftEnd);
-            
-            $existing = Attendance::getToday($employeeId, $date);
-            
-            if ($existing && !empty($existing['check_in']) && empty($existing['check_out'])) {
-                $checkInTime = $existing['check_in'];
-                $checkInTimestamp = strtotime($checkInTime);
-                $timeDiff = ($currentTimestamp - $checkInTimestamp) / 60;
-                
-                if ($timeDiff < 5) {
-                    echo json_encode([
-                        'success' => false, 
-                        'message' => 'Please wait ' . (5 - round($timeDiff)) . ' more minutes before checking out.'
-                    ]);
-                    return;
-                }
-                
-                $result = Attendance::updateCheckOut($employeeId, $date, $currentTime);
-                $message = '✅ Check-out recorded successfully!';
-                $status = 'checkout';
-                $isLate = false;
-                $lateMinutes = 0;
-                
-            } else {
-                $isWithinShift = ($currentTimestamp >= $shiftStartTimestamp && $currentTimestamp <= $shiftEndTimestamp);
-                
-                if (!$isWithinShift) {
-                    if ($currentTimestamp > $shiftEndTimestamp) {
-                        echo json_encode([
-                            'success' => false, 
-                            'message' => 'Shift ended at ' . date('h:i A', strtotime($shiftEnd))
-                        ]);
-                        return;
-                    } else {
-                        echo json_encode([
-                            'success' => false, 
-                            'message' => 'Shift starts at ' . date('h:i A', strtotime($shiftStart))
-                        ]);
-                        return;
-                    }
-                }
-                
-                $gracePeriod = 10;
-                $graceTimestamp = $shiftStartTimestamp + ($gracePeriod * 60);
-                
-                if ($currentTimestamp > $graceTimestamp) {
-                    $isLate = true;
-                    $attStatus = 'late';
-                    $lateMinutes = round(($currentTimestamp - $shiftStartTimestamp) / 60);
-                    $message = '⚠️ Late check-in! (' . $lateMinutes . ' min late)';
-                } else {
-                    $isLate = false;
-                    $attStatus = 'present';
-                    $lateMinutes = 0;
-                    $message = '✅ Check-in recorded successfully!';
-                }
-                
-                $result = Attendance::logAttendance([
-                    'employee_id' => $employeeId,
-                    'date' => $date,
-                    'status' => $attStatus,
-                    'check_in' => $currentTime
-                ]);
-                $status = 'checkin';
-            }
-            
-            if ($result) {
-                $attendance = Attendance::getToday($employeeId, $date);
-                
-                echo json_encode([
-                    'success' => true,
-                    'message' => $message,
-                    'status' => $status,
-                    'is_late' => $isLate ?? false,
-                    'late_minutes' => $lateMinutes ?? 0,
-                    'shift_start' => $shiftStart,
-                    'shift_end' => $shiftEnd,
-                    'attendance' => $attendance
-                ]);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Failed to record attendance']);
-            }
-            
-        } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
-        }
+    /**
+     * Mark attendance via AJAX (QR scan) - COMPLETE REWRITE
+     */
+     /**
+ * Mark attendance via AJAX (QR scan)
+ */
+     public function markAttendance()
+{
+    // Clear all output buffers
+    while (ob_get_level() > 0) {
+        ob_end_clean();
     }
+
+    header('Content-Type: application/json; charset=utf-8');
+
+    try {
+        // Check login
+        if (!Session::isLoggedIn()) {
+            echo json_encode(['success' => false, 'message' => 'Please login first']);
+            return;
+        }
+
+        // Get raw JSON input
+        $rawInput = file_get_contents('php://input');
+        
+        if ($rawInput === false || trim($rawInput) === '') {
+            echo json_encode(['success' => false, 'message' => 'Empty request data']);
+            return;
+        }
+
+        $input = json_decode($rawInput, true);
+
+        if (!is_array($input)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid JSON request data']);
+            return;
+        }
+
+        $employeeId = isset($input['employee_id']) ? (int)$input['employee_id'] : 0;
+
+        if ($employeeId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid employee ID']);
+            return;
+        }
+
+        // Get employee
+        $employee = Employee::find($employeeId);
+
+        if (!$employee) {
+            echo json_encode(['success' => false, 'message' => 'Employee not found']);
+            return;
+        }
+
+        // Current date/time
+        $date = date('Y-m-d');
+        $currentTime = date('H:i:s');
+
+        // Check today's attendance using Database::row()
+        $existing = Database::row(
+            "SELECT * FROM employee_attendance 
+             WHERE employee_id = ? AND date = ?",
+            [$employeeId, $date]
+        );
+
+        // CHECKOUT
+        if ($existing && !empty($existing['check_in']) && empty($existing['check_out'])) {
+            $result = Database::exec(
+                "UPDATE employee_attendance 
+                 SET check_out = ?, updated_at = NOW() 
+                 WHERE employee_id = ? AND date = ?",
+                [$currentTime, $employeeId, $date]
+            );
+
+            if (!$result) {
+                echo json_encode(['success' => false, 'message' => 'Failed to check out']);
+                return;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => '✅ Check-out recorded successfully!',
+                'status' => 'checkout',
+                'is_late' => false,
+                'late_minutes' => 0,
+                'shift_start' => $employee['shift_start'] ?? '09:00:00',
+                'shift_end' => $employee['shift_end'] ?? '17:00:00',
+                'attendance' => Database::row(
+                    "SELECT * FROM employee_attendance WHERE employee_id = ? AND date = ?",
+                    [$employeeId, $date]
+                )
+            ]);
+            return;
+        }
+
+        // ALREADY COMPLETED
+        if ($existing && !empty($existing['check_in']) && !empty($existing['check_out'])) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Attendance already completed for today.',
+                'status' => 'completed',
+                'attendance' => $existing
+            ]);
+            return;
+        }
+
+        // CHECK-IN
+        $result = Database::exec(
+            "INSERT INTO employee_attendance (employee_id, date, status, check_in, check_out, notes, created_at) 
+             VALUES (?, ?, 'present', ?, NULL, NULL, NOW())",
+            [$employeeId, $date, $currentTime]
+        );
+
+        if (!$result) {
+            echo json_encode(['success' => false, 'message' => 'Failed to check in']);
+            return;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => '✅ Check-in recorded successfully!',
+            'status' => 'checkin',
+            'is_late' => false,
+            'late_minutes' => 0,
+            'shift_start' => $employee['shift_start'] ?? '09:00:00',
+            'shift_end' => $employee['shift_end'] ?? '17:00:00',
+            'attendance' => Database::row(
+                "SELECT * FROM employee_attendance WHERE employee_id = ? AND date = ?",
+                [$employeeId, $date]
+            )
+        ]);
+
+    } catch (Throwable $e) {
+        error_log('markAttendance Error: ' . $e->getMessage() . ' | File: ' . $e->getFile() . ' | Line: ' . $e->getLine());
+        
+        echo json_encode([
+            'success' => false,
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
+    }
+}
 
     public function todayAttendance()
     {
         header('Content-Type: application/json');
         
         try {
+            if (!Session::isLoggedIn()) {
+                echo json_encode(['success' => false, 'message' => 'Please login first']);
+                return;
+            }
+
             $filter = $this->getBranchFilter();
             $date = date('Y-m-d');
             
