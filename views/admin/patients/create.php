@@ -10,6 +10,16 @@ include VIEWS_PATH . '/layout/admin_header.php';
 
         <h5 class="fw-bold text-slate mb-3"><i class="bi bi-person-plus text-success me-2"></i>Patient Clinical Registration Form</h5>
         
+        <?php if ($isBranchAdmin && !empty($branchId)): ?>
+            <div class="alert alert-info alert-dismissible fade show mb-3" role="alert">
+                <i class="bi bi-building me-2"></i>
+                <strong>Branch:</strong> <?= esc($branches[0]['name'] ?? '') ?>
+                <span class="badge bg-primary ms-2">Branch Admin</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            <input type="hidden" name="branch_id" value="<?= $branchId ?>">
+        <?php endif; ?>
+        
         <div class="row g-3 mb-4">
             <!-- Basic Demographics -->
             <div class="col-md-4">
@@ -56,6 +66,8 @@ include VIEWS_PATH . '/layout/admin_header.php';
                 </select>
             </div>
 
+            <!-- Branch - Super Admin দেখতে পাবে, Branch Admin দেখতে পাবে না (hidden) -->
+            <?php if ($isSuperAdmin): ?>
             <div class="col-md-3">
                 <label for="branch_id" class="form-label small fw-semibold">Primary Branch Office</label>
                 <select class="form-control form-control-sm form-select" id="branch_id" name="branch_id">
@@ -65,6 +77,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <?php endforeach; ?>
                 </select>
             </div>
+            <?php endif; ?>
 
             <div class="col-md-9">
                 <label for="address" class="form-label small fw-semibold">Permanent Physical Address <span class="text-danger">*</span></label>
