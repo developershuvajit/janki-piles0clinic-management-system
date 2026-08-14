@@ -195,6 +195,14 @@ class Database
         return self::getInstance()->execute($sql, $params);
     }
 
+    /**
+     * Static: Get last inserted ID - FIXED
+     */
+    public static function lastInsertId(): int
+    {
+        return self::getInstance()->lastInsertId();
+    }
+
     // ============================================================
     // BRANCH FILTER HELPER METHODS
     // ============================================================
@@ -205,7 +213,6 @@ class Database
      */
     public static function getBranchFilter(): array
     {
-        // Session helper ব্যবহার করি
         if (!class_exists('App\Helpers\Session')) {
             return [
                 'isBranchAdmin' => false,
@@ -273,7 +280,6 @@ class Database
         $filter = self::getBranchFilter();
         
         if ($filter['hasFilter']) {
-            // Check if WHERE already exists
             if (stripos($sql, 'WHERE') !== false) {
                 $sql .= ' AND branch_id = ?';
             } else {

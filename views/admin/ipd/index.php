@@ -3,133 +3,121 @@ $activePage = 'ipd';
 include VIEWS_PATH . '/layout/admin_header.php'; 
 ?>
 
-<!-- Actions Row -->
+<!-- Flash Messages -->
+<?php if ($success = \App\Helpers\Session::getFlash('success')): ?>
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> <?= esc($success) ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
+
+<?php if ($error = \App\Helpers\Session::getFlash('error')): ?>
+    <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> <?= esc($error) ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<?php endif; ?>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <p class="text-muted mb-0 small">Overview of inpatient ward stays, bed allocations, and clinical discharges.</p>
-    <a href="<?= site_url('/admin/ipd/admit') ?>" class="btn btn-primary btn-sm px-3 shadow-sm">
-        <i class="bi bi-plus-circle me-1"></i> Admit Inpatient
+    <h4><i class="bi bi-hospital me-2"></i>Inpatient Department (IPD)</h4>
+    <a href="<?= site_url('/admin/ipd/admit') ?>" class="btn btn-primary btn-sm">
+        <i class="bi bi-plus-circle me-1"></i> Admit Patient
     </a>
 </div>
 
-<!-- Tabs Navigation -->
-<ul class="nav nav-tabs border-bottom mb-4" id="ipdTab" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active fw-semibold" id="active-tab" data-bs-toggle="tab" data-bs-target="#active-admissions" type="button" role="tab">
-            <i class="bi bi-heart-pulse text-danger me-1"></i> Active Admissions
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link fw-semibold" id="history-tab" data-bs-toggle="tab" data-bs-target="#discharge-history" type="button" role="tab">
-            <i class="bi bi-clock-history text-secondary me-1"></i> Discharge History
-        </button>
-    </li>
-</ul>
-
-<!-- Tabs Content -->
-<div class="tab-content" id="ipdTabContent">
-    <!-- Active Admissions Tab -->
-    <div class="tab-pane fade show active" id="active-admissions" role="tabpanel">
-        <div class="table-responsive border-0 shadow-sm rounded-3 bg-white">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-slate">
+<!-- Active Admissions -->
+<div class="card border-0 shadow-sm p-4 mb-4">
+    <h6 class="fw-bold text-slate mb-3"><i class="bi bi-person-lines-fill text-success me-2"></i>Active Admissions</h6>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Patient</th>
+                    <th>Doctor</th>
+                    <th>Admission Date</th>
+                    <th>Diagnosis</th>
+                    <th>Branch</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($admissions)): ?>
                     <tr>
-                        <th>Patient Details</th>
-                        <th>Attending Doctor</th>
-                        <th>Room / Bed Mapped</th>
-                        <th>Admission Date</th>
-                        <th>Symptoms & Diagnosis</th>
-                        <th class="text-end">Actions</th>
+                        <td colspan="8" class="text-center py-4 text-muted">No active admissions.</td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($admissions)): ?>
+                <?php else: ?>
+                    <?php foreach ($admissions as $adm): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-heart-pulse-fill fs-3 d-block mb-2"></i>
-                                No patients currently admitted to IPD.
+                            <td><?= $adm['id'] ?></td>
+                            <td>
+                                <strong><?= esc($adm['patient_name']) ?></strong>
+                                <div class="small text-muted"><?= esc($adm['patient_code']) ?></div>
+                            </td>
+                            <td>Dr. <?= esc($adm['doctor_name']) ?></td>
+                            <td><?= date('d M, Y h:i A', strtotime($adm['admission_date'])) ?></td>
+                            <td><?= esc(substr($adm['diagnosis'], 0, 30)) ?>...</td>
+                            <td><?= esc($adm['branch_name'] ?? 'Main') ?></td>
+                            <td>
+                                <span class="badge bg-success">Admitted</span>
+                            </td>
+                            <td>
+                                <a href="<?= site_url('/admin/ipd/nursing-logs/' . $adm['id']) ?>" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-clipboard2-pulse"></i>
+                                </a>
                             </td>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($admissions as $adm): ?>
-                            <tr>
-                                <td>
-                                    <div class="fw-bold text-slate"><?= esc($adm['patient_name']) ?></div>
-                                    <span class="text-muted small" style="font-size: 0.78rem;">ID: <?= esc($adm['patient_code']) ?></span>
-                                </td>
-                                <td class="fw-semibold text-slate">Dr. <?= esc($adm['doctor_name']) ?></td>
-                                <td>
-                                    <span class="badge bg-light text-slate border fw-semibold">
-                                        <i class="bi bi-hospital me-1"></i> <?= esc($adm['room_number']) ?> (<?= esc(ucfirst($adm['room_type'])) ?>)
-                                    </span>
-                                    <div class="small mt-1 text-muted">Bed: <strong><?= esc($adm['bed_number']) ?></strong></div>
-                                </td>
-                                <td class="small"><?= esc(date('Y-m-d h:i A', strtotime($adm['admission_date']))) ?></td>
-                                <td class="small text-slate">
-                                    <strong>Diagnosis:</strong> <?= esc($adm['diagnosis']) ?><br>
-                                    <span class="text-muted" style="font-size: 0.78rem;">Symp: <?= esc(substr($adm['symptoms'], 0, 30)) ?>...</span>
-                                </td>
-                                <td class="text-end">
-                                    <a href="<?= site_url('/admin/ipd/nursing-logs/' . $adm['id']) ?>" class="btn btn-sm btn-outline-primary px-3 py-1 shadow-sm">
-                                        <i class="bi bi-activity me-1"></i> Charts & Logs
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
+</div>
 
-    <!-- Discharge History Tab -->
-    <div class="tab-pane fade" id="discharge-history" role="tabpanel">
-        <div class="table-responsive border-0 shadow-sm rounded-3 bg-white">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light text-slate">
+<!-- Discharged History -->
+<div class="card border-0 shadow-sm p-4">
+    <h6 class="fw-bold text-slate mb-3"><i class="bi bi-clock-history text-muted me-2"></i>Discharged History</h6>
+    
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Patient</th>
+                    <th>Doctor</th>
+                    <th>Admission Date</th>
+                    <th>Discharge Date</th>
+                    <th>Branch</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($discharged)): ?>
                     <tr>
-                        <th>Patient Details</th>
-                        <th>Attending Doctor</th>
-                        <th>Room / Bed Mapped</th>
-                        <th>Stay Duration</th>
-                        <th>Discharge Date</th>
-                        <th class="text-end">Status</th>
+                        <td colspan="7" class="text-center py-4 text-muted">No discharge history.</td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($discharged)): ?>
+                <?php else: ?>
+                    <?php foreach ($discharged as $dis): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <i class="bi bi-archive-fill fs-3 d-block mb-2"></i>
-                                No discharge records located.
+                            <td><?= $dis['id'] ?></td>
+                            <td>
+                                <strong><?= esc($dis['patient_name']) ?></strong>
+                                <div class="small text-muted"><?= esc($dis['patient_code']) ?></div>
+                            </td>
+                            <td>Dr. <?= esc($dis['doctor_name']) ?></td>
+                            <td><?= date('d M, Y', strtotime($dis['admission_date'])) ?></td>
+                            <td><?= $dis['discharge_date'] ? date('d M, Y', strtotime($dis['discharge_date'])) : '-' ?></td>
+                            <td><?= esc($dis['branch_name'] ?? 'Main') ?></td>
+                            <td>
+                                <span class="badge bg-secondary">Discharged</span>
                             </td>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($discharged as $dis): ?>
-                            <tr>
-                                <td>
-                                    <div class="fw-bold text-slate"><?= esc($dis['patient_name']) ?></div>
-                                    <span class="text-muted small" style="font-size: 0.78rem;">ID: <?= esc($dis['patient_code']) ?></span>
-                                </td>
-                                <td class="fw-semibold text-slate">Dr. <?= esc($dis['doctor_name']) ?></td>
-                                <td class="small text-muted"><?= esc($dis['room_number']) ?> &bull; Bed: <?= esc($dis['bed_number']) ?></td>
-                                <td class="small">
-                                    <?php 
-                                    $admit = strtotime($dis['admission_date']);
-                                    $disDate = strtotime($dis['discharge_date']);
-                                    $days = ceil(($disDate - $admit) / 86400);
-                                    echo $days < 1 ? '1 Day' : $days . ' Days';
-                                    ?>
-                                </td>
-                                <td class="small text-muted"><?= esc(date('Y-m-d h:i A', strtotime($dis['discharge_date']))) ?></td>
-                                <td class="text-end">
-                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-2.5 py-1.5 rounded">Discharged</span>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 

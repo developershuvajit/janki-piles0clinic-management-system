@@ -5,7 +5,6 @@ namespace App\Controllers;
 
 use App\Models\Ipd;
 use App\Models\Patient;
-use App\Models\Branch;
 use App\Models\Billing;
 use App\Helpers\Session;
 use App\Helpers\Security;
@@ -15,9 +14,6 @@ use App\Helpers\ActivityLogger;
 
 class IpdController
 {
-    /**
-     * Get branch filter for current user
-     */
     private function getBranchFilter(): array
     {
         $user = Session::user();
@@ -34,9 +30,6 @@ class IpdController
         ];
     }
 
-    /**
-     * Display a list of all active IPD patients.
-     */
     public function index(): void
     {
         Permission::check('manage_ipd');
@@ -55,9 +48,6 @@ class IpdController
         ]);
     }
 
-    /**
-     * Show Admission Form with branch filter.
-     */
     public function admitForm(): void
     {
         Permission::check('manage_ipd');
@@ -65,7 +55,6 @@ class IpdController
         $filter = $this->getBranchFilter();
         $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
         
-        // Get patients with branch filter
         $patientsSql = "SELECT id, name, patient_id FROM patients WHERE status = 'active'";
         $patientsParams = [];
         
@@ -76,7 +65,6 @@ class IpdController
         $patientsSql .= " ORDER BY name ASC";
         $patients = Database::all($patientsSql, $patientsParams);
         
-        // Get doctors with branch filter
         $doctorsSql = "SELECT u.id, u.username 
                        FROM users u
                        JOIN roles r ON u.role_id = r.id
@@ -89,25 +77,10 @@ class IpdController
         }
         $doctorsSql .= " ORDER BY u.username ASC";
         $doctors = Database::all($doctorsSql, $doctorsParams);
-        
-        // Get available beds with branch filter
-        $bedsSql = "SELECT b.id, b.bed_number, r.room_number, r.type, r.price_per_day 
-                    FROM ipd_beds b
-                    JOIN ipd_rooms r ON b.room_id = r.id
-                    WHERE b.status = 'available' AND r.status = 'active'";
-        $bedsParams = [];
-        
-        if ($branchId !== null) {
-            $bedsSql .= " AND r.branch_id = ?";
-            $bedsParams[] = $branchId;
-        }
-        $bedsSql .= " ORDER BY r.room_number ASC, b.bed_number ASC";
-        $beds = Database::all($bedsSql, $bedsParams);
 
         view('admin.ipd.admit', [
             'title' => 'Admit Inpatient',
             'patients' => $patients,
-            'beds' => $beds,
             'doctors' => $doctors,
             'isSuperAdmin' => $filter['isSuperAdmin'],
             'hasBranchFilter' => $filter['hasFilter'],
@@ -116,15 +89,20 @@ class IpdController
     }
 
     /**
-     * Save Admission log and occupy bed.
+     * Save Admission - WITH FULL DEBUG
      */
     public function saveAdmission(): void
     {
+        error_log("=========================================");
+        error_log("=== IPD ADMISSION START ===");
+        
         Permission::check('manage_ipd');
 
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+            error_log("CSRF validation failed");
             Session::setFlash('error', 'Security token expired.');
             redirect('/admin/ipd/admit');
+            return;
         }
 
         $filter = $this->getBranchFilter();
@@ -132,51 +110,71 @@ class IpdController
 
         $patientId = (int)($_POST['patient_id'] ?? 0);
         $doctorId = (int)($_POST['doctor_id'] ?? 0);
-        $bedId = (int)($_POST['bed_id'] ?? 0);
         $admissionDate = Security::sanitize($_POST['admission_date'] ?? date('Y-m-d H:i:s'));
         $symptoms = Security::sanitize($_POST['symptoms'] ?? '');
         $diagnosis = Security::sanitize($_POST['diagnosis'] ?? '');
 
-        // Validation
-        if ($patientId === 0 || $doctorId === 0 || $bedId === 0 || empty($diagnosis)) {
+        error_log("Patient ID: " . $patientId);
+        error_log("Doctor ID: " . $doctorId);
+        error_log("Admission Date: " . $admissionDate);
+        error_log("Diagnosis: " . $diagnosis);
+
+        if ($patientId === 0 || $doctorId === 0 || empty($diagnosis)) {
+            error_log("Validation failed - missing fields");
             Session::setFlash('error', 'Please fill in all required admission details.');
             redirect('/admin/ipd/admit');
+            return;
         }
 
-        // Verify patient belongs to branch
-        if ($branchId !== null) {
-            $patient = Database::row(
-                "SELECT id FROM patients WHERE id = ? AND branch_id = ?",
-                [$patientId, $branchId]
-            );
-            if (!$patient) {
-                Session::setFlash('error', 'Patient not found in your branch.');
-                redirect('/admin/ipd/admit');
-            }
+        // Get patient details
+        $patient = Database::row("SELECT id, branch_id, name FROM patients WHERE id = ?", [$patientId]);
+        if (!$patient) {
+            error_log("Patient not found: " . $patientId);
+            Session::setFlash('error', 'Patient not found.');
+            redirect('/admin/ipd/admit');
+            return;
+        }
+
+        error_log("Patient found: " . $patient['name'] . " (Branch: " . ($patient['branch_id'] ?? 'NULL') . ")");
+
+        if ($branchId !== null && (int)$patient['branch_id'] !== (int)$branchId) {
+            error_log("Branch mismatch: patient=" . $patient['branch_id'] . ", user=" . $branchId);
+            Session::setFlash('error', 'Patient not found in your branch.');
+            redirect('/admin/ipd/admit');
+            return;
         }
 
         $data = [
             'patient_id' => $patientId,
             'doctor_id' => $doctorId,
-            'bed_id' => $bedId,
+            'branch_id' => $patient['branch_id'] ?? null,
             'admission_date' => $admissionDate,
             'symptoms' => $symptoms,
             'diagnosis' => $diagnosis
         ];
 
-        if (Ipd::admit($data)) {
-            ActivityLogger::log('IPD Patient Admitted', "Admitted patient ID {$patientId} to bed ID {$bedId}");
-            Session::setFlash('success', '✅ Patient admitted successfully. Bed occupied.');
+        error_log("=== DATA SENT TO MODEL ===");
+        error_log(print_r($data, true));
+
+        $admissionId = Ipd::admit($data);
+
+        error_log("=== RESULT FROM MODEL ===");
+        error_log("Admission ID: " . ($admissionId ?? 'NULL/FAILED'));
+
+        if ($admissionId) {
+            error_log("SUCCESS! Admission ID: " . $admissionId);
+            ActivityLogger::log('IPD Patient Admitted', "Admitted patient ID {$patientId} (Admission ID: {$admissionId})");
+            Session::setFlash('success', '✅ Patient admitted successfully.');
             redirect('/admin/ipd');
+            return;
         } else {
-            Session::setFlash('error', 'Unable to complete admission. The selected bed may have already been occupied.');
+            error_log("FAILED! Admission returned null");
+            Session::setFlash('error', 'Unable to complete admission. Please try again.');
             redirect('/admin/ipd/admit');
+            return;
         }
     }
 
-    /**
-     * Show Nursing Charts & logs details.
-     */
     public function nursingLogs(array $params): void
     {
         Permission::check('manage_ipd');
@@ -186,6 +184,7 @@ class IpdController
         if (!$admission) {
             Session::setFlash('error', 'Admission details not found.');
             redirect('/admin/ipd');
+            return;
         }
 
         $logs = Ipd::getNursingLogs($id);
@@ -207,9 +206,6 @@ class IpdController
         ]);
     }
 
-    /**
-     * Add daily vital sign record.
-     */
     public function saveNursingLog(array $params): void
     {
         Permission::check('manage_ipd');
@@ -218,6 +214,7 @@ class IpdController
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             Session::setFlash('error', 'Security token expired.');
             redirect("/admin/ipd/nursing-logs/{$id}");
+            return;
         }
 
         $data = [
@@ -230,6 +227,7 @@ class IpdController
         if (empty($data['notes'])) {
             Session::setFlash('error', 'Notes/Remarks cannot be empty.');
             redirect("/admin/ipd/nursing-logs/{$id}");
+            return;
         }
 
         if (Ipd::addNursingLog($id, $data)) {
@@ -242,9 +240,6 @@ class IpdController
         redirect("/admin/ipd/nursing-logs/{$id}");
     }
 
-    /**
-     * Save completed procedure cost log.
-     */
     public function saveProcedure(array $params): void
     {
         Permission::check('manage_ipd');
@@ -253,6 +248,7 @@ class IpdController
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             Session::setFlash('error', 'Security token expired.');
             redirect("/admin/ipd/nursing-logs/{$id}");
+            return;
         }
 
         $data = [
@@ -264,6 +260,7 @@ class IpdController
         if (empty($data['name']) || $data['doctor_id'] === 0 || $data['cost'] <= 0.00) {
             Session::setFlash('error', 'All fields are required and cost must be greater than zero.');
             redirect("/admin/ipd/nursing-logs/{$id}");
+            return;
         }
 
         if (Ipd::addProcedure($id, $data)) {
@@ -276,9 +273,6 @@ class IpdController
         redirect("/admin/ipd/nursing-logs/{$id}");
     }
 
-    /**
-     * Discharge patient and release bed.
-     */
     public function discharge(array $params): void
     {
         Permission::check('manage_ipd');

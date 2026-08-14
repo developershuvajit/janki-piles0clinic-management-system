@@ -31,8 +31,6 @@ include VIEWS_PATH . '/layout/admin_header.php';
             </select>
         </div>
 
-        <!-- REMOVED: Bed Selection Field -->
-
         <div class="mb-3">
             <label for="admission_date" class="form-label small fw-semibold">Admission Date & Time <span class="text-danger">*</span></label>
             <input type="datetime-local" class="form-control form-control-sm" id="admission_date" name="admission_date" value="<?= date('Y-m-d\TH:i') ?>" required>
