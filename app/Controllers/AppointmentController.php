@@ -364,9 +364,16 @@ public function showOnlineBooking(): void
        /**
  * Submit appointment reservation.
  */
-   public function submitOnlineBooking(): void
+    /**
+ * Submit appointment reservation.
+ */
+public function submitOnlineBooking(): void
 {
+    // Debug logging
+    error_log("=== submitOnlineBooking START ===");
+    
     if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        error_log("CSRF validation failed");
         Session::setFlash('error', 'Security validation expired.');
         redirect('/appointments/book');
         return;
@@ -384,6 +391,8 @@ public function showOnlineBooking(): void
     $date = Security::sanitize($_POST['date'] ?? '');
     $timeSlot = Security::sanitize($_POST['time_slot'] ?? '');
 
+    error_log("Form data: name=$name, email=$email, phone=$phone, doctorId=$doctorId, date=$date, timeSlot=$timeSlot");
+
     // Validate required fields
     $errors = [];
     if (empty($name)) $errors[] = 'Name is required';
@@ -395,12 +404,14 @@ public function showOnlineBooking(): void
     if (empty($timeSlot)) $errors[] = 'Time slot is required';
     
     if (!empty($errors)) {
+        error_log("Validation errors: " . implode(', ', $errors));
         Session::setFlash('error', implode(', ', $errors));
         redirect('/appointments/book');
         return;
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        error_log("Invalid email: $email");
         Session::setFlash('error', 'Please enter a valid email address.');
         redirect('/appointments/book');
         return;
@@ -408,6 +419,7 @@ public function showOnlineBooking(): void
 
     // Check if slot is still available
     if (!Appointment::checkSlotAvailability($doctorId, $date, $timeSlot)) {
+        error_log("Slot not available");
         Session::setFlash('error', 'Selected time slot is no longer available.');
         redirect('/appointments/book');
         return;
@@ -421,7 +433,9 @@ public function showOnlineBooking(): void
     
     if ($patient) {
         $patientId = (int)$patient['id'];
+        error_log("Existing patient found: $patientId");
     } else {
+        error_log("Creating new patient...");
         $patientData = [
             'name' => $name,
             'email' => $email,
@@ -433,9 +447,11 @@ public function showOnlineBooking(): void
             'status' => 'active'
         ];
         $patientId = Patient::create($patientData);
+        error_log("Patient created with ID: " . ($patientId ?? 'null'));
     }
 
     if (!$patientId) {
+        error_log("Failed to create/find patient");
         Session::setFlash('error', 'Unable to register patient profile.');
         redirect('/appointments/book');
         return;
@@ -453,39 +469,108 @@ public function showOnlineBooking(): void
         'queue_status' => 'waiting'
     ];
 
-    $apptId = Appointment::create($apptData);
+    error_log("Creating appointment with data: " . print_r($apptData, true));
+    
+    // Call Appointment::create() and get the ID
+     // Create appointment
+$apptId = Appointment::create($apptData);
 
-    if ($apptId) {
-        $appointment = Appointment::find($apptId);
-        
-        $bookingDetails = [
-            'patient_name' => $name,
-            'doctor_name' => $appointment['doctor_name'] ?? 'Doctor',
-            'date' => date('d M, Y', strtotime($date)),
-            'time_slot' => date('h:i A', strtotime($timeSlot)),
-            'token_number' => $appointment['token_number'] ?? 'Pending'
-        ];
-        
-        Session::set('last_booking', $bookingDetails);
-        
-        ActivityLogger::log('Online Booking Submission', "Patient {$name} submitted appointment request (Appt ID: {$apptId}).");
-        
-        Session::setFlash('success', '✅ Appointment booked successfully! Token #' . ($appointment['token_number'] ?? 'Pending'));
-        redirect('/appointments/book/success');
-        return;
-    } else {
-        Session::setFlash('error', 'Unable to book appointment. Please try again.');
-        redirect('/appointments/book');
-        return;
+/*
+ * Appointment may already be inserted successfully even if
+ * create() does not return the inserted ID correctly.
+ */
+$appointment = null;
+
+if ($apptId) {
+    $appointment = Appointment::find((int)$apptId);
+}
+
+// Fallback: find the appointment that was just created
+if (!$appointment) {
+    $appointment = Database::row(
+        "SELECT a.*,
+                p.name AS patient_name,
+                u.username AS doctor_name,
+                b.name AS branch_name
+         FROM appointments a
+         JOIN patients p ON a.patient_id = p.id
+         JOIN users u ON a.doctor_id = u.id
+         JOIN branches b ON a.branch_id = b.id
+         WHERE a.patient_id = :patient_id
+           AND a.doctor_id = :doctor_id
+           AND a.date = :date
+           AND a.time_slot = :time_slot
+         ORDER BY a.id DESC
+         LIMIT 1",
+        [
+            'patient_id' => $patientId,
+            'doctor_id' => $doctorId,
+            'date' => $date,
+            'time_slot' => $timeSlot
+        ]
+    );
+
+    if ($appointment) {
+        $apptId = (int)$appointment['id'];
     }
+}
+
+// Final success check
+if ($appointment) {
+
+    $bookingDetails = [
+        'patient_name' => $name,
+        'doctor_name' => $appointment['doctor_name'] ?? 'Doctor',
+        'date' => date('d M, Y', strtotime($date)),
+        'time_slot' => date('h:i A', strtotime($timeSlot)),
+        'token_number' => $appointment['token_number'] ?? 'Pending'
+    ];
+
+    Session::set('last_booking', $bookingDetails);
+
+    ActivityLogger::log(
+        'Online Booking Submission',
+        "Patient {$name} submitted appointment request (Appt ID: {$apptId})."
+    );
+
+    Session::setFlash(
+        'success',
+        '✅ Appointment booked successfully! Token #' .
+        ($appointment['token_number'] ?? 'Pending')
+    );
+
+    redirect('/appointments/book/success');
+    return;
+}
+
+// Only show error if appointment REALLY was not created
+Session::setFlash(
+    'error',
+    'Unable to book appointment. Please try again.'
+);
+
+redirect('/appointments/book');
+return;
 }
 
     /**
      * Booking success page
      */
+    /**
+ * Booking success page
+ */
    public function bookingSuccess(): void
-{
+   {
     $appointmentDetails = Session::get('last_booking') ?? [];
+    
+    // If no details, redirect to booking page
+    if (empty($appointmentDetails)) {
+        error_log("bookingSuccess: No appointment details in session, redirecting to booking page");
+        redirect('/appointments/book');
+        return;
+    }
+    
+    error_log("bookingSuccess: Displaying success page with details: " . print_r($appointmentDetails, true));
     
     view('website.booking_success', [
         'title' => 'Booking Confirmed',
