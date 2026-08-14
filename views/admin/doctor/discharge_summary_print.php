@@ -28,13 +28,13 @@ include VIEWS_PATH . '/layout/doctor_header.php';
         <div class="col-6">
             <p class="mb-1"><strong>Patient Name:</strong> <?= esc($summary['patient_name']) ?></p>
             <p class="mb-1"><strong>Patient ID Code:</strong> <?= esc($summary['patient_code']) ?></p>
-            <p class="mb-1"><strong>Gender / DOB:</strong> <?= ucfirst(esc($summary['gender'])) ?> (<?= date('d M Y', strtotime($summary['dob'])) ?>)</p>
-            <p class="mb-0"><strong>Contact:</strong> <?= esc($summary['patient_phone']) ?></p>
+            <p class="mb-1"><strong>Gender / DOB:</strong> <?= ucfirst(esc($summary['gender'] ?? 'N/A')) ?> (<?= date('d M Y', strtotime($summary['dob'] ?? 'now')) ?>)</p>
+            <p class="mb-0"><strong>Contact:</strong> <?= esc($summary['patient_phone'] ?? 'N/A') ?></p>
         </div>
         <div class="col-6 text-end">
             <p class="mb-1"><strong>Admission Date:</strong> <?= date('d M Y, h:i A', strtotime($summary['admission_date'])) ?></p>
             <p class="mb-1"><strong>Discharge Date:</strong> <?= $summary['discharge_date'] ? date('d M Y, h:i A', strtotime($summary['discharge_date'])) : 'Pending Checkout' ?></p>
-            <p class="mb-1"><strong>Ward Room:</strong> <?= esc($summary['room_number']) ?> (Bed <?= esc($summary['bed_number']) ?>)</p>
+            <p class="mb-1"><strong>Branch:</strong> <?= esc($summary['branch_name'] ?? 'Main Branch') ?></p>
             <p class="mb-0"><strong>Attending Doctor:</strong> Dr. <?= esc($summary['doctor_name']) ?></p>
         </div>
     </div>
@@ -43,12 +43,12 @@ include VIEWS_PATH . '/layout/doctor_header.php';
 
     <div class="mb-3">
         <h6 class="fw-bold text-primary border-bottom pb-1">1. Final Clinical Diagnosis</h6>
-        <p class="text-slate mb-0"><?= nl2br(esc($summary['diagnosis'])) ?></p>
+        <p class="text-slate mb-0"><?= nl2br(esc($summary['diagnosis'] ?? 'N/A')) ?></p>
     </div>
 
     <div class="mb-3">
         <h6 class="fw-bold text-primary border-bottom pb-1">2. Hospital Stay & Treatment Summary</h6>
-        <p class="text-slate mb-0"><?= nl2br(esc($summary['treatment_summary'])) ?></p>
+        <p class="text-slate mb-0"><?= nl2br(esc($summary['treatment_summary'] ?? 'N/A')) ?></p>
     </div>
 
     <?php if (!empty($summary['procedure_summary'])): ?>

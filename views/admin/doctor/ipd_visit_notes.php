@@ -6,7 +6,12 @@ include VIEWS_PATH . '/layout/doctor_header.php';
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold text-slate mb-1">Daily Visit & Vitals Progress Notes</h4>
-        <p class="text-muted small mb-0">Patient: <strong><?= esc($admission['patient_name']) ?></strong> (<?= esc($admission['room_number']) ?> - Bed <?= esc($admission['bed_number']) ?>)</p>
+        <p class="text-muted small mb-0">Patient: <strong><?= esc($admission['patient_name']) ?></strong> 
+            (<?= esc($admission['patient_code'] ?? 'N/A') ?>)
+            <?php if (!empty($admission['branch_name'])): ?>
+                | Branch: <?= esc($admission['branch_name']) ?>
+            <?php endif; ?>
+        </p>
     </div>
     <a href="<?= site_url('/doctor/ipd') ?>" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
         <i class="bi bi-arrow-left me-1"></i> Back to IPD List
@@ -14,6 +19,32 @@ include VIEWS_PATH . '/layout/doctor_header.php';
 </div>
 
 <div class="row">
+    <!-- Patient Info Card -->
+    <div class="col-lg-12 mb-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-light">
+            <div class="card-body py-2 px-4">
+                <div class="row text-center">
+                    <div class="col-3">
+                        <small class="text-muted d-block">Diagnosis</small>
+                        <span class="fw-semibold"><?= esc($admission['diagnosis']) ?></span>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block">Admission Date</small>
+                        <span class="fw-semibold"><?= date('d M Y', strtotime($admission['admission_date'])) ?></span>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block">Attending Doctor</small>
+                        <span class="fw-semibold">Dr. <?= esc($admission['doctor_name']) ?></span>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block">Status</small>
+                        <span class="badge bg-warning bg-opacity-10 text-warning">Admitted</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Log Entry Form -->
     <div class="col-lg-5 mb-4">
         <div class="card border-0 shadow-sm rounded-4">
@@ -39,7 +70,7 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label small fw-bold">Clinical Progress & Round Notes</label>
+                        <label class="form-label small fw-bold">Clinical Progress & Round Notes <span class="text-danger">*</span></label>
                         <textarea class="form-control" name="notes" rows="4" placeholder="Enter patient recovery progress, vitals evaluation, and medical instructions..." required></textarea>
                     </div>
 
@@ -54,10 +85,11 @@ include VIEWS_PATH . '/layout/doctor_header.php';
     <!-- History Timeline -->
     <div class="col-lg-7 mb-4">
         <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-header bg-light py-3">
+            <div class="card-header bg-light py-3 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-2"></i> Nursing & Visit Log History</h6>
+                <span class="badge bg-secondary"><?= count($nursing_logs ?? []) ?> records</span>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-4" style="max-height: 450px; overflow-y: auto;">
                 <?php if (empty($nursing_logs)): ?>
                     <p class="text-muted text-center py-4 mb-0">No visit notes recorded yet.</p>
                 <?php else: ?>

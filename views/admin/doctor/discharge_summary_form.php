@@ -13,6 +13,34 @@ include VIEWS_PATH . '/layout/doctor_header.php';
     </a>
 </div>
 
+<!-- Patient Info Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 bg-light">
+            <div class="card-body py-2 px-4">
+                <div class="row text-center">
+                    <div class="col-3">
+                        <small class="text-muted d-block">Diagnosis</small>
+                        <span class="fw-semibold"><?= esc($admission['diagnosis']) ?></span>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block">Admission Date</small>
+                        <span class="fw-semibold"><?= date('d M Y', strtotime($admission['admission_date'])) ?></span>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block">Attending Doctor</small>
+                        <span class="fw-semibold">Dr. <?= esc($admission['doctor_name']) ?></span>
+                    </div>
+                    <div class="col-3">
+                        <small class="text-muted d-block">Branch</small>
+                        <span class="fw-semibold"><?= esc($admission['branch_name'] ?? 'Main Branch') ?></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-header bg-primary text-white py-3">
         <h6 class="fw-bold mb-0"><i class="bi bi-file-earmark-medical me-2"></i> Clinical Discharge Documentation Worksheet</h6>
@@ -24,11 +52,11 @@ include VIEWS_PATH . '/layout/doctor_header.php';
 
             <div class="row mb-3">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label small fw-bold">Final Clinical Diagnosis</label>
+                    <label class="form-label small fw-bold">Final Clinical Diagnosis <span class="text-danger">*</span></label>
                     <textarea class="form-control" name="diagnosis" rows="3" placeholder="Enter final confirmed diagnosis..." required><?= esc($summary['diagnosis'] ?? $admission['diagnosis']) ?></textarea>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label small fw-bold">Treatment Summary & Course in Hospital</label>
+                    <label class="form-label small fw-bold">Treatment Summary & Course in Hospital <span class="text-danger">*</span></label>
                     <textarea class="form-control" name="treatment_summary" rows="3" placeholder="Summary of stay, interventions, and patient progress..." required><?= esc($summary['treatment_summary'] ?? '') ?></textarea>
                 </div>
             </div>

@@ -88,92 +88,75 @@ class IpdController
         ]);
     }
 
-    /**
-     * Save Admission - WITH FULL DEBUG
-     */
-    public function saveAdmission(): void
-    {
-        error_log("=========================================");
-        error_log("=== IPD ADMISSION START ===");
-        
-        Permission::check('manage_ipd');
+     /**
+ * Save Admission - Complete Working
+ */
+      public function saveAdmission(): void
+{
+    Permission::check('manage_ipd');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            error_log("CSRF validation failed");
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/admin/ipd/admit');
-            return;
-        }
-
-        $filter = $this->getBranchFilter();
-        $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
-
-        $patientId = (int)($_POST['patient_id'] ?? 0);
-        $doctorId = (int)($_POST['doctor_id'] ?? 0);
-        $admissionDate = Security::sanitize($_POST['admission_date'] ?? date('Y-m-d H:i:s'));
-        $symptoms = Security::sanitize($_POST['symptoms'] ?? '');
-        $diagnosis = Security::sanitize($_POST['diagnosis'] ?? '');
-
-        error_log("Patient ID: " . $patientId);
-        error_log("Doctor ID: " . $doctorId);
-        error_log("Admission Date: " . $admissionDate);
-        error_log("Diagnosis: " . $diagnosis);
-
-        if ($patientId === 0 || $doctorId === 0 || empty($diagnosis)) {
-            error_log("Validation failed - missing fields");
-            Session::setFlash('error', 'Please fill in all required admission details.');
-            redirect('/admin/ipd/admit');
-            return;
-        }
-
-        // Get patient details
-        $patient = Database::row("SELECT id, branch_id, name FROM patients WHERE id = ?", [$patientId]);
-        if (!$patient) {
-            error_log("Patient not found: " . $patientId);
-            Session::setFlash('error', 'Patient not found.');
-            redirect('/admin/ipd/admit');
-            return;
-        }
-
-        error_log("Patient found: " . $patient['name'] . " (Branch: " . ($patient['branch_id'] ?? 'NULL') . ")");
-
-        if ($branchId !== null && (int)$patient['branch_id'] !== (int)$branchId) {
-            error_log("Branch mismatch: patient=" . $patient['branch_id'] . ", user=" . $branchId);
-            Session::setFlash('error', 'Patient not found in your branch.');
-            redirect('/admin/ipd/admit');
-            return;
-        }
-
-        $data = [
-            'patient_id' => $patientId,
-            'doctor_id' => $doctorId,
-            'branch_id' => $patient['branch_id'] ?? null,
-            'admission_date' => $admissionDate,
-            'symptoms' => $symptoms,
-            'diagnosis' => $diagnosis
-        ];
-
-        error_log("=== DATA SENT TO MODEL ===");
-        error_log(print_r($data, true));
-
-        $admissionId = Ipd::admit($data);
-
-        error_log("=== RESULT FROM MODEL ===");
-        error_log("Admission ID: " . ($admissionId ?? 'NULL/FAILED'));
-
-        if ($admissionId) {
-            error_log("SUCCESS! Admission ID: " . $admissionId);
-            ActivityLogger::log('IPD Patient Admitted', "Admitted patient ID {$patientId} (Admission ID: {$admissionId})");
-            Session::setFlash('success', '✅ Patient admitted successfully.');
-            redirect('/admin/ipd');
-            return;
-        } else {
-            error_log("FAILED! Admission returned null");
-            Session::setFlash('error', 'Unable to complete admission. Please try again.');
-            redirect('/admin/ipd/admit');
-            return;
-        }
+    if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::setFlash('error', 'Security token expired.');
+        redirect('/admin/ipd/admit');
+        return;
     }
+
+    $filter = $this->getBranchFilter();
+    $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
+
+    $patientId = (int)($_POST['patient_id'] ?? 0);
+    $doctorId = (int)($_POST['doctor_id'] ?? 0);
+    $admissionDate = Security::sanitize($_POST['admission_date'] ?? date('Y-m-d H:i:s'));
+    $symptoms = Security::sanitize($_POST['symptoms'] ?? '');
+    $diagnosis = Security::sanitize($_POST['diagnosis'] ?? '');
+
+    if ($patientId === 0 || $doctorId === 0 || empty($diagnosis)) {
+        Session::setFlash('error', 'Please fill in all required admission details.');
+        redirect('/admin/ipd/admit');
+        return;
+    }
+
+    $patient = Database::row("SELECT id, branch_id, name FROM patients WHERE id = ?", [$patientId]);
+    if (!$patient) {
+        Session::setFlash('error', 'Patient not found.');
+        redirect('/admin/ipd/admit');
+        return;
+    }
+
+    if ($branchId !== null && (int)$patient['branch_id'] !== (int)$branchId) {
+        Session::setFlash('error', 'Patient not found in your branch.');
+        redirect('/admin/ipd/admit');
+        return;
+    }
+
+    $data = [
+        'patient_id' => $patientId,
+        'doctor_id' => $doctorId,
+        'branch_id' => $patient['branch_id'] ?? null,
+        'admission_date' => $admissionDate,
+        'symptoms' => $symptoms,
+        'diagnosis' => $diagnosis
+    ];
+
+    error_log("=== IPD DATA SENT TO MODEL ===");
+    error_log(print_r($data, true));
+
+    $admissionId = Ipd::admit($data);
+
+    error_log("=== IPD ADMISSION RESULT ===");
+    error_log("Admission ID: " . ($admissionId ?? 'NULL'));
+
+    if ($admissionId) {
+        ActivityLogger::log('IPD Patient Admitted', "Admitted patient ID {$patientId} (Admission ID: {$admissionId})");
+        Session::setFlash('success', '✅ Patient admitted successfully.');
+        redirect('/admin/ipd');
+        return;
+    } else {
+        Session::setFlash('error', 'Unable to complete admission. Please try again.');
+        redirect('/admin/ipd/admit');
+        return;
+    }
+}
 
     public function nursingLogs(array $params): void
     {

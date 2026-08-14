@@ -278,28 +278,32 @@ class DoctorController
     /**
      * IPD Admitted Patient List.
      */
-    public function ipdIndex(): void
-    {
-        Permission::checkPortal('doctor');
-        $doctorId = (int)Session::get('user_id');
+     /**
+ * IPD Admitted Patient List - NO BED SYSTEM
+ */
+public function ipdIndex(): void
+{
+    Permission::checkPortal('doctor');
+    $doctorId = (int)Session::get('user_id');
 
-        $admissions = Database::all(
-            "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
-                    b.bed_number, r.room_number 
-             FROM ipd_admissions a
-             JOIN patients p ON a.patient_id = p.id
-             JOIN ipd_beds b ON a.bed_id = b.id
-             JOIN ipd_rooms r ON b.room_id = r.id
-             WHERE a.doctor_id = :doc AND a.status = 'admitted'
-             ORDER BY a.admission_date DESC",
-            ['doc' => $doctorId]
-        );
+    $admissions = Database::all(
+        "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone,
+                u.username as doctor_name, b.name as branch_name 
+         FROM ipd_admissions a
+         JOIN patients p ON a.patient_id = p.id
+         JOIN users u ON a.doctor_id = u.id
+         LEFT JOIN branches b ON a.branch_id = b.id
+         WHERE a.doctor_id = ? AND a.status = 'admitted'
+         ORDER BY a.admission_date DESC",
+        [$doctorId]
+    );
 
-        view('admin.doctor.ipd_list', [
-            'title' => 'My Admitted IPD Patients',
-            'admissions' => $admissions
-        ]);
-    }
+    view('admin.doctor.ipd_list', [
+        'title' => 'My Admitted IPD Patients',
+        'admissions' => $admissions,
+        'activePage' => 'doctor_ipd'
+    ]);
+}
 
     /**
      * Daily Visit Notes & Vitals Review Form.
@@ -357,81 +361,119 @@ class DoctorController
     /**
      * Procedure & Surgery Notes Form.
      */
-    public function procedureNotesForm(array $params): void
-    {
-        Permission::checkPortal('doctor');
-        $id = (int)($params['id'] ?? 0);
-        $admission = Ipd::findAdmission($id);
+     /**
+ * Procedure & Surgery Notes Form - NO BED
+ */
+   /**
+ * Procedure & Surgery Notes Form - NO BED
+ */
+       /**
+ * Procedure & Surgery Notes Form - NO BED
+ */
+public function procedureNotesForm(array $params): void
+{
+    Permission::checkPortal('doctor');
+    $id = (int)($params['id'] ?? 0);
+    $admission = Ipd::findAdmission($id);
 
-        if (!$admission) {
-            Session::setFlash('error', 'Admission record not found.');
-            redirect('/doctor/ipd');
-        }
-
-        $procedures = Ipd::getProcedures($id);
-
-        view('admin.doctor.ipd_procedure_notes', [
-            'title' => 'Procedure & Surgery Notes - ' . $admission['patient_name'],
-            'admission' => $admission,
-            'procedures' => $procedures
-        ]);
+    if (!$admission) {
+        Session::setFlash('error', 'Admission record not found.');
+        redirect('/doctor/ipd');
+        return;
     }
 
+    // Ensure all required fields exist
+    $admission['doctor_name'] = $admission['doctor_name'] ?? 'Unknown';
+    $admission['patient_name'] = $admission['patient_name'] ?? 'Unknown';
+    $admission['patient_code'] = $admission['patient_code'] ?? 'N/A';
+    $admission['branch_name'] = $admission['branch_name'] ?? 'Main Branch';
+    $admission['diagnosis'] = $admission['diagnosis'] ?? 'N/A';
+
+    $procedures = Ipd::getProcedures($id);
+    
+    // Get logged-in user
+    $user = Session::user();
+
+    view('admin.doctor.ipd_procedure_notes', [
+        'title' => 'Procedure & Surgery Notes - ' . $admission['patient_name'],
+        'admission' => $admission,
+        'procedures' => $procedures,
+        'user' => $user,
+        'activePage' => 'doctor_ipd'
+    ]);
+}
     /**
      * Save Procedure / Surgery Note.
      */
-    public function saveProcedureNotes(array $params): void
-    {
-        Permission::checkPortal('doctor');
-        $id = (int)($params['id'] ?? 0);
-        $doctorId = (int)Session::get('user_id');
+     /**
+ * Save Procedure / Surgery Note - Auto uses logged-in doctor
+ */
+     /**
+ * Save Procedure / Surgery Note
+ */
+public function saveProcedureNotes(array $params): void
+{
+    Permission::checkPortal('doctor');
+    $id = (int)($params['id'] ?? 0);
+    $doctorId = (int)Session::get('user_id');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect("/doctor/ipd/procedure-notes/{$id}");
-        }
-
-        $data = [
-            'name' => Security::sanitize($_POST['name'] ?? ''),
-            'doctor_id' => $doctorId,
-            'cost' => (float)($_POST['cost'] ?? 0.00)
-        ];
-
-        if (Ipd::addProcedure($id, $data)) {
-            ActivityLogger::log('Procedure Note Added', "Added procedure note for admission ID {$id}");
-            Session::setFlash('success', 'Procedure / Surgery note recorded.');
-        } else {
-            Session::setFlash('error', 'Failed adding procedure note.');
-        }
-
+    if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::setFlash('error', 'Security token expired.');
         redirect("/doctor/ipd/procedure-notes/{$id}");
+        return;
     }
+
+    $data = [
+        'name' => Security::sanitize($_POST['name'] ?? ''),
+        'doctor_id' => $doctorId,
+        'cost' => (float)($_POST['cost'] ?? 0.00)
+    ];
+
+    if (empty($data['name']) || $data['cost'] <= 0.00) {
+        Session::setFlash('error', 'Procedure name and valid cost are required.');
+        redirect("/doctor/ipd/procedure-notes/{$id}");
+        return;
+    }
+
+    if (Ipd::addProcedure($id, $data)) {
+        ActivityLogger::log('Procedure Note Added', "Added procedure note for admission ID {$id}");
+        Session::setFlash('success', '✅ Procedure / Surgery note recorded successfully.');
+    } else {
+        Session::setFlash('error', 'Failed adding procedure note.');
+    }
+
+    redirect("/doctor/ipd/procedure-notes/{$id}");
+}
 
     /**
      * Discharge Approval & Summary Module.
      */
-    public function dischargeIndex(): void
-    {
-        Permission::checkPortal('doctor');
-        $doctorId = (int)Session::get('user_id');
+     /**
+ * Discharge Approval & Summary Module - NO BED
+ */
+public function dischargeIndex(): void
+{
+    Permission::checkPortal('doctor');
+    $doctorId = (int)Session::get('user_id');
 
-        $admissions = Database::all(
-            "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
-                    b.bed_number, r.room_number 
-             FROM ipd_admissions a
-             JOIN patients p ON a.patient_id = p.id
-             JOIN ipd_beds b ON a.bed_id = b.id
-             JOIN ipd_rooms r ON b.room_id = r.id
-             WHERE a.doctor_id = :doc AND a.status = 'admitted'
-             ORDER BY a.admission_date DESC",
-            ['doc' => $doctorId]
-        );
+    $admissions = Database::all(
+        "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone,
+                u.username as doctor_name, b.name as branch_name 
+         FROM ipd_admissions a
+         JOIN patients p ON a.patient_id = p.id
+         JOIN users u ON a.doctor_id = u.id
+         LEFT JOIN branches b ON a.branch_id = b.id
+         WHERE a.doctor_id = ? AND a.status = 'admitted'
+         ORDER BY a.admission_date DESC",
+        [$doctorId]
+    );
 
-        view('admin.doctor.discharge_list', [
-            'title' => 'IPD Discharge Approvals',
-            'admissions' => $admissions
-        ]);
-    }
+    view('admin.doctor.discharge_list', [
+        'title' => 'IPD Discharge Approvals',
+        'admissions' => $admissions,
+        'activePage' => 'doctor_discharge'
+    ]);
+}
 
     /**
      * Approve Discharge Request.
@@ -478,39 +520,49 @@ class DoctorController
     /**
      * Save Discharge Summary.
      */
-    public function saveDischargeSummary(): void
-    {
-        Permission::checkPortal('doctor');
+     /**
+ * Save Discharge Summary.
+ */
+public function saveDischargeSummary(): void
+{
+    Permission::checkPortal('doctor');
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/doctor/discharge');
-        }
-
-        $admissionId = (int)($_POST['ipd_admission_id'] ?? 0);
-
-        $data = [
-            'ipd_admission_id' => $admissionId,
-            'diagnosis' => Security::sanitize($_POST['diagnosis'] ?? ''),
-            'treatment_summary' => Security::sanitize($_POST['treatment_summary'] ?? ''),
-            'procedure_summary' => Security::sanitize($_POST['procedure_summary'] ?? ''),
-            'operation_notes' => Security::sanitize($_POST['operation_notes'] ?? ''),
-            'advice' => Security::sanitize($_POST['advice'] ?? ''),
-            'medicine_advice' => Security::sanitize($_POST['medicine_advice'] ?? ''),
-            'diet' => Security::sanitize($_POST['diet'] ?? ''),
-            'follow_up_instructions' => Security::sanitize($_POST['follow_up_instructions'] ?? '')
-        ];
-
-        if (Discharge::save($data)) {
-            Database::exec("UPDATE ipd_admissions SET discharge_approval = 'approved' WHERE id = :id", ['id' => $admissionId]);
-            ActivityLogger::log('Discharge Summary Saved', "Saved discharge summary for admission ID {$admissionId}");
-            Session::setFlash('success', 'Discharge summary saved. Ready to send to reception.');
-            redirect("/doctor/discharge/summary-print/{$admissionId}");
-        } else {
-            Session::setFlash('error', 'Failed to save discharge summary.');
-            redirect("/doctor/discharge/summary/{$admissionId}");
-        }
+    if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::setFlash('error', 'Security token expired.');
+        redirect('/doctor/discharge');
+        return;
     }
+
+    $admissionId = (int)($_POST['ipd_admission_id'] ?? 0);
+
+    $data = [
+        'ipd_admission_id' => $admissionId,
+        'diagnosis' => Security::sanitize($_POST['diagnosis'] ?? ''),
+        'treatment_summary' => Security::sanitize($_POST['treatment_summary'] ?? ''),
+        'procedure_summary' => Security::sanitize($_POST['procedure_summary'] ?? ''),
+        'operation_notes' => Security::sanitize($_POST['operation_notes'] ?? ''),
+        'advice' => Security::sanitize($_POST['advice'] ?? ''),
+        'medicine_advice' => Security::sanitize($_POST['medicine_advice'] ?? ''),
+        'diet' => Security::sanitize($_POST['diet'] ?? ''),
+        'follow_up_instructions' => Security::sanitize($_POST['follow_up_instructions'] ?? '')
+    ];
+
+    if (empty($data['diagnosis']) || empty($data['treatment_summary'])) {
+        Session::setFlash('error', 'Diagnosis and Treatment Summary are required.');
+        redirect("/doctor/discharge/summary/{$admissionId}");
+        return;
+    }
+
+    if (Discharge::save($data)) {
+        Database::exec("UPDATE ipd_admissions SET discharge_approval = 'approved' WHERE id = :id", ['id' => $admissionId]);
+        ActivityLogger::log('Discharge Summary Saved', "Saved discharge summary for admission ID {$admissionId}");
+        Session::setFlash('success', '✅ Discharge summary saved. Ready to send to reception.');
+        redirect("/doctor/discharge/summary-print/{$admissionId}");
+    } else {
+        Session::setFlash('error', 'Failed to save discharge summary.');
+        redirect("/doctor/discharge/summary/{$admissionId}");
+    }
+}
 
     /**
      * Print Discharge Summary view.

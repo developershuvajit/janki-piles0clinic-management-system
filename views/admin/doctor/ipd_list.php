@@ -18,10 +18,10 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                     <tr>
                         <th>Admission ID</th>
                         <th>Patient Name</th>
-                        <th>Room / Bed</th>
+                        <th>Branch</th>
                         <th>Admission Date</th>
-                        <th>Symptoms & Diagnosis</th>
-                        <th>Discharge Status</th>
+                        <th>Diagnosis</th>
+                        <th>Status</th>
                         <th class="text-end">Clinical Actions</th>
                     </tr>
                 </thead>
@@ -38,11 +38,13 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                                     <div class="fw-bold text-slate"><?= esc($adm['patient_name']) ?></div>
                                     <div class="small text-muted">Code: <?= esc($adm['patient_code']) ?></div>
                                 </td>
-                                <td><i class="bi bi-hospital me-1 text-primary"></i> <?= esc($adm['room_number']) ?> (Bed: <?= esc($adm['bed_number']) ?>)</td>
+                                <td><?= esc($adm['branch_name'] ?? 'Main Branch') ?></td>
                                 <td class="small text-muted"><?= date('d M Y, h:i A', strtotime($adm['admission_date'])) ?></td>
                                 <td>
                                     <div class="small fw-bold"><?= esc($adm['diagnosis']) ?></div>
-                                    <div class="small text-muted text-truncate" style="max-width:200px;"><?= esc($adm['symptoms']) ?></div>
+                                    <?php if (!empty($adm['symptoms'])): ?>
+                                        <div class="small text-muted text-truncate" style="max-width:200px;"><?= esc($adm['symptoms']) ?></div>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if ($adm['discharge_approval'] === 'approved'): ?>

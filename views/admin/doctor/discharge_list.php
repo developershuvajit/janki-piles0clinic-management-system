@@ -18,8 +18,9 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                     <tr>
                         <th>Admission #</th>
                         <th>Patient Name</th>
-                        <th>Room / Bed</th>
+                        <th>Branch</th>
                         <th>Admit Date</th>
+                        <th>Diagnosis</th>
                         <th>Discharge Status</th>
                         <th class="text-end">Actions</th>
                     </tr>
@@ -27,7 +28,7 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                 <tbody>
                     <?php if (empty($admissions)): ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4 text-muted">No admitted patients available for discharge approval.</td>
+                            <td colspan="7" class="text-center py-4 text-muted">No admitted patients available for discharge approval.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($admissions as $adm): ?>
@@ -37,8 +38,14 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                                     <div class="fw-bold text-slate"><?= esc($adm['patient_name']) ?></div>
                                     <div class="small text-muted">Code: <?= esc($adm['patient_code']) ?></div>
                                 </td>
-                                <td><?= esc($adm['room_number']) ?> (Bed: <?= esc($adm['bed_number']) ?>)</td>
+                                <td><?= esc($adm['branch_name'] ?? 'Main Branch') ?></td>
                                 <td class="small text-muted"><?= date('d M Y, h:i A', strtotime($adm['admission_date'])) ?></td>
+                                <td>
+                                    <div class="small fw-bold"><?= esc($adm['diagnosis']) ?></div>
+                                    <?php if (!empty($adm['symptoms'])): ?>
+                                        <div class="small text-muted text-truncate" style="max-width:150px;"><?= esc($adm['symptoms']) ?></div>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if ($adm['discharge_approval'] === 'approved'): ?>
                                         <span class="badge bg-success px-2.5 py-1">Doctor Approved</span>
@@ -49,11 +56,11 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                                 <td class="text-end">
                                     <?php if ($adm['discharge_approval'] !== 'approved'): ?>
                                         <a href="<?= site_url('/doctor/discharge/approve/' . $adm['id']) ?>" class="btn btn-sm btn-success rounded-pill px-3 me-1" onclick="return confirm('Approve discharge for this patient?');">
-                                            <i class="bi bi-check-lg me-1"></i> Approve Discharge
+                                            <i class="bi bi-check-lg me-1"></i> Approve
                                         </a>
                                     <?php endif; ?>
                                     <a href="<?= site_url('/doctor/discharge/summary/' . $adm['id']) ?>" class="btn btn-sm btn-primary rounded-pill px-3">
-                                        <i class="bi bi-file-earmark-medical me-1"></i> Summary Worksheet
+                                        <i class="bi bi-file-earmark-medical me-1"></i> Summary
                                     </a>
                                 </td>
                             </tr>

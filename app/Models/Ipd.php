@@ -8,6 +8,9 @@ use App\Helpers\Logger;
 
 class Ipd
 {
+    /**
+     * Get active IPD admissions
+     */
     public static function getActiveAdmissions(?int $branchId = null): array
     {
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone,
@@ -28,6 +31,9 @@ class Ipd
         return Database::all($sql, $params);
     }
 
+    /**
+     * Get discharged history
+     */
     public static function getDischargedHistory(?int $branchId = null): array
     {
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code,
@@ -48,6 +54,9 @@ class Ipd
         return Database::all($sql, $params);
     }
 
+    /**
+     * Find admission by ID
+     */
     public static function findAdmission(int $id): ?array
     {
         $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone, 
@@ -62,7 +71,7 @@ class Ipd
     }
 
     /**
-     * Admit a patient into IPD - Using Database::lastInsertId() statically
+     * Admit a patient into IPD
      */
     public static function admit(array $data): ?int
     {
@@ -101,8 +110,6 @@ class Ipd
                         symptoms, diagnosis, status, created_at
                     ) VALUES (?, ?, ?, ?, ?, ?, 'admitted', NOW())";
             
-            error_log("SQL: " . $sql);
-            
             $params = [
                 $data['patient_id'],
                 $data['doctor_id'],
@@ -111,18 +118,17 @@ class Ipd
                 $data['symptoms'] ?? '',
                 $data['diagnosis']
             ];
-            
+
+            error_log("SQL: " . $sql);
             error_log("Params: " . print_r($params, true));
 
-            // Execute using static exec()
+            // Execute
             $result = Database::exec($sql, $params);
             error_log("Database::exec result (rows affected): " . $result);
 
-            // Get last insert ID using static lastInsertId()
+            // Get last insert ID
             $insertId = Database::lastInsertId();
-            error_log("========== IPD DEBUG ==========");
             error_log("Last Insert ID: " . var_export($insertId, true));
-            error_log("================================");
 
             if ($insertId && (int)$insertId > 0) {
                 error_log("SUCCESS! Returning ID: " . $insertId);
@@ -142,6 +148,9 @@ class Ipd
         }
     }
 
+    /**
+     * Discharge patient from IPD
+     */
     public static function discharge(int $admissionId, float $discount = 0.00, float $tax = 0.00): bool
     {
         $admission = self::findAdmission($admissionId);
@@ -157,9 +166,11 @@ class Ipd
             
             $dischargeDate = date('Y-m-d H:i:s');
             
+            // 1. Update status
             $stmt = $pdo->prepare("UPDATE ipd_admissions SET status = 'discharged', discharge_date = ? WHERE id = ?");
             $stmt->execute([$dischargeDate, $admissionId]);
 
+            // 2. Calculate stay cost
             $admitTime = strtotime($admission['admission_date']);
             $dischargeTime = strtotime($dischargeDate);
             $secondsDiff = $dischargeTime - $admitTime;
@@ -171,15 +182,18 @@ class Ipd
             $pricePerDay = 500.00;
             $roomRent = $days * $pricePerDay;
 
+            // 3. Get procedure costs
             $procSumRow = Database::row(
                 "SELECT COALESCE(SUM(cost), 0) as total FROM ipd_procedures WHERE ipd_admission_id = ? AND status = 'completed'",
                 [$admissionId]
             );
             $procCost = (float)($procSumRow['total'] ?? 0.00);
 
+            // 4. Calculate total
             $subtotal = $roomRent + $procCost;
             $total = $subtotal - $discount + $tax;
 
+            // 5. Get branch
             $branchId = (int)($admission['branch_id'] ?? 0);
             $validBranch = Database::row("SELECT id FROM branches WHERE id = ?", [$branchId]);
             if (!$validBranch) {
@@ -187,6 +201,7 @@ class Ipd
                 $branchId = $firstBranch ? (int)$firstBranch['id'] : 1;
             }
 
+            // 6. Create invoice
             $billSql = "INSERT INTO billing (patient_id, branch_id, type, reference_id, subtotal, discount, tax, total, paid_amount, payment_status, payment_method, created_at, updated_at) 
                         VALUES (?, ?, 'ipd', ?, ?, ?, ?, ?, 0.00, 'unpaid', 'none', NOW(), NOW())";
             
@@ -206,11 +221,15 @@ class Ipd
             
         } catch (\Throwable $e) {
             $pdo->rollBack();
+            error_log("Discharge ERROR: " . $e->getMessage());
             Logger::error("Failed discharging IPD patient: " . $e->getMessage());
             return false;
         }
     }
 
+    /**
+     * Add nursing log
+     */
     public static function addNursingLog(int $admissionId, array $data): bool
     {
         try {
@@ -225,16 +244,23 @@ class Ipd
             ]);
             return $result > 0;
         } catch (\Throwable $e) {
+            error_log("addNursingLog ERROR: " . $e->getMessage());
             Logger::error("Failed to add nursing log: " . $e->getMessage());
             return false;
         }
     }
 
+    /**
+     * Get nursing logs
+     */
     public static function getNursingLogs(int $admissionId): array
     {
         return Database::all("SELECT * FROM ipd_nursing_logs WHERE ipd_admission_id = ? ORDER BY recorded_at DESC", [$admissionId]);
     }
 
+    /**
+     * Add procedure
+     */
     public static function addProcedure(int $admissionId, array $data): bool
     {
         try {
@@ -248,11 +274,15 @@ class Ipd
             ]);
             return $result > 0;
         } catch (\Throwable $e) {
+            error_log("addProcedure ERROR: " . $e->getMessage());
             Logger::error("Failed to add procedure: " . $e->getMessage());
             return false;
         }
     }
 
+    /**
+     * Get procedures list
+     */
     public static function getProcedures(int $admissionId): array
     {
         $sql = "SELECT p.*, u.username as doctor_name 
