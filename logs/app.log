@@ -572,3 +572,7 @@
 [2026-08-14 12:15:20] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
 [2026-08-14 12:15:31] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
 [2026-08-14 12:15:52] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:17:23] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:17:28] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:19:33] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:28:42] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically

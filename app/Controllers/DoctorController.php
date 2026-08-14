@@ -180,107 +180,100 @@ class DoctorController
     /**
      * Save patient prescription and diagnosis details.
      */
-    public function saveConsultation(): void
-    {
-        Permission::checkPortal('doctor');
+       public function saveConsultation(): void
+{
+    Permission::checkPortal('doctor');
 
-        error_log("=== saveConsultation START ===");
-        error_log("POST data: " . print_r($_POST, true));
+    error_log("=== saveConsultation START ===");
+    error_log("POST data: " . print_r($_POST, true));
 
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token expired.');
-            redirect('/doctor');
-            return;
-        }
-
-        $apptId = (int)($_POST['appointment_id'] ?? 0);
-        $appt = Appointment::find($apptId);
-
-        if (!$appt || (int)$appt['doctor_id'] !== (int)Session::get('user_id')) {
-            Session::setFlash('error', 'Appointment validation failed.');
-            redirect('/doctor');
-            return;
-        }
-
-        $patientId = (int)$appt['patient_id'];
-        $doctorId = (int)Session::get('user_id');
-
-        $data = [
-            'appointment_id' => $apptId,
-            'patient_id' => $patientId,
-            'doctor_id' => $doctorId,
-            'symptoms' => Security::sanitize($_POST['symptoms'] ?? ''),
-            'diagnosis' => Security::sanitize($_POST['diagnosis'] ?? ''),
-            'treatment' => Security::sanitize($_POST['treatment'] ?? ''),
-            'advice' => Security::sanitize($_POST['advice'] ?? ''),
-            'follow_up_date' => Security::sanitize($_POST['follow_up_date'] ?? '')
-        ];
-
-        error_log("Prescription data: " . print_r($data, true));
-
-        if (empty($data['symptoms']) || empty($data['diagnosis']) || empty($data['treatment'])) {
-            Session::setFlash('error', 'Symptoms, Diagnosis, and Treatment details are required.');
-            redirect("/doctor/opd/consult/{$apptId}");
-            return;
-        }
-
-        // Get Database instance for transaction methods
-        $db = Database::getInstance();
-
-        try {
-            // Start transaction
-            $db->beginTransaction();
-            error_log("Transaction started");
-
-            // 1. Save prescription
-            $prescId = Prescription::create($data);
-            error_log("Prescription created with ID: " . ($prescId ?? 'null'));
-
-            if (!$prescId) {
-                throw new \Exception("Failed to save prescription");
-            }
-
-            // 2. Save medicines
-            $medicines = [];
-            if (!empty($_POST['medicines'])) {
-                error_log("Medicines POST: " . print_r($_POST['medicines'], true));
-                foreach ($_POST['medicines'] as $med) {
-                    if (!empty($med['name'])) {
-                        $medicines[] = [
-                            'medicine_name' => Security::sanitize($med['name'] ?? ''),
-                            'dosage' => Security::sanitize($med['dosage'] ?? ''),
-                            'frequency' => Security::sanitize($med['frequency'] ?? ''),
-                            'duration' => Security::sanitize($med['duration'] ?? ''),
-                            'instructions' => Security::sanitize($med['instructions'] ?? '')
-                        ];
-                    }
-                }
-                if (!empty($medicines)) {
-                    Prescription::addMedicines($prescId, $medicines);
-                    error_log("Medicines added: " . count($medicines));
-                }
-            }
-
-            // 3. Update appointment status
-            Appointment::updateQueueStatus($apptId, 'completed');
-            Appointment::updateStatus($apptId, 'completed');
-
-            // Commit transaction
-            $db->commit();
-            error_log("Transaction committed");
-
-            ActivityLogger::log('OPD Consultation Completed', "Completed consultation for patient {$appt['patient_name']} (Prescription ID: {$prescId})");
-            Session::setFlash('success', '✅ Consultation saved successfully.');
-            redirect('/doctor');
-
-        } catch (\Throwable $e) {
-            $db->rollBack();
-            error_log("saveConsultation error: " . $e->getMessage());
-            error_log("saveConsultation trace: " . $e->getTraceAsString());
-            Session::setFlash('error', 'Failed to save consultation: ' . $e->getMessage());
-            redirect("/doctor/opd/consult/{$apptId}");
-        }
+    if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::setFlash('error', 'Security token expired.');
+        redirect('/doctor');
+        return;
     }
+
+    $apptId = (int)($_POST['appointment_id'] ?? 0);
+    $appt = Appointment::find($apptId);
+
+    if (!$appt || (int)$appt['doctor_id'] !== (int)Session::get('user_id')) {
+        Session::setFlash('error', 'Appointment validation failed.');
+        redirect('/doctor');
+        return;
+    }
+
+    $patientId = (int)$appt['patient_id'];
+    $doctorId = (int)Session::get('user_id');
+
+    $data = [
+        'appointment_id' => $apptId,
+        'patient_id' => $patientId,
+        'doctor_id' => $doctorId,
+        'symptoms' => Security::sanitize($_POST['symptoms'] ?? ''),
+        'diagnosis' => Security::sanitize($_POST['diagnosis'] ?? ''),
+        'treatment' => Security::sanitize($_POST['treatment'] ?? ''),
+        'advice' => Security::sanitize($_POST['advice'] ?? ''),
+        'follow_up_date' => Security::sanitize($_POST['follow_up_date'] ?? '')
+    ];
+
+    error_log("Data for prescription: " . print_r($data, true));
+
+    if (empty($data['symptoms']) || empty($data['diagnosis']) || empty($data['treatment'])) {
+        Session::setFlash('error', 'Symptoms, Diagnosis, and Treatment details are required.');
+        redirect("/doctor/opd/consult/{$apptId}");
+        return;
+    }
+
+    try {
+        // Save prescription
+        $prescId = Prescription::create($data);
+        error_log("Prescription ID returned: " . ($prescId ?? 'null'));
+
+        if (!$prescId) {
+            throw new \Exception("Failed to save prescription");
+        }
+
+        // Save medicines
+        $medicinesAdded = false;
+        if (!empty($_POST['medicines'])) {
+            $medicines = [];
+            foreach ($_POST['medicines'] as $med) {
+                if (!empty($med['name'])) {
+                    $medicines[] = [
+                        'medicine_name' => Security::sanitize($med['name'] ?? ''),
+                        'dosage' => Security::sanitize($med['dosage'] ?? ''),
+                        'frequency' => Security::sanitize($med['frequency'] ?? ''),
+                        'duration' => Security::sanitize($med['duration'] ?? ''),
+                        'instructions' => Security::sanitize($med['instructions'] ?? '')
+                    ];
+                }
+            }
+            if (!empty($medicines)) {
+                $medicinesAdded = Prescription::addMedicines($prescId, $medicines);
+                error_log("Medicines added: " . ($medicinesAdded ? 'Yes' : 'No'));
+            }
+        }
+
+        // Update appointment status
+        Appointment::updateQueueStatus($apptId, 'completed');
+        Appointment::updateStatus($apptId, 'completed');
+
+        error_log("Consultation completed successfully for appointment: " . $apptId);
+        ActivityLogger::log('OPD Consultation Completed', "Completed consultation for patient {$appt['patient_name']} (Prescription ID: {$prescId})");
+        
+        // Set success message
+        Session::setFlash('success', '✅ Consultation saved successfully!');
+        
+        // Redirect to doctor dashboard
+        redirect('/doctor');
+
+    } catch (\Throwable $e) {
+        error_log("saveConsultation ERROR: " . $e->getMessage());
+        error_log("saveConsultation TRACE: " . $e->getTraceAsString());
+        Session::setFlash('error', 'Failed to save consultation: ' . $e->getMessage());
+        redirect("/doctor/opd/consult/{$apptId}");
+    }
+}
 
     /**
      * IPD Admitted Patient List.
