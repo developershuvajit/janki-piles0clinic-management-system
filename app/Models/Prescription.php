@@ -17,7 +17,7 @@ class Prescription
             $sql = "INSERT INTO prescriptions (appointment_id, patient_id, doctor_id, symptoms, diagnosis, treatment, advice, follow_up_date, created_at) 
                     VALUES (:appointment_id, :patient_id, :doctor_id, :symptoms, :diagnosis, :treatment, :advice, :follow_up_date, NOW())";
             
-            $success = Database::execute($sql, [
+            $result = Database::exec($sql, [
                 'appointment_id' => $data['appointment_id'] ?? null,
                 'patient_id' => $data['patient_id'],
                 'doctor_id' => $data['doctor_id'],
@@ -28,7 +28,11 @@ class Prescription
                 'follow_up_date' => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null
             ]);
 
-            return $success ? (int)Database::lastInsertId() : null;
+            if ($result > 0) {
+                return (int)Database::lastInsertId();
+            }
+            return null;
+            
         } catch (\Throwable $e) {
             Logger::error("Failed to create prescription record: " . $e->getMessage());
             return null;
@@ -48,7 +52,7 @@ class Prescription
             if (empty($med['medicine_name'])) {
                 continue;
             }
-            $success = Database::execute($sql, [
+            $result = Database::exec($sql, [
                 'prescription_id' => $prescriptionId,
                 'name' => $med['medicine_name'],
                 'dosage' => $med['dosage'] ?? '',
@@ -56,7 +60,7 @@ class Prescription
                 'duration' => $med['duration'] ?? '',
                 'instructions' => $med['instructions'] ?? ''
             ]);
-            if ($success) {
+            if ($result > 0) {
                 $successCount++;
             }
         }
@@ -145,9 +149,10 @@ class Prescription
      */
     public static function markMedicineAsIssued(int $medicineId): bool
     {
-        return Database::execute(
+        $result = Database::exec(
             "UPDATE prescription_medicines SET issued_status = 'issued' WHERE id = :id", 
             ['id' => $medicineId]
         );
+        return $result > 0;
     }
 }
