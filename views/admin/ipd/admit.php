@@ -9,7 +9,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
         <?= csrf_field() ?>
 
         <h5 class="fw-bold text-slate mb-3"><i class="bi bi-hospital text-success me-2"></i>Inpatient Care Admission Form</h5>
-        <p class="text-muted small">Admit a patient, allocate an available bed, and assign an attending physician.</p>
+        <p class="text-muted small">Admit a patient and assign an attending physician.</p>
         
         <div class="mb-3">
             <label for="patient_id" class="form-label small fw-semibold">Select Patient <span class="text-danger">*</span></label>
@@ -31,15 +31,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
             </select>
         </div>
 
-        <div class="mb-3">
-            <label for="bed_id" class="form-label small fw-semibold">Select Available Ward Bed <span class="text-danger">*</span></label>
-            <select class="form-control form-control-sm form-select" id="bed_id" name="bed_id" required>
-                <option value="" disabled selected>Select Room / Bed</option>
-                <?php foreach ($beds as $bed): ?>
-                    <option value="<?= $bed['id'] ?>"><?= esc($bed['room_number']) ?> &bull; Bed: <?= esc($bed['bed_number']) ?> &bull; <?= esc(ucfirst($bed['type'])) ?> (₹<?= esc(number_format((float)$bed['price_per_day'], 2)) ?>/Day)</option>
-                <?php endforeach; ?>
-            </select>
-        </div>
+        <!-- REMOVED: Bed Selection Field -->
 
         <div class="mb-3">
             <label for="admission_date" class="form-label small fw-semibold">Admission Date & Time <span class="text-danger">*</span></label>

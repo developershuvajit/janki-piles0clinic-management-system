@@ -315,11 +315,20 @@ $router->get('/doctor/patients/history/{id}', 'DoctorController@patientHistory')
 $router->get('/doctor/opd', 'DoctorController@opdQueue');
 $router->get('/doctor/opd/consult/{id}', 'DoctorController@consultForm');
 $router->post('/doctor/opd/consult/save', 'DoctorController@saveConsultation');
+
+
+
+
+
 $router->get('/doctor/ipd', 'DoctorController@ipdIndex');
 $router->get('/doctor/ipd/visit-notes/{id}', 'DoctorController@visitNotesForm');
 $router->post('/doctor/ipd/visit-notes/{id}/save', 'DoctorController@saveVisitNotes');
 $router->get('/doctor/ipd/procedure-notes/{id}', 'DoctorController@procedureNotesForm');
 $router->post('/doctor/ipd/procedure-notes/{id}/save', 'DoctorController@saveProcedureNotes');
+
+
+
+
 $router->get('/doctor/discharge', 'DoctorController@dischargeIndex');
 $router->get('/doctor/discharge/approve/{id}', 'DoctorController@approveDischarge');
 $router->get('/doctor/discharge/summary/{id}', 'DoctorController@dischargeSummaryForm');
