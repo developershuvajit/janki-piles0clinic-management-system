@@ -16,43 +16,102 @@ use App\Helpers\ActivityLogger;
 class IpdController
 {
     /**
+     * Get branch filter for current user
+     */
+    private function getBranchFilter(): array
+    {
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        $branchId = $user['branch_id'] ?? null;
+        
+        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+        $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
+        
+        return [
+            'isSuperAdmin' => $isSuperAdmin,
+            'branchId' => $branchId,
+            'hasFilter' => $hasBranchFilter
+        ];
+    }
+
+    /**
      * Display a list of all active IPD patients.
      */
     public function index(): void
     {
         Permission::check('manage_ipd');
         
-        $branchId = Session::get('branch_id') ? (int)Session::get('branch_id') : null;
+        $filter = $this->getBranchFilter();
+        $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
+        
         $admissions = Ipd::getActiveAdmissions($branchId);
         $discharged = Ipd::getDischargedHistory($branchId);
 
         view('admin.ipd.index', [
             'title' => 'Inpatient Department (IPD)',
             'admissions' => $admissions,
-            'discharged' => $discharged
+            'discharged' => $discharged,
+            'activePage' => 'ipd'
         ]);
     }
 
     /**
-     * Show Admission Form.
+     * Show Admission Form with branch filter.
      */
     public function admitForm(): void
     {
         Permission::check('manage_ipd');
         
-        $patients = Patient::all();
-        $beds = Ipd::getAvailableBeds();
-        $doctors = Database::all(
-            "SELECT u.id, u.username FROM users u 
-             JOIN roles r ON u.role_id = r.id 
-             WHERE r.slug = 'doctor' AND u.status = 'active'"
-        );
+        $filter = $this->getBranchFilter();
+        $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
+        
+        // Get patients with branch filter
+        $patientsSql = "SELECT id, name, patient_id FROM patients WHERE status = 'active'";
+        $patientsParams = [];
+        
+        if ($branchId !== null) {
+            $patientsSql .= " AND branch_id = ?";
+            $patientsParams[] = $branchId;
+        }
+        $patientsSql .= " ORDER BY name ASC";
+        $patients = Database::all($patientsSql, $patientsParams);
+        
+        // Get doctors with branch filter
+        $doctorsSql = "SELECT u.id, u.username 
+                       FROM users u
+                       JOIN roles r ON u.role_id = r.id
+                       WHERE r.slug = 'doctor' AND u.status = 'active'";
+        $doctorsParams = [];
+        
+        if ($branchId !== null) {
+            $doctorsSql .= " AND u.branch_id = ?";
+            $doctorsParams[] = $branchId;
+        }
+        $doctorsSql .= " ORDER BY u.username ASC";
+        $doctors = Database::all($doctorsSql, $doctorsParams);
+        
+        // Get available beds with branch filter
+        $bedsSql = "SELECT b.id, b.bed_number, r.room_number, r.type, r.price_per_day 
+                    FROM ipd_beds b
+                    JOIN ipd_rooms r ON b.room_id = r.id
+                    WHERE b.status = 'available' AND r.status = 'active'";
+        $bedsParams = [];
+        
+        if ($branchId !== null) {
+            $bedsSql .= " AND r.branch_id = ?";
+            $bedsParams[] = $branchId;
+        }
+        $bedsSql .= " ORDER BY r.room_number ASC, b.bed_number ASC";
+        $beds = Database::all($bedsSql, $bedsParams);
 
         view('admin.ipd.admit', [
             'title' => 'Admit Inpatient',
             'patients' => $patients,
             'beds' => $beds,
-            'doctors' => $doctors
+            'doctors' => $doctors,
+            'isSuperAdmin' => $filter['isSuperAdmin'],
+            'hasBranchFilter' => $filter['hasFilter'],
+            'activePage' => 'ipd'
         ]);
     }
 
@@ -68,23 +127,46 @@ class IpdController
             redirect('/admin/ipd/admit');
         }
 
-        $data = [
-            'patient_id' => (int)($_POST['patient_id'] ?? 0),
-            'doctor_id' => (int)($_POST['doctor_id'] ?? 0),
-            'bed_id' => (int)($_POST['bed_id'] ?? 0),
-            'admission_date' => Security::sanitize($_POST['admission_date'] ?? date('Y-m-d H:i:s')),
-            'symptoms' => Security::sanitize($_POST['symptoms'] ?? ''),
-            'diagnosis' => Security::sanitize($_POST['diagnosis'] ?? '')
-        ];
+        $filter = $this->getBranchFilter();
+        $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
 
-        if ($data['patient_id'] === 0 || $data['doctor_id'] === 0 || $data['bed_id'] === 0 || empty($data['diagnosis'])) {
+        $patientId = (int)($_POST['patient_id'] ?? 0);
+        $doctorId = (int)($_POST['doctor_id'] ?? 0);
+        $bedId = (int)($_POST['bed_id'] ?? 0);
+        $admissionDate = Security::sanitize($_POST['admission_date'] ?? date('Y-m-d H:i:s'));
+        $symptoms = Security::sanitize($_POST['symptoms'] ?? '');
+        $diagnosis = Security::sanitize($_POST['diagnosis'] ?? '');
+
+        // Validation
+        if ($patientId === 0 || $doctorId === 0 || $bedId === 0 || empty($diagnosis)) {
             Session::setFlash('error', 'Please fill in all required admission details.');
             redirect('/admin/ipd/admit');
         }
 
+        // Verify patient belongs to branch
+        if ($branchId !== null) {
+            $patient = Database::row(
+                "SELECT id FROM patients WHERE id = ? AND branch_id = ?",
+                [$patientId, $branchId]
+            );
+            if (!$patient) {
+                Session::setFlash('error', 'Patient not found in your branch.');
+                redirect('/admin/ipd/admit');
+            }
+        }
+
+        $data = [
+            'patient_id' => $patientId,
+            'doctor_id' => $doctorId,
+            'bed_id' => $bedId,
+            'admission_date' => $admissionDate,
+            'symptoms' => $symptoms,
+            'diagnosis' => $diagnosis
+        ];
+
         if (Ipd::admit($data)) {
-            ActivityLogger::log('IPD Patient Admitted', "Admitted patient ID {$data['patient_id']} to bed ID {$data['bed_id']}");
-            Session::setFlash('success', 'Patient admitted successfully. Bed occupied.');
+            ActivityLogger::log('IPD Patient Admitted', "Admitted patient ID {$patientId} to bed ID {$bedId}");
+            Session::setFlash('success', '✅ Patient admitted successfully. Bed occupied.');
             redirect('/admin/ipd');
         } else {
             Session::setFlash('error', 'Unable to complete admission. The selected bed may have already been occupied.');
@@ -109,7 +191,6 @@ class IpdController
         $logs = Ipd::getNursingLogs($id);
         $procedures = Ipd::getProcedures($id);
         
-        // List of doctors for procedurals selector
         $doctors = Database::all(
             "SELECT u.id, u.username FROM users u 
              JOIN roles r ON u.role_id = r.id 
@@ -121,7 +202,8 @@ class IpdController
             'admission' => $admission,
             'logs' => $logs,
             'procedures' => $procedures,
-            'doctors' => $doctors
+            'doctors' => $doctors,
+            'activePage' => 'ipd'
         ]);
     }
 
@@ -152,7 +234,7 @@ class IpdController
 
         if (Ipd::addNursingLog($id, $data)) {
             ActivityLogger::log('IPD Vitals Logged', "Recorded nurse vitals details for IPD admission #{$id}");
-            Session::setFlash('success', 'Nursing vitals details added.');
+            Session::setFlash('success', '✅ Nursing vitals details added.');
         } else {
             Session::setFlash('error', 'Unable to add log.');
         }
@@ -186,7 +268,7 @@ class IpdController
 
         if (Ipd::addProcedure($id, $data)) {
             ActivityLogger::log('IPD Procedure Logged', "Recorded procedure {$data['name']} for admission #{$id}");
-            Session::setFlash('success', 'Clinical procedure logged successfully.');
+            Session::setFlash('success', '✅ Clinical procedure logged successfully.');
         } else {
             Session::setFlash('error', 'Unable to record procedure.');
         }
@@ -208,9 +290,8 @@ class IpdController
         if (Ipd::discharge($id, $discount, $tax)) {
             ActivityLogger::log('IPD Patient Discharged', "Discharged patient from admission ID {$id}");
             
-            // Get billing invoice generated automatically by model
             $bill = Billing::getInvoiceByReference('ipd', $id);
-            Session::setFlash('success', 'Patient successfully discharged. Billing invoice created.');
+            Session::setFlash('success', '✅ Patient successfully discharged. Billing invoice created.');
             
             if ($bill) {
                 redirect("/admin/reception/billing/collect/{$bill['id']}");
