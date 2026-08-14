@@ -78,7 +78,12 @@ class Appointment
                 'queue_status' => $data['queue_status'] ?? 'waiting'
             ]);
 
-            return $success ? (int)Database::lastInsertId() : null;
+            // exec() returns number of affected rows (1 for insert)
+            if ($success > 0) {
+                return (int)Database::lastInsertId();
+            }
+            return null;
+            
         } catch (\Throwable $e) {
             Logger::error("Failed to create appointment: " . $e->getMessage());
             return null;
@@ -102,7 +107,7 @@ class Appointment
                     updated_at = NOW() 
                 WHERE id = :id";
         
-        return Database::exec($sql, [
+        $result = Database::exec($sql, [
             'id' => $id,
             'patient_id' => $data['patient_id'],
             'doctor_id' => $data['doctor_id'],
@@ -113,6 +118,8 @@ class Appointment
             'type' => $data['type'],
             'queue_status' => $data['queue_status']
         ]);
+        
+        return $result > 0;
     }
 
     /**
@@ -120,7 +127,8 @@ class Appointment
      */
     public static function delete(int $id): bool
     {
-        return Database::exec("DELETE FROM appointments WHERE id = :id", ['id' => $id]);
+        $result = Database::exec("DELETE FROM appointments WHERE id = :id", ['id' => $id]);
+        return $result > 0;
     }
 
     /**
@@ -144,10 +152,11 @@ class Appointment
      */
     public static function updateQueueStatus(int $apptId, string $status): bool
     {
-        return Database::exec(
+        $result = Database::exec(
             "UPDATE appointments SET queue_status = :status, updated_at = NOW() WHERE id = :id", 
             ['status' => $status, 'id' => $apptId]
         );
+        return $result > 0;
     }
 
     /**
@@ -155,10 +164,11 @@ class Appointment
      */
     public static function updateStatus(int $apptId, string $status): bool
     {
-        return Database::exec(
+        $result = Database::exec(
             "UPDATE appointments SET status = :status, updated_at = NOW() WHERE id = :id", 
             ['status' => $status, 'id' => $apptId]
         );
+        return $result > 0;
     }
 
     /**
@@ -181,10 +191,10 @@ class Appointment
                 ['doctor_id' => $doctorId, 'day' => $data['day_of_week']]
             );
 
-            $sql = "INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, slot_duration, max_patients, status) 
-                    VALUES (:doctor_id, :day_of_week, :start_time, :end_time, :slot_duration, :max_patients, :status)";
+            $sql = "INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, slot_duration, max_patients, status, created_at, updated_at) 
+                    VALUES (:doctor_id, :day_of_week, :start_time, :end_time, :slot_duration, :max_patients, :status, NOW(), NOW())";
             
-            return Database::exec($sql, [
+            $result = Database::exec($sql, [
                 'doctor_id' => $doctorId,
                 'day_of_week' => $data['day_of_week'],
                 'start_time' => $data['start_time'],
@@ -193,6 +203,9 @@ class Appointment
                 'max_patients' => $data['max_patients'] ?? 20,
                 'status' => $data['status'] ?? 'active'
             ]);
+            
+            return $result > 0;
+            
         } catch (\Throwable $e) {
             Logger::error("Failed to save doctor schedule: " . $e->getMessage());
             return false;
@@ -201,20 +214,17 @@ class Appointment
 
     /**
      * Get available time slots for a doctor on a specific date.
-     * Uses doctor_schedules table for slot generation.
      */
     public static function getAvailableSlots(int $doctorId, string $date): array
     {
         $dayOfWeek = date('l', strtotime($date));
         
-        // Get doctor's schedule for this day from doctor_schedules table
         $schedule = Database::row(
             "SELECT * FROM doctor_schedules 
              WHERE doctor_id = :doctor_id AND day_of_week = :day AND status = 'active'",
             ['doctor_id' => $doctorId, 'day' => $dayOfWeek]
         );
 
-        // If no schedule found, doctor is not available on this day
         if (!$schedule) {
             return [];
         }
@@ -227,10 +237,8 @@ class Appointment
             $endTime = strtotime('+1 day', $endTime);
         }
         
-        // Get booked slots for this doctor on this date
         $bookedSlots = self::getBookedSlots($doctorId, $date);
         
-        // Generate slots
         $slots = [];
         $current = $startTime;
         while ($current < $endTime) {
@@ -359,7 +367,7 @@ class Appointment
             return false;
         }
 
-        return Database::exec(
+        $result = Database::exec(
             "UPDATE appointments SET date = :date, time_slot = :time_slot, updated_at = NOW() WHERE id = :id",
             [
                 'id' => $apptId,
@@ -367,5 +375,6 @@ class Appointment
                 'time_slot' => $newTimeSlot
             ]
         );
+        return $result > 0;
     }
 }

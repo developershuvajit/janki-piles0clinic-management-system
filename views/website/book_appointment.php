@@ -32,6 +32,32 @@ include VIEWS_PATH . '/layout/header.php';
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(15,123,74,0.2);
     }
+    .doctor-option {
+        padding: 0.5rem 0.8rem;
+        border-radius: 8px;
+        transition: all 0.15s;
+        cursor: pointer;
+    }
+    .doctor-option:hover {
+        background: #f1f5f9;
+    }
+    .doctor-option.selected {
+        background: #e6f5ed;
+        border: 1px solid #0f7b4a;
+    }
+    .success-animation {
+        animation: fadeInUp 0.5s ease;
+    }
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 </style>
 
 <div class="row justify-content-center py-4">
@@ -53,8 +79,12 @@ include VIEWS_PATH . '/layout/header.php';
             <?php endif; ?>
 
             <?php if ($flashSuccess = \App\Helpers\Session::getFlash('success')): ?>
-                <div class="alert alert-success py-2 small"><?= esc($flashSuccess) ?></div>
+                <div class="alert alert-success py-2 small success-animation">
+                    <i class="bi bi-check-circle-fill me-1"></i> <?= esc($flashSuccess) ?>
+                </div>
             <?php endif; ?>
+
+          
 
             <form action="<?= site_url('/appointments/book/submit') ?>" method="POST" id="booking-form">
                 <?= csrf_field() ?>
@@ -109,10 +139,7 @@ include VIEWS_PATH . '/layout/header.php';
                     <div class="col-md-6">
                         <label class="form-label small fw-semibold">Select Doctor <span class="text-danger">*</span></label>
                         <select class="form-select form-select-sm" id="doctor_id" name="doctor_id" required>
-                            <option value="">Choose Doctor</option>
-                            <?php foreach ($doctors as $doc): ?>
-                                <option value="<?= $doc['id'] ?>">Dr. <?= esc($doc['username']) ?> (<?= esc($doc['branch_name'] ?? 'General') ?>)</option>
-                            <?php endforeach; ?>
+                            <option value="">Select Branch First</option>
                         </select>
                     </div>
                     <div class="col-md-12">
@@ -137,22 +164,23 @@ include VIEWS_PATH . '/layout/header.php';
                 </button>
             </form>
             
-            <div class="text-center mt-3 pt-3 border-top">
-                <a href="<?= site_url('/login') ?>" class="text-decoration-none small text-success fw-semibold">
-                    <i class="bi bi-arrow-left me-1"></i> Staff Console Login
-                </a>
-            </div>
+            
         </div>
     </div>
 </div>
 
-<script>
+ <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const branchSelect = document.getElementById('branch_id');
     const doctorSelect = document.getElementById('doctor_id');
     const dateInput = document.getElementById('date');
     const slotsContainer = document.getElementById('slots-container');
     const slotsPlaceholder = document.getElementById('slots-placeholder');
     const alertDiv = document.getElementById('booking-alert');
+
+    // Store doctors data from PHP - Make sure it's properly encoded
+    const allDoctors = <?= json_encode($doctors) ?>;
+    console.log('All Doctors:', allDoctors); // Debug - Check console
 
     function showAlert(msg, isSuccess = false) {
         alertDiv.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'} py-2 small`;
@@ -162,6 +190,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function hideAlert() {
         alertDiv.classList.add('d-none');
+    }
+
+    // Filter doctors by branch
+    function filterDoctorsByBranch(branchId) {
+        doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
+        
+        console.log('Filtering doctors for branch:', branchId);
+        console.log('All doctors:', allDoctors);
+        
+        // Filter doctors - make sure branch_id comparison works
+        const filtered = allDoctors.filter(function(doc) {
+            // Convert both to numbers for comparison
+            return parseInt(doc.branch_id) === parseInt(branchId);
+        });
+        
+        console.log('Filtered doctors:', filtered);
+        
+        if (filtered.length === 0) {
+            doctorSelect.innerHTML = '<option value="">No doctors available in this branch</option>';
+            slotsPlaceholder.textContent = 'Please select a doctor and date to view available time slots.';
+            slotsPlaceholder.classList.remove('d-none');
+            slotsContainer.innerHTML = '';
+            return;
+        }
+        
+        filtered.forEach(function(doc) {
+            const option = document.createElement('option');
+            option.value = doc.id;
+            option.textContent = 'Dr. ' + doc.username + (doc.branch_name ? ' (' + doc.branch_name + ')' : '');
+            doctorSelect.appendChild(option);
+        });
+        
+        // Auto-select if only one doctor
+        if (filtered.length === 1) {
+            doctorSelect.value = filtered[0].id;
+            fetchAvailableSlots();
+        }
     }
 
     function fetchAvailableSlots() {
@@ -182,22 +247,26 @@ document.addEventListener('DOMContentLoaded', function() {
         const url = '<?= site_url("/admin/appointments/slots") ?>?doctor_id=' + encodeURIComponent(doctorId) + '&date=' + encodeURIComponent(date);
         
         fetch(url)
-            .then(response => response.json())
-            .then(data => {
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
                 if (data.success && data.slots && data.slots.length > 0) {
                     slotsPlaceholder.classList.add('d-none');
                     
-                    data.slots.forEach(slot => {
+                    data.slots.forEach(function(slot) {
                         const btn = document.createElement('button');
                         btn.type = 'button';
-                        btn.className = `btn btn-sm btn-outline-primary slot-btn ${slot.booked ? 'booked' : ''}`;
+                        btn.className = 'btn btn-sm btn-outline-primary slot-btn' + (slot.booked ? ' booked' : '');
                         btn.style.minWidth = '80px';
-                        btn.innerHTML = `<i class="bi bi-clock me-1"></i> ${slot.time_formatted}`;
+                        btn.innerHTML = '<i class="bi bi-clock me-1"></i> ' + slot.time_formatted;
                         btn.dataset.value = slot.time;
                         
                         if (!slot.booked) {
                             btn.onclick = function() {
-                                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                                document.querySelectorAll('.slot-btn').forEach(function(b) {
+                                    b.classList.remove('selected');
+                                });
                                 this.classList.add('selected');
                                 // Set hidden input
                                 let hiddenInput = document.getElementById('selected-slot');
@@ -222,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     slotsPlaceholder.classList.remove('d-none');
                 }
             })
-            .catch(err => {
+            .catch(function(err) {
                 console.error('Error:', err);
                 slotsPlaceholder.textContent = '❌ Unable to check availability. Please try again.';
                 slotsPlaceholder.classList.remove('d-none');
@@ -240,10 +309,26 @@ document.addEventListener('DOMContentLoaded', function() {
         hideAlert();
     });
 
+    // Branch change - filter doctors
+    branchSelect.addEventListener('change', function() {
+        const branchId = this.value;
+        console.log('Branch changed to:', branchId);
+        if (branchId) {
+            filterDoctorsByBranch(branchId);
+        } else {
+            doctorSelect.innerHTML = '<option value="">Select Branch First</option>';
+            slotsPlaceholder.textContent = 'Please select a doctor and date to view available time slots.';
+            slotsPlaceholder.classList.remove('d-none');
+            slotsContainer.innerHTML = '';
+        }
+    });
+
+    // Doctor change - fetch slots
     doctorSelect.addEventListener('change', fetchAvailableSlots);
     dateInput.addEventListener('change', fetchAvailableSlots);
 
-    if (doctorSelect.value && dateInput.value) {
+    // Auto fetch on page load if all fields are pre-filled
+    if (branchSelect.value && doctorSelect.value && dateInput.value) {
         fetchAvailableSlots();
     }
 });

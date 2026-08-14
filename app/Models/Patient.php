@@ -20,10 +20,7 @@ class Patient
         $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
         $branchId = $user['branch_id'] ?? null;
         
-        // Super Admin - কোন ফিল্টার নেই
         $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
-        
-        // Branch Admin, Receptionist, Doctor - সবাই ব্রাঞ্চ ফিল্টার পাবে
         $hasBranchFilter = (!$isSuperAdmin && $branchId !== null);
         
         return [
@@ -48,7 +45,6 @@ class Patient
                 LEFT JOIN branches b ON p.branch_id = b.id";
         $params = [];
         
-        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " WHERE p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -76,7 +72,6 @@ class Patient
                    OR p.patient_id LIKE ?)";
         $params = ["%{$query}%", "%{$query}%", "%{$query}%", "%{$query}%"];
         
-        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " AND p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -100,7 +95,6 @@ class Patient
                 WHERE p.id = ?";
         $params = [$id];
         
-        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " AND p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -123,7 +117,6 @@ class Patient
                 WHERE p.patient_id = ?";
         $params = [$patientId];
         
-        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ ফিল্টার পাবে
         if ($filter['hasFilter']) {
             $sql .= " AND p.branch_id = ?";
             $params[] = $filter['branchId'];
@@ -159,8 +152,8 @@ class Patient
             $qrUrl = site_url('/admin/patients/history/' . $patientId);
             $qrCodePath = QRHelper::generate($qrUrl, $qrFilename);
 
-            // 3. Insert record
-            $db->execute(
+            // 3. Insert record - FIXED: Using $db->execute() properly
+            $result = $db->execute(
                 "INSERT INTO patients (
                     patient_id, branch_id, name, email, phone, gender, dob, 
                     blood_group, address, emergency_contact, allergies, 
@@ -175,7 +168,7 @@ class Patient
                     $data['gender'] ?? 'male',
                     $data['dob'],
                     $data['blood_group'] ?? null,
-                    $data['address'],
+                    $data['address'] ?? '',
                     $data['emergency_contact'] ?? null,
                     $data['allergies'] ?? null,
                     $data['medical_history'] ?? null,
@@ -184,7 +177,12 @@ class Patient
                 ]
             );
             
-            return (int) $db->lastInsertId();
+            // execute() returns number of affected rows
+            if ($result > 0) {
+                return (int) $db->lastInsertId();
+            }
+            return null;
+            
         } catch (\PDOException $e) {
             if ($e->getCode() == 23000) {
                 Logger::error("Duplicate entry for patient: " . ($data['email'] ?? $data['phone']));
@@ -203,7 +201,6 @@ class Patient
         $db = Database::getInstance();
         $filter = self::getBranchFilter();
         
-        // Super Admin ছাড়া বাকি সবাই ব্রাঞ্চ পরিবর্তন করতে পারবে না
         if ($filter['hasFilter']) {
             $data['branch_id'] = $filter['branchId'];
         }
@@ -233,7 +230,7 @@ class Patient
                 $data['gender'] ?? 'male',
                 $data['dob'],
                 $data['blood_group'] ?? null,
-                $data['address'],
+                $data['address'] ?? '',
                 $data['emergency_contact'] ?? null,
                 $data['allergies'] ?? null,
                 $data['medical_history'] ?? null,
@@ -242,13 +239,14 @@ class Patient
                 $id
             ];
             
-            // Super Admin ছাড়া বাকি সবাই শুধু নিজের ব্রাঞ্চের পেশেন্ট আপডেট করতে পারবে
             if ($filter['hasFilter']) {
                 $sql .= " AND branch_id = ?";
                 $params[] = $filter['branchId'];
             }
             
-            return $db->execute($sql, $params) > 0;
+            $result = $db->execute($sql, $params);
+            return $result > 0;
+            
         } catch (\PDOException $e) {
             Logger::error("Failed to update patient: " . $e->getMessage());
             return false;
@@ -266,13 +264,13 @@ class Patient
         $sql = "DELETE FROM patients WHERE id = ?";
         $params = [$id];
         
-        // Super Admin ছাড়া বাকি সবাই শুধু নিজের ব্রাঞ্চের পেশেন্ট ডিলিট করতে পারবে
         if ($filter['hasFilter']) {
             $sql .= " AND branch_id = ?";
             $params[] = $filter['branchId'];
         }
         
-        return $db->execute($sql, $params) > 0;
+        $result = $db->execute($sql, $params);
+        return $result > 0;
     }
 
     /**
@@ -281,11 +279,12 @@ class Patient
     public static function addDocument(int $patientId, string $docName, string $filePath): bool
     {
         $db = Database::getInstance();
-        return $db->execute(
+        $result = $db->execute(
             "INSERT INTO patient_documents (patient_id, document_name, file_path, uploaded_at) 
              VALUES (?, ?, ?, NOW())",
             [$patientId, $docName, $filePath]
         );
+        return $result > 0;
     }
 
     /**
@@ -306,7 +305,8 @@ class Patient
     public static function deleteDocument(int $docId): bool
     {
         $db = Database::getInstance();
-        return $db->execute("DELETE FROM patient_documents WHERE id = ?", [$docId]);
+        $result = $db->execute("DELETE FROM patient_documents WHERE id = ?", [$docId]);
+        return $result > 0;
     }
 
     /**
