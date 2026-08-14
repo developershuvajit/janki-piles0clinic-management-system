@@ -46,7 +46,7 @@ include VIEWS_PATH . '/layout/doctor_header.php';
     <!-- Right Column: Consultation Worksheet & Prescriptions Form -->
     <div class="col-lg-7 mb-4">
         <div class="card border-0 shadow-sm p-4 h-100">
-            <form action="<?= site_url('/admin/doctor/consult/save') ?>" method="POST" id="consultation-form">
+            <form action="<?= site_url('/doctor/opd/consult/save') ?>" method="POST" id="consultation-form">
                 <?= csrf_field() ?>
                 <input type="hidden" name="appointment_id" value="<?= $appointment['id'] ?>">
 

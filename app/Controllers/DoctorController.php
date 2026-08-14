@@ -184,9 +184,13 @@ class DoctorController
     {
         Permission::checkPortal('doctor');
 
+        error_log("=== saveConsultation START ===");
+        error_log("POST data: " . print_r($_POST, true));
+
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             Session::setFlash('error', 'Security token expired.');
             redirect('/doctor');
+            return;
         }
 
         $apptId = (int)($_POST['appointment_id'] ?? 0);
@@ -195,6 +199,7 @@ class DoctorController
         if (!$appt || (int)$appt['doctor_id'] !== (int)Session::get('user_id')) {
             Session::setFlash('error', 'Appointment validation failed.');
             redirect('/doctor');
+            return;
         }
 
         $patientId = (int)$appt['patient_id'];
@@ -211,37 +216,68 @@ class DoctorController
             'follow_up_date' => Security::sanitize($_POST['follow_up_date'] ?? '')
         ];
 
+        error_log("Prescription data: " . print_r($data, true));
+
         if (empty($data['symptoms']) || empty($data['diagnosis']) || empty($data['treatment'])) {
             Session::setFlash('error', 'Symptoms, Diagnosis, and Treatment details are required.');
             redirect("/doctor/opd/consult/{$apptId}");
+            return;
         }
 
-        $prescId = Prescription::create($data);
+        // Get Database instance for transaction methods
+        $db = Database::getInstance();
 
-        if ($prescId) {
-            ActivityLogger::log('OPD Consultation Completed', "Completed consultation for patient {$appt['patient_name']} (Prescription ID: {$prescId})");
+        try {
+            // Start transaction
+            $db->beginTransaction();
+            error_log("Transaction started");
 
-            $medicines = [];
-            if (!empty($_POST['medicines'])) {
-                foreach ($_POST['medicines'] as $med) {
-                    $medicines[] = [
-                        'medicine_name' => Security::sanitize($med['name'] ?? ''),
-                        'dosage' => Security::sanitize($med['dosage'] ?? ''),
-                        'frequency' => Security::sanitize($med['frequency'] ?? ''),
-                        'duration' => Security::sanitize($med['duration'] ?? ''),
-                        'instructions' => Security::sanitize($med['instructions'] ?? '')
-                    ];
-                }
-                Prescription::addMedicines($prescId, $medicines);
+            // 1. Save prescription
+            $prescId = Prescription::create($data);
+            error_log("Prescription created with ID: " . ($prescId ?? 'null'));
+
+            if (!$prescId) {
+                throw new \Exception("Failed to save prescription");
             }
 
+            // 2. Save medicines
+            $medicines = [];
+            if (!empty($_POST['medicines'])) {
+                error_log("Medicines POST: " . print_r($_POST['medicines'], true));
+                foreach ($_POST['medicines'] as $med) {
+                    if (!empty($med['name'])) {
+                        $medicines[] = [
+                            'medicine_name' => Security::sanitize($med['name'] ?? ''),
+                            'dosage' => Security::sanitize($med['dosage'] ?? ''),
+                            'frequency' => Security::sanitize($med['frequency'] ?? ''),
+                            'duration' => Security::sanitize($med['duration'] ?? ''),
+                            'instructions' => Security::sanitize($med['instructions'] ?? '')
+                        ];
+                    }
+                }
+                if (!empty($medicines)) {
+                    Prescription::addMedicines($prescId, $medicines);
+                    error_log("Medicines added: " . count($medicines));
+                }
+            }
+
+            // 3. Update appointment status
             Appointment::updateQueueStatus($apptId, 'completed');
             Appointment::updateStatus($apptId, 'completed');
 
-            Session::setFlash('success', 'Consultation saved successfully.');
+            // Commit transaction
+            $db->commit();
+            error_log("Transaction committed");
+
+            ActivityLogger::log('OPD Consultation Completed', "Completed consultation for patient {$appt['patient_name']} (Prescription ID: {$prescId})");
+            Session::setFlash('success', '✅ Consultation saved successfully.');
             redirect('/doctor');
-        } else {
-            Session::setFlash('error', 'Database error saving prescription details.');
+
+        } catch (\Throwable $e) {
+            $db->rollBack();
+            error_log("saveConsultation error: " . $e->getMessage());
+            error_log("saveConsultation trace: " . $e->getTraceAsString());
+            Session::setFlash('error', 'Failed to save consultation: ' . $e->getMessage());
             redirect("/doctor/opd/consult/{$apptId}");
         }
     }
@@ -412,7 +448,7 @@ class DoctorController
         Permission::checkPortal('doctor');
         $id = (int)($params['id'] ?? 0);
 
-        Database::execute(
+        Database::exec(
             "UPDATE ipd_admissions SET discharge_approval = 'approved' WHERE id = :id",
             ['id' => $id]
         );
@@ -473,7 +509,7 @@ class DoctorController
         ];
 
         if (Discharge::save($data)) {
-            Database::execute("UPDATE ipd_admissions SET discharge_approval = 'approved' WHERE id = :id", ['id' => $admissionId]);
+            Database::exec("UPDATE ipd_admissions SET discharge_approval = 'approved' WHERE id = :id", ['id' => $admissionId]);
             ActivityLogger::log('Discharge Summary Saved', "Saved discharge summary for admission ID {$admissionId}");
             Session::setFlash('success', 'Discharge summary saved. Ready to send to reception.');
             redirect("/doctor/discharge/summary-print/{$admissionId}");
@@ -736,12 +772,12 @@ class DoctorController
 
         $existing = Database::row("SELECT id FROM doctor_profiles WHERE user_id = :id", ['id' => $userId]);
         if ($existing) {
-            Database::execute(
+            Database::exec(
                 "UPDATE doctor_profiles SET qualification = :q, experience = :e, specialization = :s, availability_schedule = :a WHERE user_id = :uid",
                 ['q' => $qualification, 'e' => $experience, 's' => $specialization, 'a' => $schedule, 'uid' => $userId]
             );
         } else {
-            Database::execute(
+            Database::exec(
                 "INSERT INTO doctor_profiles (user_id, qualification, experience, specialization, availability_schedule) VALUES (:uid, :q, :e, :s, :a)",
                 ['uid' => $userId, 'q' => $qualification, 'e' => $experience, 's' => $specialization, 'a' => $schedule]
             );
@@ -756,7 +792,7 @@ class DoctorController
                 redirect('/doctor/profile');
             }
             $hash = Security::hashPassword($password);
-            Database::execute("UPDATE users SET password_hash = :hash WHERE id = :id", ['hash' => $hash, 'id' => $userId]);
+            Database::exec("UPDATE users SET password_hash = :hash WHERE id = :id", ['hash' => $hash, 'id' => $userId]);
         }
 
         ActivityLogger::log('Doctor Profile Updated', "Updated doctor qualification and availability profile for user ID {$userId}");

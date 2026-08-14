@@ -14,26 +14,64 @@ class Prescription
     public static function create(array $data): ?int
     {
         try {
-            $sql = "INSERT INTO prescriptions (appointment_id, patient_id, doctor_id, symptoms, diagnosis, treatment, advice, follow_up_date, created_at) 
-                    VALUES (:appointment_id, :patient_id, :doctor_id, :symptoms, :diagnosis, :treatment, :advice, :follow_up_date, NOW())";
+            error_log("=== Prescription::create START ===");
+            error_log("Data: " . print_r($data, true));
+
+            // First, check if patient_id and doctor_id exist
+            $patientCheck = Database::row("SELECT id FROM patients WHERE id = ?", [$data['patient_id']]);
+            $doctorCheck = Database::row("SELECT id FROM users WHERE id = ?", [$data['doctor_id']]);
+            
+            error_log("Patient exists: " . ($patientCheck ? 'Yes' : 'No'));
+            error_log("Doctor exists: " . ($doctorCheck ? 'Yes' : 'No'));
+
+            if (!$patientCheck || !$doctorCheck) {
+                error_log("Patient or Doctor not found!");
+                return null;
+            }
+
+            // Simplified insert - only required columns
+            $sql = "INSERT INTO prescriptions (
+                        patient_id, 
+                        doctor_id, 
+                        symptoms, 
+                        diagnosis, 
+                        treatment, 
+                        advice, 
+                        follow_up_date,
+                        created_at
+                    ) VALUES (
+                        ?, ?, ?, ?, ?, ?, ?, NOW()
+                    )";
+            
+            error_log("SQL: " . $sql);
             
             $result = Database::exec($sql, [
-                'appointment_id' => $data['appointment_id'] ?? null,
-                'patient_id' => $data['patient_id'],
-                'doctor_id' => $data['doctor_id'],
-                'symptoms' => $data['symptoms'],
-                'diagnosis' => $data['diagnosis'],
-                'treatment' => $data['treatment'],
-                'advice' => $data['advice'] ?? null,
-                'follow_up_date' => !empty($data['follow_up_date']) ? $data['follow_up_date'] : null
+                $data['patient_id'],
+                $data['doctor_id'],
+                $data['symptoms'],
+                $data['diagnosis'],
+                $data['treatment'],
+                $data['advice'] ?? null,
+                !empty($data['follow_up_date']) ? $data['follow_up_date'] : null
             ]);
 
-            if ($result > 0) {
-                return (int)Database::lastInsertId();
+            error_log("Database::exec result: " . ($result ? 'true' : 'false') . " (rows affected: " . $result . ")");
+
+            // Get the inserted ID
+            $insertId = Database::lastInsertId();
+            error_log("Last Insert ID: " . $insertId);
+
+            if ($insertId > 0) {
+                error_log("Prescription created successfully with ID: " . $insertId);
+                return (int)$insertId;
             }
+            
+            error_log("No insert ID returned");
             return null;
             
         } catch (\Throwable $e) {
+            error_log("Prescription::create ERROR: " . $e->getMessage());
+            error_log("Prescription::create TRACE: " . $e->getTraceAsString());
             Logger::error("Failed to create prescription record: " . $e->getMessage());
             return null;
         }
@@ -44,27 +82,35 @@ class Prescription
      */
     public static function addMedicines(int $prescriptionId, array $medicines): bool
     {
-        $sql = "INSERT INTO prescription_medicines (prescription_id, medicine_name, dosage, frequency, duration, instructions, issued_status) 
-                VALUES (:prescription_id, :name, :dosage, :frequency, :duration, :instructions, 'pending')";
-        
-        $successCount = 0;
-        foreach ($medicines as $med) {
-            if (empty($med['medicine_name'])) {
-                continue;
+        try {
+            $sql = "INSERT INTO prescription_medicines (
+                        prescription_id, 
+                        medicine_name, 
+                        dosage, 
+                        frequency, 
+                        duration, 
+                        instructions, 
+                        issued_status
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'pending')";
+            
+            foreach ($medicines as $med) {
+                if (empty($med['medicine_name'])) {
+                    continue;
+                }
+                Database::exec($sql, [
+                    $prescriptionId,
+                    $med['medicine_name'],
+                    $med['dosage'] ?? '',
+                    $med['frequency'] ?? '',
+                    $med['duration'] ?? '',
+                    $med['instructions'] ?? ''
+                ]);
             }
-            $result = Database::exec($sql, [
-                'prescription_id' => $prescriptionId,
-                'name' => $med['medicine_name'],
-                'dosage' => $med['dosage'] ?? '',
-                'frequency' => $med['frequency'] ?? '',
-                'duration' => $med['duration'] ?? '',
-                'instructions' => $med['instructions'] ?? ''
-            ]);
-            if ($result > 0) {
-                $successCount++;
-            }
+            return true;
+        } catch (\Throwable $e) {
+            error_log("addMedicines ERROR: " . $e->getMessage());
+            return false;
         }
-        return $successCount > 0;
     }
 
     /**
@@ -77,8 +123,8 @@ class Prescription
                 FROM prescriptions pr
                 JOIN patients p ON pr.patient_id = p.id
                 JOIN users u ON pr.doctor_id = u.id
-                WHERE pr.id = :id LIMIT 1";
-        return Database::row($sql, ['id' => $id]);
+                WHERE pr.id = ? LIMIT 1";
+        return Database::row($sql, [$id]);
     }
 
     /**
@@ -86,7 +132,7 @@ class Prescription
      */
     public static function getMedicines(int $prescriptionId): array
     {
-        return Database::all("SELECT * FROM prescription_medicines WHERE prescription_id = :id", ['id' => $prescriptionId]);
+        return Database::all("SELECT * FROM prescription_medicines WHERE prescription_id = ?", [$prescriptionId]);
     }
 
     /**
@@ -97,8 +143,8 @@ class Prescription
         $sql = "SELECT pr.*, u.username as doctor_name 
                 FROM prescriptions pr
                 JOIN users u ON pr.doctor_id = u.id
-                WHERE pr.patient_id = :id ORDER BY pr.created_at DESC";
-        return Database::all($sql, ['id' => $patientId]);
+                WHERE pr.patient_id = ? ORDER BY pr.created_at DESC";
+        return Database::all($sql, [$patientId]);
     }
 
     /**
@@ -117,8 +163,8 @@ class Prescription
         $sql = "SELECT pr.*, p.name as patient_name, p.patient_id as patient_code 
                 FROM prescriptions pr
                 JOIN patients p ON pr.patient_id = p.id
-                WHERE pr.doctor_id = :doc ORDER BY pr.id DESC";
-        return Database::all($sql, ['doc' => $doctorId]);
+                WHERE pr.doctor_id = ? ORDER BY pr.id DESC";
+        return Database::all($sql, [$doctorId]);
     }
 
     /**
@@ -136,8 +182,8 @@ class Prescription
         
         $params = [];
         if ($branchId !== null) {
-            $sql .= " AND p.branch_id = :branch_id";
-            $params['branch_id'] = $branchId;
+            $sql .= " AND p.branch_id = ?";
+            $params[] = $branchId;
         }
 
         $sql .= " ORDER BY pm.id DESC";
@@ -149,10 +195,15 @@ class Prescription
      */
     public static function markMedicineAsIssued(int $medicineId): bool
     {
-        $result = Database::exec(
-            "UPDATE prescription_medicines SET issued_status = 'issued' WHERE id = :id", 
-            ['id' => $medicineId]
-        );
-        return $result > 0;
+        try {
+            Database::exec(
+                "UPDATE prescription_medicines SET issued_status = 'issued' WHERE id = ?", 
+                [$medicineId]
+            );
+            return true;
+        } catch (\Throwable $e) {
+            error_log("markMedicineAsIssued ERROR: " . $e->getMessage());
+            return false;
+        }
     }
 }

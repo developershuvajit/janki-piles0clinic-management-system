@@ -560,3 +560,15 @@
 [2026-08-14 11:32:35] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Login","details":"User mohit logged in from IP: ::1","user_id":54}
 [2026-08-14 11:51:51] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"Session Timeout","details":"User mohit was logged out due to inactivity.","user_id":54}
 [2026-08-14 11:52:03] [ERROR] Failed to write activity log to database: Non-static method App\Helpers\Database::execute() cannot be called statically {"action":"User Login","details":"User mohit logged in from IP: ::1","user_id":54}
+[2026-08-14 12:02:25] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:02:52] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:04:29] [ERROR] Unhandled Exception: Non-static method App\Helpers\Database::rollBack() cannot be called statically {"file":"C:\\MAMP\\htdocs\\2026\\clinic\\app\\Controllers\\DoctorController.php","line":278,"trace":"#0 [internal function]: App\\Controllers\\DoctorController->saveConsultation(Array)\n#1 C:\\MAMP\\htdocs\\2026\\clinic\\app\\Router.php(80): call_user_func_array(Array, Array)\n#2 C:\\MAMP\\htdocs\\2026\\clinic\\public\\index.php(371): App\\Router->dispatch('/doctor/opd/con...', 'POST')\n#3 {main}"}
+[2026-08-14 12:05:57] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:08:51] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:09:54] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:10:38] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:13:03] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:14:15] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:15:20] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:15:31] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
+[2026-08-14 12:15:52] [ERROR] Failed to create prescription record: Non-static method App\Helpers\Database::lastInsertId() cannot be called statically
