@@ -63,11 +63,8 @@ $details = $appointmentDetails ?? [];
                 </a>
             </div>
             
-            <div class="mt-4 pt-3 border-top">
-                <a href="<?= site_url('/login') ?>" class="text-decoration-none small text-success fw-semibold">
-                    <i class="bi bi-arrow-left me-1"></i> Staff Console Login
-                </a>
-            </div>
+            <!-- REMOVED: Staff Console Login button -->
+            
         </div>
     </div>
 </div>

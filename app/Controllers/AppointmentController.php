@@ -364,7 +364,7 @@ public function showOnlineBooking(): void
        /**
  * Submit appointment reservation.
  */
-public function submitOnlineBooking(): void
+   public function submitOnlineBooking(): void
 {
     if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
         Session::setFlash('error', 'Security validation expired.');
@@ -408,7 +408,7 @@ public function submitOnlineBooking(): void
 
     // Check if slot is still available
     if (!Appointment::checkSlotAvailability($doctorId, $date, $timeSlot)) {
-        Session::setFlash('error', 'Selected time slot is no longer available. Please choose another slot.');
+        Session::setFlash('error', 'Selected time slot is no longer available.');
         redirect('/appointments/book');
         return;
     }
@@ -458,7 +458,6 @@ public function submitOnlineBooking(): void
     if ($apptId) {
         $appointment = Appointment::find($apptId);
         
-        // Store booking details in session
         $bookingDetails = [
             'patient_name' => $name,
             'doctor_name' => $appointment['doctor_name'] ?? 'Doctor',
@@ -471,8 +470,7 @@ public function submitOnlineBooking(): void
         
         ActivityLogger::log('Online Booking Submission', "Patient {$name} submitted appointment request (Appt ID: {$apptId}).");
         
-        // Set success flash and redirect to success page
-        Session::setFlash('success', '✅ Appointment booked successfully! Your token number is #' . ($appointment['token_number'] ?? 'Pending'));
+        Session::setFlash('success', '✅ Appointment booked successfully! Token #' . ($appointment['token_number'] ?? 'Pending'));
         redirect('/appointments/book/success');
         return;
     } else {
@@ -485,13 +483,13 @@ public function submitOnlineBooking(): void
     /**
      * Booking success page
      */
-    public function bookingSuccess(): void
-    {
-        $appointmentDetails = Session::get('last_booking') ?? [];
-        
-        view('website.booking_success', [
-            'title' => 'Booking Confirmed',
-            'appointmentDetails' => $appointmentDetails
-        ]);
-    }
+   public function bookingSuccess(): void
+{
+    $appointmentDetails = Session::get('last_booking') ?? [];
+    
+    view('website.booking_success', [
+        'title' => 'Booking Confirmed',
+        'appointmentDetails' => $appointmentDetails
+    ]);
+}
 }

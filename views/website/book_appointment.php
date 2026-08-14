@@ -32,19 +32,6 @@ include VIEWS_PATH . '/layout/header.php';
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(15,123,74,0.2);
     }
-    .doctor-option {
-        padding: 0.5rem 0.8rem;
-        border-radius: 8px;
-        transition: all 0.15s;
-        cursor: pointer;
-    }
-    .doctor-option:hover {
-        background: #f1f5f9;
-    }
-    .doctor-option.selected {
-        background: #e6f5ed;
-        border: 1px solid #0f7b4a;
-    }
     .success-animation {
         animation: fadeInUp 0.5s ease;
     }
@@ -83,8 +70,6 @@ include VIEWS_PATH . '/layout/header.php';
                     <i class="bi bi-check-circle-fill me-1"></i> <?= esc($flashSuccess) ?>
                 </div>
             <?php endif; ?>
-
-          
 
             <form action="<?= site_url('/appointments/book/submit') ?>" method="POST" id="booking-form">
                 <?= csrf_field() ?>
@@ -164,12 +149,11 @@ include VIEWS_PATH . '/layout/header.php';
                 </button>
             </form>
             
-            
         </div>
     </div>
 </div>
 
- <script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     const branchSelect = document.getElementById('branch_id');
     const doctorSelect = document.getElementById('doctor_id');
@@ -177,10 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const slotsContainer = document.getElementById('slots-container');
     const slotsPlaceholder = document.getElementById('slots-placeholder');
     const alertDiv = document.getElementById('booking-alert');
+    const submitBtn = document.getElementById('submit-btn');
 
-    // Store doctors data from PHP - Make sure it's properly encoded
+    // Store doctors data from PHP
     const allDoctors = <?= json_encode($doctors) ?>;
-    console.log('All Doctors:', allDoctors); // Debug - Check console
+    console.log('All Doctors:', allDoctors);
 
     function showAlert(msg, isSuccess = false) {
         alertDiv.className = `alert ${isSuccess ? 'alert-success' : 'alert-danger'} py-2 small`;
@@ -196,16 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function filterDoctorsByBranch(branchId) {
         doctorSelect.innerHTML = '<option value="">Select Doctor</option>';
         
-        console.log('Filtering doctors for branch:', branchId);
-        console.log('All doctors:', allDoctors);
-        
-        // Filter doctors - make sure branch_id comparison works
         const filtered = allDoctors.filter(function(doc) {
-            // Convert both to numbers for comparison
             return parseInt(doc.branch_id) === parseInt(branchId);
         });
-        
-        console.log('Filtered doctors:', filtered);
         
         if (filtered.length === 0) {
             doctorSelect.innerHTML = '<option value="">No doctors available in this branch</option>';
@@ -222,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function() {
             doctorSelect.appendChild(option);
         });
         
-        // Auto-select if only one doctor
         if (filtered.length === 1) {
             doctorSelect.value = filtered[0].id;
             fetchAvailableSlots();
@@ -268,7 +245,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     b.classList.remove('selected');
                                 });
                                 this.classList.add('selected');
-                                // Set hidden input
                                 let hiddenInput = document.getElementById('selected-slot');
                                 if (!hiddenInput) {
                                     hiddenInput = document.createElement('input');
@@ -307,12 +283,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         hideAlert();
+        
+        // Show loading state on button
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Booking...';
+        submitBtn.disabled = true;
     });
 
     // Branch change - filter doctors
     branchSelect.addEventListener('change', function() {
         const branchId = this.value;
-        console.log('Branch changed to:', branchId);
         if (branchId) {
             filterDoctorsByBranch(branchId);
         } else {
@@ -327,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function() {
     doctorSelect.addEventListener('change', fetchAvailableSlots);
     dateInput.addEventListener('change', fetchAvailableSlots);
 
-    // Auto fetch on page load if all fields are pre-filled
     if (branchSelect.value && doctorSelect.value && dateInput.value) {
         fetchAvailableSlots();
     }
