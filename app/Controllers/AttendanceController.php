@@ -98,6 +98,9 @@ class AttendanceController
         redirect('/admin/attendance/register?date=' . $date);
     }
 
+    /**
+     * ✅ FIX 1: leavesList() - Employee list add করা হয়েছে
+     */
     public function leavesList()
     {
         Permission::check('record_attendance');
@@ -106,19 +109,34 @@ class AttendanceController
         $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
         $leaves = Attendance::getLeavesList($branchId);
         
+        // ✅ এখানে Employee::all($branchId) কল করা হয়েছে
+        $employees = Employee::all($branchId);
+        
         view('admin.attendance.leaves', [
             'title' => 'Leave Management',
             'leaves' => $leaves,
+            'employees' => $employees, // ✅ ড্রপডাউনে দেখানোর জন্য
             'activePage' => 'leaves'
         ]);
     }
 
+    /**
+     * ✅ FIX 2: applyLeave() - ফর্ম থেকে employee_id নেওয়া হচ্ছে
+     */
     public function applyLeave()
     {
         Permission::check('record_attendance');
         
+        // ✅ ফর্ম থেকে employee_id নিন (আগে Session থেকে নেওয়া হচ্ছিল)
+        $employeeId = (int)($_POST['employee_id'] ?? 0);
+        
+        if ($employeeId === 0) {
+            Session::setFlash('error', 'Please select an employee.');
+            redirect('/admin/attendance/leaves');
+        }
+
         $data = [
-            'employee_id' => (int)Session::get('user_id'),
+            'employee_id' => $employeeId,
             'leave_type' => $_POST['leave_type'] ?? '',
             'start_date' => $_POST['start_date'] ?? '',
             'end_date' => $_POST['end_date'] ?? '',
@@ -149,19 +167,21 @@ class AttendanceController
         redirect('/admin/attendance/leaves');
     }
 
-    public function rejectLeave($id)
-    {
-        Permission::check('record_attendance');
+     public function rejectLeave($id)
+{
+    Permission::check('record_attendance');
         
-        $success = Attendance::updateLeaveStatus((int)$id, 'rejected');
-        if ($success) {
-            ActivityLogger::log('Leave Rejected', "Leave request #{$id} rejected");
-            Session::setFlash('success', 'Leave request rejected.');
-        } else {
-            Session::setFlash('error', 'Failed rejecting leave.');
-        }
-        redirect('/admin/attendance/leaves');
+    $success = Attendance::updateLeaveStatus((int)$id, 'rejected');
+
+    if ($success) {
+        ActivityLogger::log('Leave Rejected', "Leave request #{$id} rejected");
+        Session::setFlash('success', 'Leave request rejected.');
+    } else {
+        Session::setFlash('error', 'Failed rejecting leave.');
     }
+
+    redirect('/admin/attendance/leaves');
+}
 
     public function scanAttendance()
     {
@@ -249,87 +269,120 @@ class AttendanceController
         }
     }
 
-    /**
-     * Mark attendance via AJAX (QR scan) - COMPLETE REWRITE
-     */
-     /**
- * Mark attendance via AJAX (QR scan)
- */
-     public function markAttendance()
-{
-    // Clear all output buffers
-    while (ob_get_level() > 0) {
-        ob_end_clean();
-    }
-
-    header('Content-Type: application/json; charset=utf-8');
-
-    try {
-        // Check login
-        if (!Session::isLoggedIn()) {
-            echo json_encode(['success' => false, 'message' => 'Please login first']);
-            return;
+    public function markAttendance()
+    {
+        // Clear all output buffers
+        while (ob_get_level() > 0) {
+            ob_end_clean();
         }
 
-        // Get raw JSON input
-        $rawInput = file_get_contents('php://input');
-        
-        if ($rawInput === false || trim($rawInput) === '') {
-            echo json_encode(['success' => false, 'message' => 'Empty request data']);
-            return;
-        }
+        header('Content-Type: application/json; charset=utf-8');
 
-        $input = json_decode($rawInput, true);
+        try {
+            // Check login
+            if (!Session::isLoggedIn()) {
+                echo json_encode(['success' => false, 'message' => 'Please login first']);
+                return;
+            }
 
-        if (!is_array($input)) {
-            echo json_encode(['success' => false, 'message' => 'Invalid JSON request data']);
-            return;
-        }
+            // Get raw JSON input
+            $rawInput = file_get_contents('php://input');
+            
+            if ($rawInput === false || trim($rawInput) === '') {
+                echo json_encode(['success' => false, 'message' => 'Empty request data']);
+                return;
+            }
 
-        $employeeId = isset($input['employee_id']) ? (int)$input['employee_id'] : 0;
+            $input = json_decode($rawInput, true);
 
-        if ($employeeId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Invalid employee ID']);
-            return;
-        }
+            if (!is_array($input)) {
+                echo json_encode(['success' => false, 'message' => 'Invalid JSON request data']);
+                return;
+            }
 
-        // Get employee
-        $employee = Employee::find($employeeId);
+            $employeeId = isset($input['employee_id']) ? (int)$input['employee_id'] : 0;
 
-        if (!$employee) {
-            echo json_encode(['success' => false, 'message' => 'Employee not found']);
-            return;
-        }
+            if ($employeeId <= 0) {
+                echo json_encode(['success' => false, 'message' => 'Invalid employee ID']);
+                return;
+            }
 
-        // Current date/time
-        $date = date('Y-m-d');
-        $currentTime = date('H:i:s');
+            // Get employee
+            $employee = Employee::find($employeeId);
 
-        // Check today's attendance using Database::row()
-        $existing = Database::row(
-            "SELECT * FROM employee_attendance 
-             WHERE employee_id = ? AND date = ?",
-            [$employeeId, $date]
-        );
+            if (!$employee) {
+                echo json_encode(['success' => false, 'message' => 'Employee not found']);
+                return;
+            }
 
-        // CHECKOUT
-        if ($existing && !empty($existing['check_in']) && empty($existing['check_out'])) {
-            $result = Database::exec(
-                "UPDATE employee_attendance 
-                 SET check_out = ?, updated_at = NOW() 
+            // Current date/time
+            $date = date('Y-m-d');
+            $currentTime = date('H:i:s');
+
+            // Check today's attendance using Database::row()
+            $existing = Database::row(
+                "SELECT * FROM employee_attendance 
                  WHERE employee_id = ? AND date = ?",
-                [$currentTime, $employeeId, $date]
+                [$employeeId, $date]
+            );
+
+            // CHECKOUT
+            if ($existing && !empty($existing['check_in']) && empty($existing['check_out'])) {
+                $result = Database::exec(
+                    "UPDATE employee_attendance 
+                     SET check_out = ?, updated_at = NOW() 
+                     WHERE employee_id = ? AND date = ?",
+                    [$currentTime, $employeeId, $date]
+                );
+
+                if (!$result) {
+                    echo json_encode(['success' => false, 'message' => 'Failed to check out']);
+                    return;
+                }
+
+                echo json_encode([
+                    'success' => true,
+                    'message' => '✅ Check-out recorded successfully!',
+                    'status' => 'checkout',
+                    'is_late' => false,
+                    'late_minutes' => 0,
+                    'shift_start' => $employee['shift_start'] ?? '09:00:00',
+                    'shift_end' => $employee['shift_end'] ?? '17:00:00',
+                    'attendance' => Database::row(
+                        "SELECT * FROM employee_attendance WHERE employee_id = ? AND date = ?",
+                        [$employeeId, $date]
+                    )
+                ]);
+                return;
+            }
+
+            // ALREADY COMPLETED
+            if ($existing && !empty($existing['check_in']) && !empty($existing['check_out'])) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Attendance already completed for today.',
+                    'status' => 'completed',
+                    'attendance' => $existing
+                ]);
+                return;
+            }
+
+            // CHECK-IN
+            $result = Database::exec(
+                "INSERT INTO employee_attendance (employee_id, date, status, check_in, check_out, notes, created_at) 
+                 VALUES (?, ?, 'present', ?, NULL, NULL, NOW())",
+                [$employeeId, $date, $currentTime]
             );
 
             if (!$result) {
-                echo json_encode(['success' => false, 'message' => 'Failed to check out']);
+                echo json_encode(['success' => false, 'message' => 'Failed to check in']);
                 return;
             }
 
             echo json_encode([
                 'success' => true,
-                'message' => '✅ Check-out recorded successfully!',
-                'status' => 'checkout',
+                'message' => '✅ Check-in recorded successfully!',
+                'status' => 'checkin',
                 'is_late' => false,
                 'late_minutes' => 0,
                 'shift_start' => $employee['shift_start'] ?? '09:00:00',
@@ -339,55 +392,16 @@ class AttendanceController
                     [$employeeId, $date]
                 )
             ]);
-            return;
-        }
 
-        // ALREADY COMPLETED
-        if ($existing && !empty($existing['check_in']) && !empty($existing['check_out'])) {
+        } catch (Throwable $e) {
+            error_log('markAttendance Error: ' . $e->getMessage() . ' | File: ' . $e->getFile() . ' | Line: ' . $e->getLine());
+            
             echo json_encode([
                 'success' => false,
-                'message' => 'Attendance already completed for today.',
-                'status' => 'completed',
-                'attendance' => $existing
+                'message' => 'Server error: ' . $e->getMessage()
             ]);
-            return;
         }
-
-        // CHECK-IN
-        $result = Database::exec(
-            "INSERT INTO employee_attendance (employee_id, date, status, check_in, check_out, notes, created_at) 
-             VALUES (?, ?, 'present', ?, NULL, NULL, NOW())",
-            [$employeeId, $date, $currentTime]
-        );
-
-        if (!$result) {
-            echo json_encode(['success' => false, 'message' => 'Failed to check in']);
-            return;
-        }
-
-        echo json_encode([
-            'success' => true,
-            'message' => '✅ Check-in recorded successfully!',
-            'status' => 'checkin',
-            'is_late' => false,
-            'late_minutes' => 0,
-            'shift_start' => $employee['shift_start'] ?? '09:00:00',
-            'shift_end' => $employee['shift_end'] ?? '17:00:00',
-            'attendance' => Database::row(
-                "SELECT * FROM employee_attendance WHERE employee_id = ? AND date = ?",
-                [$employeeId, $date]
-            )
-        ]);
-
-    } catch (Throwable $e) {
-        error_log('markAttendance Error: ' . $e->getMessage() . ' | File: ' . $e->getFile() . ' | Line: ' . $e->getLine());
-        
-        echo json_encode([
-            'success' => false,
-            'message' => 'Server error: ' . $e->getMessage()
-        ]);
     }
-}
 
     public function todayAttendance()
     {

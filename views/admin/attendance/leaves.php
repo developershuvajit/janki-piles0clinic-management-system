@@ -9,8 +9,22 @@ include VIEWS_PATH . '/layout/admin_header.php';
         <div class="card border-0 shadow-sm p-4 text-slate">
             <h6 class="fw-bold mb-3"><i class="bi bi-calendar-minus text-success me-2"></i>Apply for Leave</h6>
             
-            <form action="<?= site_url('/admin/employees/attendance/leaves/apply') ?>" method="POST">
+            <form action="<?= site_url('/admin/attendance/leaves/apply') ?>" method="POST">
                 <?= csrf_field() ?>
+
+                <!-- ✅ NEW: Employee Select Dropdown -->
+                <div class="mb-3">
+                    <label for="employee_id" class="form-label small fw-semibold">Select Employee</label>
+                    <select class="form-control form-control-sm form-select" id="employee_id" name="employee_id" required>
+                        <option value="">-- Select Employee --</option>
+                        <?php foreach ($employees as $emp): ?>
+                            <option value="<?= $emp['id'] ?>">
+                                <?= esc($emp['username'] ?? $emp['employee_name'] ?? 'Unknown') ?> 
+                                (<?= esc($emp['role_name'] ?? 'Staff') ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
                 <div class="mb-3">
                     <label for="leave_type" class="form-label small fw-semibold">Leave Type</label>
@@ -90,10 +104,10 @@ include VIEWS_PATH . '/layout/admin_header.php';
                                     </td>
                                     <td class="text-end text-nowrap">
                                         <?php if ($lv['status'] === 'pending'): ?>
-                                            <a href="<?= site_url('/admin/employees/attendance/leaves/approve/' . $lv['id']) ?>" class="btn btn-sm btn-success px-2 py-0.5 me-1 text-white shadow-sm" title="Approve">
+                                            <a href="<?= site_url('/admin/attendance/leaves/approve/' . $lv['id']) ?>" class="btn btn-sm btn-success px-2 py-0.5 me-1 text-white shadow-sm" title="Approve">
                                                 <i class="bi bi-check-lg"></i>
                                             </a>
-                                            <a href="<?= site_url('/admin/employees/attendance/leaves/reject/' . $lv['id']) ?>" class="btn btn-sm btn-outline-danger px-2 py-0.5" title="Reject">
+                                            <a href="<?= site_url('/admin/attendance/leaves/reject/' . $lv['id']) ?>" class="btn btn-sm btn-outline-danger px-2 py-0.5" title="Reject">
                                                 <i class="bi bi-x-lg"></i>
                                             </a>
                                         <?php else: ?>

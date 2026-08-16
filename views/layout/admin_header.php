@@ -804,7 +804,7 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
                             <a class="nav-link <?= $currentPage === 'attendance_report' ? 'active' : '' ?>" href="<?= site_url('/admin/attendance/report') ?>">
                                 <i class="bi bi-graph-up-arrow" style="color:#22c55e;"></i> Attendance Report
                             </a>
-                            <a class="nav-link <?= $currentPage === 'leaves' ? 'active' : '' ?>" href="<?= site_url('/admin/employees/attendance/leaves') ?>">
+                            <a class="nav-link <?= $currentPage === 'leaves' ? 'active' : '' ?>" href="<?= site_url('/admin/attendance/leaves') ?>">
                                 <i class="bi bi-calendar-minus" style="color:#ec4899;"></i> Leaves
                             </a>
                             <a class="nav-link <?= $currentPage === 'salary' ? 'active' : '' ?>" href="<?= site_url('/admin/salary') ?>">
