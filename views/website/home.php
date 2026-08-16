@@ -1,155 +1,728 @@
 <?php include VIEWS_PATH . '/layout/public_header.php'; ?>
 
-<!-- Hero Section -->
-<section class="jpk-hero-section">
-    <div class="jpk-hero-bg"></div>
-    <div class="container jpk-hero-container">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-7">
-                <div class="jpk-badge-pill">
-                    <i class="bi bi-shield-check"></i> North India's Premier German Laser Proctology Center
+<style>
+    /* ============================================
+       JANKI PILES CLINIC - MINIMAL MODERN DESIGN
+       ============================================ */
+    
+    /* ----- Global ----- */
+    .text-emerald { color: #059669; }
+    .bg-emerald { background: #059669; }
+    
+    /* ----- Hero ----- */
+    .jpk-hero-new {
+        padding: 3rem 0 4rem;
+        position: relative;
+        overflow: hidden;
+        min-height: 500px;
+    }
+    .jpk-hero-new .bg-animated {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 70% 30%, #dcfce7, #f0fdf4, #f8fafc);
+        z-index: 0;
+        animation: jpk-hero-pulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes jpk-hero-pulse {
+        0% { opacity: 0.6; transform: scale(1); }
+        100% { opacity: 1; transform: scale(1.02); }
+    }
+    .jpk-hero-new .container { position: relative; z-index: 1; }
+    
+    .jpk-hero-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(8px);
+        padding: 0.2rem 1rem;
+        border-radius: 50px;
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #059669;
+        border: 1px solid rgba(5,150,105,0.15);
+        margin-bottom: 0.8rem;
+    }
+    .jpk-hero-title {
+        font-size: 2.6rem;
+        font-weight: 800;
+        color: #0b1a2b;
+        line-height: 1.1;
+        letter-spacing: -0.5px;
+    }
+    .jpk-hero-title .highlight { color: #059669; }
+    .jpk-hero-sub {
+        font-size: 1rem;
+        color: #475569;
+        margin: 0.5rem 0 1.2rem;
+        max-width: 500px;
+    }
+    .jpk-btn-primary {
+        background: linear-gradient(135deg, #059669, #047857);
+        color: #fff;
+        padding: 0.6rem 1.8rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.25s;
+        box-shadow: 0 4px 16px rgba(5,150,105,0.2);
+    }
+    .jpk-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(5,150,105,0.3);
+        color: #fff;
+    }
+    .jpk-btn-outline {
+        border: 2px solid #e2e8f0;
+        color: #1e293b;
+        padding: 0.6rem 1.8rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255,255,255,0.6);
+        backdrop-filter: blur(8px);
+        transition: all 0.25s;
+    }
+    .jpk-btn-outline:hover {
+        border-color: #059669;
+        color: #059669;
+        transform: translateY(-2px);
+    }
+    .jpk-hero-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem 1.2rem;
+        margin-top: 1rem;
+        padding-top: 0.8rem;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+    .jpk-hero-features span {
+        font-size: 0.75rem;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .jpk-hero-features span i { color: #059669; }
+
+    /* ----- Hero Image ----- */
+    .jpk-hero-img-box {
+        background: linear-gradient(145deg, #e6f5ed, #d1f0e3);
+        border-radius: 20px;
+        padding: 0.8rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(5,150,105,0.08);
+    }
+    .jpk-hero-img-box img {
+        width: 100%;
+        min-height: 320px;
+        object-fit: cover;
+        border-radius: 14px;
+    }
+    .jpk-hero-stats {
+        position: absolute;
+        bottom: 1.2rem;
+        left: 1.2rem;
+        right: 1.2rem;
+        display: flex;
+        justify-content: space-around;
+        background: rgba(255,255,255,0.92);
+        backdrop-filter: blur(12px);
+        border-radius: 12px;
+        padding: 0.6rem 0.3rem;
+        border: 1px solid rgba(255,255,255,0.3);
+    }
+    .jpk-hero-stats .stat { text-align: center; }
+    .jpk-hero-stats .stat .num {
+        display: block;
+        font-size: 1rem;
+        font-weight: 800;
+        color: #059669;
+    }
+    .jpk-hero-stats .stat .lbl {
+        font-size: 0.5rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .jpk-hero-badge-float {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(255,255,255,0.9);
+        backdrop-filter: blur(8px);
+        padding: 0.2rem 0.7rem;
+        border-radius: 40px;
+        font-size: 0.55rem;
+        font-weight: 600;
+        color: #0b1a2b;
+        border: 1px solid rgba(255,255,255,0.3);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        animation: jpk-float 4s ease-in-out infinite;
+    }
+    .jpk-hero-badge-float i { color: #059669; }
+    @keyframes jpk-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+
+    /* ----- Trust Bar ----- */
+    .jpk-trust {
+        background: #fff;
+        padding: 2rem 0;
+        border-bottom: 1px solid #eef2f6;
+    }
+    .jpk-trust .item { text-align: center; }
+    .jpk-trust .item .num {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #059669;
+        display: block;
+    }
+    .jpk-trust .item .lbl {
+        font-size: 0.7rem;
+        color: #94a3b8;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        margin-top: 0.1rem;
+    }
+    .jpk-trust .item .ico {
+        font-size: 1.6rem;
+        color: #059669;
+        display: block;
+        margin-bottom: 0.2rem;
+        opacity: 0.5;
+    }
+
+    /* ----- Section Headers ----- */
+    .jpk-section {
+        padding: 3.5rem 0;
+    }
+    .jpk-section .head {
+        text-align: center;
+        max-width: 600px;
+        margin: 0 auto 2.5rem;
+    }
+    .jpk-section .head .tag {
+        color: #059669;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.7rem;
+        display: block;
+    }
+    .jpk-section .head h2 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #0b1a2b;
+        margin: 0.2rem 0;
+    }
+    .jpk-section .head p {
+        color: #64748b;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
+    /* ----- Features ----- */
+    .jpk-features { background: #f8fafc; }
+    .jpk-feature-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 1.5rem;
+        height: 100%;
+        border: 1px solid #eef2f6;
+        text-align: center;
+        transition: all 0.3s;
+    }
+    .jpk-feature-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.05);
+        border-color: #b8e0cf;
+    }
+    .jpk-feature-card .ico {
+        width: 52px;
+        height: 52px;
+        background: #e6f5ed;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: #059669;
+        margin: 0 auto 0.8rem;
+        transition: all 0.3s;
+    }
+    .jpk-feature-card:hover .ico {
+        background: #059669;
+        color: #fff;
+    }
+    .jpk-feature-card h5 {
+        font-weight: 700;
+        color: #0b1a2b;
+        font-size: 1rem;
+        margin-bottom: 0.3rem;
+    }
+    .jpk-feature-card p {
+        color: #64748b;
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* ----- Treatments ----- */
+    .jpk-treatments { background: #fff; border-top: 1px solid #eef2f6; }
+    .jpk-treatment-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 1.2rem;
+        border: 1px solid #eef2f6;
+        height: 100%;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+    }
+    .jpk-treatment-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #059669, #0f7b4a);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .jpk-treatment-card:hover::before { opacity: 1; }
+    .jpk-treatment-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.05);
+    }
+    .jpk-treatment-card .top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.6rem;
+    }
+    .jpk-treatment-card .top .ico {
+        width: 40px;
+        height: 40px;
+        background: #e6f5ed;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: #059669;
+        transition: all 0.3s;
+    }
+    .jpk-treatment-card:hover .top .ico {
+        background: #059669;
+        color: #fff;
+    }
+    .jpk-treatment-card .top .badge {
+        background: rgba(5,150,105,0.08);
+        color: #059669;
+        border: 1px solid rgba(5,150,105,0.1);
+        padding: 0.1rem 0.6rem;
+        border-radius: 40px;
+        font-size: 0.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .jpk-treatment-card h5 {
+        font-weight: 700;
+        color: #0b1a2b;
+        font-size: 0.95rem;
+        margin-bottom: 0.3rem;
+    }
+    .jpk-treatment-card .desc {
+        color: #64748b;
+        font-size: 0.8rem;
+        line-height: 1.6;
+        margin-bottom: 0.6rem;
+    }
+    .jpk-treatment-card .actions {
+        display: flex;
+        gap: 0.4rem;
+        padding-top: 0.6rem;
+        border-top: 1px solid #eef2f6;
+    }
+    .jpk-treatment-card .actions .btn-sm {
+        background: #059669;
+        color: #fff;
+        padding: 0.2rem 1rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .jpk-treatment-card .actions .btn-sm:hover { background: #047857; }
+    .jpk-treatment-card .actions .btn-sm-out {
+        border: 1px solid #e2e8f0;
+        color: #1e293b;
+        padding: 0.2rem 1rem;
+        border-radius: 40px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s;
+        background: transparent;
+    }
+    .jpk-treatment-card .actions .btn-sm-out:hover {
+        border-color: #059669;
+        color: #059669;
+    }
+
+    /* ----- Insurance ----- */
+    .jpk-insurance {
+        background: linear-gradient(135deg, #0b1a2b, #1a365d);
+        padding: 3rem 0;
+        color: #fff;
+        position: relative;
+        overflow: hidden;
+    }
+    .jpk-insurance::before {
+        content: '';
+        position: absolute;
+        top: -30%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.03), transparent 70%);
+        border-radius: 50%;
+    }
+    .jpk-insurance .container { position: relative; z-index: 1; }
+    .jpk-insurance .badge {
+        background: rgba(255,255,255,0.1);
+        color: #fff;
+        padding: 0.2rem 1rem;
+        border-radius: 40px;
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+        margin-bottom: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .jpk-insurance h2 {
+        font-weight: 800;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    .jpk-insurance p {
+        font-size: 1rem;
+        opacity: 0.8;
+        line-height: 1.6;
+        margin: 0;
+    }
+    .jpk-btn-light {
+        background: #fff;
+        color: #0b1a2b;
+        padding: 0.6rem 1.8rem;
+        border-radius: 50px;
+        font-weight: 700;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.3s;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    }
+    .jpk-btn-light:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+
+    /* ----- Testimonials ----- */
+    .jpk-testimonials { background: #f8fafc; border-top: 1px solid #eef2f6; }
+    .jpk-testimonial-card {
+        background: #fff;
+        border-radius: 14px;
+        padding: 1.5rem;
+        border: 1px solid #eef2f6;
+        height: 100%;
+        transition: all 0.3s;
+        position: relative;
+    }
+    .jpk-testimonial-card::before {
+        content: '"';
+        position: absolute;
+        top: 5px;
+        left: 15px;
+        font-size: 3rem;
+        color: #059669;
+        opacity: 0.06;
+        font-family: Georgia, serif;
+    }
+    .jpk-testimonial-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.05);
+    }
+    .jpk-testimonial-card .stars {
+        color: #f59e0b;
+        font-size: 0.85rem;
+        letter-spacing: 2px;
+        margin-bottom: 0.5rem;
+    }
+    .jpk-testimonial-card .quote {
+        color: #1e293b;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        font-style: italic;
+        position: relative;
+        z-index: 1;
+    }
+    .jpk-testimonial-card .author {
+        color: #059669;
+        font-weight: 700;
+        font-size: 0.8rem;
+        margin-top: 0.8rem;
+        text-align: right;
+    }
+
+    /* ----- FAQ ----- */
+    .jpk-faq { background: #fff; border-top: 1px solid #eef2f6; padding: 3.5rem 0; }
+    .jpk-faq .faq-item {
+        background: #fff;
+        border-radius: 10px;
+        border: 1px solid #eef2f6;
+        margin-bottom: 0.6rem;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
+    .jpk-faq .faq-item:hover { border-color: #b8e0cf; }
+    .jpk-faq .faq-item .q {
+        padding: 0.8rem 1.2rem;
+        background: #fafcff;
+        font-weight: 600;
+        color: #0b1a2b;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        width: 100%;
+        text-align: left;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .jpk-faq .faq-item .q:hover { background: #f5f9fc; }
+    .jpk-faq .faq-item .q .icon {
+        color: #94a3b8;
+        font-size: 0.9rem;
+        transition: transform 0.3s;
+        flex-shrink: 0;
+    }
+    .jpk-faq .faq-item .q.active .icon {
+        transform: rotate(180deg);
+        color: #059669;
+    }
+    .jpk-faq .faq-item .a {
+        padding: 0 1.2rem 1rem;
+        color: #475569;
+        font-size: 0.85rem;
+        line-height: 1.7;
+        display: none;
+    }
+    .jpk-faq .faq-item .a.open { display: block; animation: jpk-fade 0.3s ease; }
+    @keyframes jpk-fade {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ----- Responsive ----- */
+    @media (max-width: 992px) {
+        .jpk-hero-new { padding: 2.5rem 0; min-height: auto; }
+        .jpk-hero-title { font-size: 2rem; }
+        .jpk-hero-img-box img { min-height: 240px; }
+        .jpk-section .head h2 { font-size: 1.6rem; }
+        .jpk-insurance h2 { font-size: 1.6rem; }
+        .jpk-trust .item .num { font-size: 1.6rem; }
+    }
+    @media (max-width: 576px) {
+        .jpk-hero-new { padding: 1.5rem 0; }
+        .jpk-hero-title { font-size: 1.5rem; }
+        .jpk-hero-sub { font-size: 0.85rem; }
+        .jpk-hero-buttons .jpk-btn-primary,
+        .jpk-hero-buttons .jpk-btn-outline {
+            padding: 0.4rem 1.2rem;
+            font-size: 0.75rem;
+            width: 100%;
+            justify-content: center;
+        }
+        .jpk-hero-features { gap: 0.4rem 0.8rem; }
+        .jpk-hero-features span { font-size: 0.65rem; }
+        .jpk-hero-img-box img { min-height: 160px; }
+        .jpk-hero-stats { padding: 0.4rem; bottom: 0.8rem; left: 0.8rem; right: 0.8rem; }
+        .jpk-hero-stats .stat .num { font-size: 0.8rem; }
+        .jpk-hero-stats .stat .lbl { font-size: 0.4rem; }
+        .jpk-hero-badge-float { display: none; }
+        .jpk-trust .item .num { font-size: 1.2rem; }
+        .jpk-trust .item .lbl { font-size: 0.6rem; }
+        .jpk-section .head h2 { font-size: 1.3rem; }
+        .jpk-feature-card { padding: 1rem; }
+        .jpk-treatment-card { padding: 1rem; }
+        .jpk-testimonial-card { padding: 1rem; }
+        .jpk-insurance h2 { font-size: 1.3rem; }
+        .jpk-insurance p { font-size: 0.85rem; }
+        .jpk-insurance { padding: 2rem 0; }
+        .jpk-treatment-card .actions .btn-sm,
+        .jpk-treatment-card .actions .btn-sm-out { font-size: 0.6rem; padding: 0.15rem 0.6rem; }
+        .jpk-faq .faq-item .q { font-size: 0.8rem; padding: 0.6rem 1rem; }
+    }
+</style>
+
+<!-- ============================================
+     HERO SECTION
+     ============================================ -->
+<section class="jpk-hero-new">
+    <div class="bg-animated"></div>
+    <div class="container">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-6">
+                <div class="jpk-hero-badge">
+                    <i class="bi bi-shield-check"></i> Premier Laser Proctology Center
                 </div>
                 <h1 class="jpk-hero-title">
-                    Say Goodbye to Painful Piles & Fissures with <span class="jpk-text-emerald">German Laser Surgery</span>
+                    Painless <span class="highlight">German Laser</span> Surgery
                 </h1>
-                <p class="jpk-hero-subtitle">
-                    <strong>100% Painless | Zero Scalpel Cuts | No Stitches | 30-Minute Daycare Surgery | Same-Day Discharge</strong>
+                <p class="jpk-hero-sub">
+                    Zero cuts. No stitches. Same-day discharge.
                 </p>
                 <div class="jpk-hero-buttons">
                     <a href="<?= site_url('/appointments/book') ?>" class="jpk-btn-primary">
-                        <i class="bi bi-calendar-plus me-2"></i> Book Laser Consultation
+                        <i class="bi bi-calendar-plus"></i> Book Consultation
                     </a>
-                    <a href="tel:+919876543210" class="jpk-btn-outline-danger">
-                        <i class="bi bi-telephone-fill me-2"></i> Call Emergency (+91 98765 43210)
+                    <a href="tel:+919876543210" class="jpk-btn-outline">
+                        <i class="bi bi-telephone-fill"></i> Call Now
                     </a>
                 </div>
                 <div class="jpk-hero-features">
-                    <span><i class="bi bi-check-circle-fill"></i> Cashless TPA Empaneled</span>
-                    <span><i class="bi bi-check-circle-fill"></i> Female Chaperones Available</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Cashless TPA</span>
+                    <span><i class="bi bi-check-circle-fill"></i> Female Chaperones</span>
                     <span><i class="bi bi-check-circle-fill"></i> 100% Confidential</span>
                 </div>
             </div>
-            <div class="col-lg-5">
-                <div class="jpk-glass-card">
-                    <div class="jpk-card-header">
-                        <span class="jpk-badge-danger">QUICK APPOINTMENT</span>
-                        <h4>Book Confidential Slot</h4>
-                        <p>Consult Senior Proctologists Today</p>
+            <div class="col-lg-6">
+                <div class="jpk-hero-img-box">
+                    <img src="https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=600&h=420&fit=crop&crop=center&q=80" 
+                         alt="Laser Surgery">
+                    <div class="jpk-hero-stats">
+                        <div class="stat"><span class="num">15K+</span><span class="lbl">Surgeries</span></div>
+                        <div class="stat"><span class="num">7+</span><span class="lbl">Branches</span></div>
+                        <div class="stat"><span class="num">100%</span><span class="lbl">Cashless</span></div>
                     </div>
-                    <form action="<?= site_url('/appointments/book/otp') ?>" method="POST">
-                        <div class="jpk-form-group">
-                            <label>Full Patient Name</label>
-                            <input type="text" name="patient_name" placeholder="Enter full name" required>
-                        </div>
-                        <div class="jpk-form-group">
-                            <label>Mobile Number</label>
-                            <div class="jpk-input-group">
-                                <span class="jpk-input-prefix">+91</span>
-                                <input type="tel" name="mobile" placeholder="10-digit phone number" pattern="[0-9]{10}" required>
-                            </div>
-                        </div>
-                        <div class="jpk-form-group">
-                            <label>Select Preferred Branch</label>
-                            <select name="branch">
-                                <option value="Dehradun Main Clinic">Dehradun Main Clinic (Rajpur Road)</option>
-                                <option value="Haridwar Clinic">Haridwar Clinic (Ranipur More)</option>
-                                <option value="Roorkee Clinic">Roorkee Clinic (Civil Lines)</option>
-                                <option value="Bhaniyawala Clinic">Bhaniyawala Clinic (Jolly Grant)</option>
-                                <option value="Srinagar Garhwal">Srinagar Garhwal Clinic</option>
-                                <option value="Haldwani Clinic">Haldwani Clinic (Kumaon)</option>
-                                <option value="Mohali Branch">Mohali Branch (Tricity)</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="jpk-btn-submit">
-                            <i class="bi bi-arrow-right-circle me-1"></i> Proceed to Choose Slot
-                        </button>
-                    </form>
+                    <div class="jpk-hero-badge-float">
+                        <i class="bi bi-clock"></i> Same-Day Discharge
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Trust Counters -->
-<section class="jpk-counters-section">
+<!-- ============================================
+     TRUST BAR
+     ============================================ -->
+<section class="jpk-trust">
     <div class="container">
-        <div class="row g-4">
+        <div class="row g-2">
             <div class="col-6 col-md-3">
-                <h2 class="jpk-counter-number">15,000+</h2>
-                <div class="jpk-counter-label">Successful Laser Surgeries</div>
+                <div class="item">
+                    <span class="ico"><i class="bi bi-heart-pulse-fill"></i></span>
+                    <span class="num">15,000+</span>
+                    <span class="lbl">Successful Surgeries</span>
+                </div>
             </div>
             <div class="col-6 col-md-3">
-                <h2 class="jpk-counter-number">7+</h2>
-                <div class="jpk-counter-label">Advanced Clinic Branches</div>
+                <div class="item">
+                    <span class="ico"><i class="bi bi-building"></i></span>
+                    <span class="num">7+</span>
+                    <span class="lbl">Clinical Branches</span>
+                </div>
             </div>
             <div class="col-6 col-md-3">
-                <h2 class="jpk-counter-number">30 Min</h2>
-                <div class="jpk-counter-label">Daycare Laser Procedure</div>
+                <div class="item">
+                    <span class="ico"><i class="bi bi-clock"></i></span>
+                    <span class="num">30 Min</span>
+                    <span class="lbl">Daycare Procedure</span>
+                </div>
             </div>
             <div class="col-6 col-md-3">
-                <h2 class="jpk-counter-number">100%</h2>
-                <div class="jpk-counter-label">Cashless TPA Coverage</div>
+                <div class="item">
+                    <span class="ico"><i class="bi bi-shield-check"></i></span>
+                    <span class="num">100%</span>
+                    <span class="lbl">Cashless TPA</span>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Why Choose -->
-<section class="jpk-why-section">
-    <div class="jpk-why-bg-decor"></div>
+<!-- ============================================
+     WHY CHOOSE US
+     ============================================ -->
+<section class="jpk-section jpk-features">
     <div class="container">
-        <div class="jpk-section-header">
-            <span class="jpk-section-tag">The Janki Advantage</span>
-            <h2>Why Patients Trust Janki Piles Clinic</h2>
-            <p>We combine world-class German laser technology with compassionate, patient-first proctology care.</p>
+        <div class="head">
+            <span class="tag">The Janki Advantage</span>
+            <h2>Why Patients Trust Us</h2>
+            <p>World-class German laser technology with compassionate care.</p>
         </div>
-        <div class="row g-4">
+        <div class="row g-3">
             <div class="col-md-4">
                 <div class="jpk-feature-card">
-                    <div class="jpk-feature-icon">
-                        <i class="bi bi-shield-lock-fill"></i>
-                    </div>
-                    <h5>Zero Cuts & Stitches</h5>
-                    <p>Laser energy shrink hemorrhoid nodes internally without scalpel cuts, eliminating open painful wounds and stitches.</p>
+                    <div class="ico"><i class="bi bi-shield-lock-fill"></i></div>
+                    <h5>Zero Cuts &amp; Stitches</h5>
+                    <p>Laser energy shrinks hemorrhoid nodes internally without scalpel cuts.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="jpk-feature-card">
-                    <div class="jpk-feature-icon">
-                        <i class="bi bi-clock-history"></i>
-                    </div>
+                    <div class="ico"><i class="bi bi-clock-history"></i></div>
                     <h5>Same-Day Discharge</h5>
-                    <p>Walk in for daycare surgery in the morning and return home comfortably by afternoon. Resume office within 24-48 hours.</p>
+                    <p>Walk in for daycare surgery and return home comfortably by afternoon.</p>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="jpk-feature-card">
-                    <div class="jpk-feature-icon">
-                        <i class="bi bi-heart-pulse-fill"></i>
-                    </div>
+                    <div class="ico"><i class="bi bi-heart-pulse-fill"></i></div>
                     <h5>Sphincter Preserving</h5>
-                    <p>High-precision laser targets only diseased tissue, preserving 100% of anal sphincter control with zero incontinence risk.</p>
+                    <p>High-precision laser preserves 100% of anal sphincter control.</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Treatments -->
-<section class="jpk-treatments-section">
+<!-- ============================================
+     TREATMENTS
+     ============================================ -->
+<section class="jpk-section jpk-treatments">
     <div class="container">
-        <div class="jpk-section-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-            <div>
-                <span class="jpk-section-tag">Our Clinical Specialties</span>
-                <h2>Advanced Laser Procedures</h2>
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div class="head text-start" style="max-width:100%;margin:0;">
+                <span class="tag">Our Specialties</span>
+                <h2 style="font-size:1.8rem;">Advanced Laser Procedures</h2>
             </div>
-            <a href="<?= site_url('/treatments') ?>" class="jpk-btn-outline">
-                View All Treatments <i class="bi bi-arrow-right ms-1"></i>
+            <a href="<?= site_url('/treatments') ?>" class="jpk-btn-outline" style="padding:0.3rem 1.2rem;font-size:0.75rem;">
+                View All <i class="bi bi-arrow-right ms-1"></i>
             </a>
         </div>
-        <div class="row g-4">
+        <div class="row g-3">
             <?php if (empty($treatments)): ?>
-                <div class="text-center py-5 text-muted col-12">No treatments available currently.</div>
+                <div class="text-center py-4 text-muted col-12">No treatments available.</div>
             <?php else: ?>
                 <?php 
                 $iconMap = [
@@ -167,31 +740,15 @@
                 ?>
                     <div class="col-md-4">
                         <div class="jpk-treatment-card">
-                            <div class="jpk-treatment-accent"></div>
-                            <div class="jpk-treatment-body">
-                                <div class="jpk-treatment-top">
-                                    <div class="jpk-treatment-icon">
-                                        <i class="bi <?= $iconClass ?>"></i>
-                                    </div>
-                                    <span class="jpk-treatment-badge">
-                                        <i class="bi bi-lightning-charge-fill me-1"></i> Daycare Laser
-                                    </span>
-                                </div>
-                                <h5 class="jpk-treatment-title"><?= esc($tr['title']) ?></h5>
-                                <p class="jpk-treatment-desc"><?= esc($tr['content']) ?></p>
-                                <div class="jpk-treatment-highlights">
-                                    <span><i class="bi bi-check-circle-fill"></i> Zero Cuts</span>
-                                    <span><i class="bi bi-check-circle-fill"></i> 24h Recovery</span>
-                                    <span><i class="bi bi-check-circle-fill"></i> Cashless TPA</span>
-                                </div>
-                                <div class="jpk-treatment-actions">
-                                    <a href="<?= site_url('/treatments/' . $tr['slug']) ?>" class="jpk-btn-sm-primary">
-                                        Learn Procedure <i class="bi bi-arrow-right-short"></i>
-                                    </a>
-                                    <a href="<?= site_url('/appointments/book') ?>" class="jpk-btn-sm-outline">
-                                        Book Slot
-                                    </a>
-                                </div>
+                            <div class="top">
+                                <div class="ico"><i class="bi <?= $iconClass ?>"></i></div>
+                                <span class="badge"><i class="bi bi-lightning-charge-fill me-1"></i> Laser</span>
+                            </div>
+                            <h5><?= esc($tr['title']) ?></h5>
+                            <p class="desc"><?= esc($tr['content']) ?></p>
+                            <div class="actions">
+                                <a href="<?= site_url('/treatments/' . $tr['slug']) ?>" class="btn-sm">Learn More</a>
+                                <a href="<?= site_url('/appointments/book') ?>" class="btn-sm-out">Book Slot</a>
                             </div>
                         </div>
                     </div>
@@ -201,43 +758,46 @@
     </div>
 </section>
 
-<!-- Insurance Banner -->
-<section class="jpk-insurance-section">
-    <div class="jpk-insurance-pattern"></div>
+<!-- ============================================
+     INSURANCE BANNER
+     ============================================ -->
+<section class="jpk-insurance">
     <div class="container">
-        <div class="row align-items-center g-4">
+        <div class="row align-items-center g-3">
             <div class="col-lg-8">
-                <span class="jpk-insurance-badge">100% CASHLESS TPA SUPPORT</span>
-                <h2>Covered Under Major Health Insurance Policies</h2>
-                <p>We are empaneled with Star Health, HDFC ERGO, ICICI Lombard, Niva Bupa, Care Health, and all major PSU insurers. Free pre-authorization assistance.</p>
+                <span class="badge"><i class="bi bi-shield-check me-1"></i> 100% Cashless TPA</span>
+                <h2>Covered Under Major Health Insurance</h2>
+                <p>Empaneled with Star Health, HDFC ERGO, ICICI Lombard, Niva Bupa, Care Health &amp; all major PSU insurers.</p>
             </div>
             <div class="col-lg-4 text-lg-end">
                 <a href="<?= site_url('/insurance') ?>" class="jpk-btn-light">
-                    <i class="bi bi-shield-check me-1"></i> Check Cashless Eligibility
+                    <i class="bi bi-shield-check me-1"></i> Check Eligibility
                 </a>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Reviews -->
-<section class="jpk-reviews-section">
+<!-- ============================================
+     TESTIMONIALS
+     ============================================ -->
+<section class="jpk-section jpk-testimonials">
     <div class="container">
-        <div class="jpk-section-header">
-            <span class="jpk-section-tag">Patient Feedback</span>
+        <div class="head">
+            <span class="tag">Patient Feedback</span>
             <h2>Real Recovery Stories</h2>
         </div>
-        <div class="row g-4 justify-content-center">
+        <div class="row g-3">
             <?php foreach ($testimonials as $t): ?>
                 <div class="col-md-6">
-                    <div class="jpk-review-card">
-                        <div class="jpk-review-stars">
+                    <div class="jpk-testimonial-card">
+                        <div class="stars">
                             <?php for($i=1; $i<=5; $i++): ?>
                                 <i class="bi bi-star<?= $i <= $t['rating'] ? '-fill' : '' ?>"></i>
                             <?php endfor; ?>
                         </div>
-                        <p class="jpk-review-text">"<?= esc($t['review_text']) ?>"</p>
-                        <div class="jpk-review-author">- <?= esc($t['author']) ?></div>
+                        <p class="quote">"<?= esc($t['review_text']) ?>"</p>
+                        <div class="author">- <?= esc($t['author']) ?></div>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -245,666 +805,51 @@
     </div>
 </section>
 
-<!-- FAQs -->
-<section class="jpk-faq-section">
-    <div class="container" style="max-width:850px;">
-        <div class="jpk-section-header">
-            <span class="jpk-section-tag">Got Questions?</span>
+<!-- ============================================
+     FAQS
+     ============================================ -->
+<section class="jpk-faq">
+    <div class="container" style="max-width:820px;">
+        <div class="head">
+            <span class="tag">Got Questions?</span>
             <h2>Frequently Asked Questions</h2>
         </div>
-        <div class="jpk-accordion" id="faqAccordion">
+        <div class="faq-list">
             <?php foreach ($faqs as $index => $faq): ?>
-                <div class="jpk-accordion-item">
-                    <div class="jpk-accordion-header" id="heading-<?= $index ?>">
-                        <button class="jpk-accordion-btn <?= $index > 0 ? 'collapsed' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-<?= $index ?>">
-                            <i class="bi bi-question-circle"></i> <?= esc($faq['q']) ?>
-                        </button>
-                    </div>
-                    <div id="collapse-<?= $index ?>" class="jpk-accordion-collapse collapse <?= $index === 0 ? 'show' : '' ?>" data-bs-parent="#faqAccordion">
-                        <div class="jpk-accordion-body">
-                            <?= esc($faq['a']) ?>
-                        </div>
+                <div class="faq-item">
+                    <button class="q" onclick="toggleFaq(this)">
+                        <span><i class="bi bi-question-circle text-emerald me-2"></i> <?= esc($faq['q']) ?></span>
+                        <span class="icon"><i class="bi bi-chevron-down"></i></span>
+                    </button>
+                    <div class="a <?= $index === 0 ? 'open' : '' ?>">
+                        <?= esc($faq['a']) ?>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-        <div class="text-center mt-4">
-            <a href="<?= site_url('/faqs') ?>" class="jpk-btn-outline">
-                Read All 100 Patient FAQs <i class="bi bi-arrow-right ms-1"></i>
+        <div class="text-center mt-3">
+            <a href="<?= site_url('/faqs') ?>" class="jpk-btn-outline" style="padding:0.3rem 1.2rem;font-size:0.75rem;">
+                Read All FAQs <i class="bi bi-arrow-right ms-1"></i>
             </a>
         </div>
     </div>
 </section>
 
-<style>
-/* ===== JANKI PILES CLINIC - UNIQUE STYLES ===== */
-/* All classes prefixed with 'jpk-' to avoid conflicts */
-
-/* ----- reset & base ----- */
-.jpk-text-emerald { color: #0f7b6e; }
-
-/* ----- hero section ----- */
-.jpk-hero-section {
-    background: linear-gradient(145deg, #f1f8f6 0%, #e6f2ef 100%);
-    position: relative;
-    overflow: hidden;
-    padding: 4rem 0;
-    min-height: 520px;
-}
-.jpk-hero-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://images.unsplash.com/photo-1584362917165-526a96857948?w=1200&q=80');
-    background-size: cover;
-    background-position: center 20%;
-    opacity: 0.06;
-    animation: jpk-zoom 18s infinite alternate ease-in-out;
-    z-index: 0;
-}
-@keyframes jpk-zoom {
-    0% { transform: scale(1); }
-    100% { transform: scale(1.08); }
-}
-.jpk-hero-container {
-    position: relative;
-    z-index: 3;
-}
-
-.jpk-badge-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: rgba(15,123,110,0.1);
-    color: #0f7b6e;
-    border: 1px solid rgba(15,123,110,0.25);
-    padding: 0.4rem 1.2rem;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    margin-bottom: 1.2rem;
-    animation: jpk-pulse 2.2s infinite;
-}
-@keyframes jpk-pulse {
-    0% { opacity: 0.8; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.03); }
-    100% { opacity: 0.8; transform: scale(1); }
-}
-
-.jpk-hero-title {
-    font-size: 3rem;
-    font-weight: 800;
-    color: #1a2634;
-    line-height: 1.15;
-    letter-spacing: -0.5px;
-    margin-bottom: 1rem;
-}
-.jpk-hero-subtitle {
-    font-size: 1.25rem;
-    color: #6c757d;
-    margin-bottom: 1.5rem;
-}
-.jpk-hero-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-.jpk-hero-features {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    color: #6c757d;
-    font-size: 0.9rem;
-    border-top: 1px solid #dee2e6;
-    padding-top: 1rem;
-}
-.jpk-hero-features span i {
-    color: #0f7b6e;
-    margin-right: 0.3rem;
-}
-
-/* ----- buttons ----- */
-.jpk-btn-primary {
-    background: #0f7b6e;
-    border: 1px solid #0f7b6e;
-    color: #fff;
-    padding: 0.8rem 2rem;
-    border-radius: 50px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: inline-flex;
-    align-items: center;
-}
-.jpk-btn-primary:hover {
-    background: #0d6b5f;
-    border-color: #0d6b5f;
-    color: #fff;
-    transform: scale(1.02);
-    box-shadow: 0 12px 24px -10px rgba(15,123,110,0.3);
-}
-
-.jpk-btn-outline-danger {
-    border: 1px solid #dc3545;
-    color: #dc3545;
-    padding: 0.8rem 2rem;
-    border-radius: 50px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: inline-flex;
-    align-items: center;
-    background: transparent;
-}
-.jpk-btn-outline-danger:hover {
-    background: #dc3545;
-    color: #fff;
-}
-
-.jpk-btn-outline {
-    border: 1px solid #0f7b6e;
-    color: #0f7b6e;
-    padding: 0.6rem 1.8rem;
-    border-radius: 50px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: inline-flex;
-    align-items: center;
-    background: transparent;
-}
-.jpk-btn-outline:hover {
-    background: #0f7b6e;
-    color: #fff;
-}
-
-.jpk-btn-light {
-    background: #fff;
-    color: #0f7b6e;
-    padding: 0.8rem 2rem;
-    border-radius: 50px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: inline-flex;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-.jpk-btn-light:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-}
-
-.jpk-btn-sm-primary {
-    background: #0f7b6e;
-    color: #fff;
-    padding: 0.4rem 1.2rem;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: inline-flex;
-    align-items: center;
-}
-.jpk-btn-sm-primary:hover {
-    background: #0d6b5f;
-    color: #fff;
-}
-
-.jpk-btn-sm-outline {
-    border: 1px solid #0f7b6e;
-    color: #0f7b6e;
-    padding: 0.4rem 1.2rem;
-    border-radius: 50px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.25s;
-    display: inline-flex;
-    align-items: center;
-    background: transparent;
-}
-.jpk-btn-sm-outline:hover {
-    background: #0f7b6e;
-    color: #fff;
-}
-
-.jpk-btn-submit {
-    background: #0f7b6e;
-    border: none;
-    color: #fff;
-    padding: 0.9rem;
-    border-radius: 50px;
-    font-weight: 600;
-    font-size: 1.1rem;
-    width: 100%;
-    transition: all 0.25s;
-}
-.jpk-btn-submit:hover {
-    background: #0d6b5f;
-    transform: scale(1.01);
-}
-
-/* ----- glass card ----- */
-.jpk-glass-card {
-    background: rgba(255,255,255,0.82);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,0.5);
-    border-radius: 1.25rem;
-    padding: 1.8rem;
-    box-shadow: 0 20px 40px -12px rgba(0,0,0,0.06);
-    transition: all 0.3s;
-}
-.jpk-glass-card:hover {
-    box-shadow: 0 28px 48px -16px rgba(0,0,0,0.1);
-}
-.jpk-card-header {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-.jpk-card-header .jpk-badge-danger {
-    background: #dc3545;
-    color: #fff;
-    padding: 0.3rem 1.2rem;
-    border-radius: 50px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    display: inline-block;
-    margin-bottom: 0.5rem;
-}
-.jpk-card-header h4 {
-    font-weight: 700;
-    color: #1a2634;
-    margin-bottom: 0.2rem;
-}
-.jpk-card-header p {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
-
-.jpk-form-group {
-    margin-bottom: 1.2rem;
-}
-.jpk-form-group label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #1a2634;
-    display: block;
-    margin-bottom: 0.3rem;
-}
-.jpk-form-group input,
-.jpk-form-group select {
-    width: 100%;
-    padding: 0.7rem 1rem;
-    border: 1px solid #dee2e6;
-    border-radius: 0.75rem;
-    font-size: 1rem;
-    transition: border 0.2s;
-    background: #fff;
-}
-.jpk-form-group input:focus,
-.jpk-form-group select:focus {
-    border-color: #0f7b6e;
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(15,123,110,0.15);
-}
-.jpk-input-group {
-    display: flex;
-    align-items: stretch;
-}
-.jpk-input-prefix {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-right: none;
-    padding: 0.7rem 1rem;
-    border-radius: 0.75rem 0 0 0.75rem;
-    font-weight: 700;
-    color: #6c757d;
-    display: flex;
-    align-items: center;
-}
-.jpk-input-group input {
-    border-radius: 0 0.75rem 0.75rem 0;
-    border-left: none;
-}
-
-/* ----- counters ----- */
-.jpk-counters-section {
-    padding: 3rem 0;
-    background: #fff;
-    border-bottom: 1px solid #e9edf2;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-}
-.jpk-counter-number {
-    font-size: 2.8rem;
-    font-weight: 800;
-    color: #0f7b6e;
-    margin-bottom: 0.2rem;
-}
-.jpk-counter-label {
-    color: #6c757d;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
-/* ----- section headers ----- */
-.jpk-section-header {
-    text-align: center;
-    max-width: 700px;
-    margin: 0 auto 3rem;
-}
-.jpk-section-header .jpk-section-tag {
-    color: #0f7b6e;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-size: 0.85rem;
-    display: block;
-}
-.jpk-section-header h2 {
-    font-weight: 800;
-    color: #1a2634;
-    font-size: 2.5rem;
-    margin: 0.3rem 0;
-}
-.jpk-section-header p {
-    color: #6c757d;
-}
-
-/* ----- why section ----- */
-.jpk-why-section {
-    padding: 4rem 0;
-    background: #f8faf9;
-    position: relative;
-    overflow: hidden;
-}
-.jpk-why-bg-decor {
-    position: absolute;
-    top: -30%;
-    right: -5%;
-    width: 400px;
-    height: 400px;
-    background: radial-gradient(circle, rgba(15,123,110,0.03) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-}
-.jpk-feature-card {
-    background: #fff;
-    border-radius: 1.25rem;
-    padding: 2rem;
-    height: 100%;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-    transition: all 0.3s;
-    border: none;
-}
-.jpk-feature-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 20px 40px -14px rgba(0,0,0,0.08);
-}
-.jpk-feature-icon {
-    width: 58px;
-    height: 58px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 16px;
-    background: rgba(15,123,110,0.08);
-    color: #0f7b6e;
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-}
-.jpk-feature-card h5 {
-    font-weight: 700;
-    color: #1a2634;
-    margin-bottom: 0.5rem;
-}
-.jpk-feature-card p {
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-bottom: 0;
-    line-height: 1.6;
-}
-
-/* ----- treatments ----- */
-.jpk-treatments-section {
-    padding: 4rem 0;
-    background: #fff;
-    border-top: 1px solid #e9edf2;
-}
-.jpk-treatment-card {
-    background: #fff;
-    border-radius: 1.25rem;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-    transition: all 0.3s;
-    height: 100%;
-    position: relative;
-    border: none;
-}
-.jpk-treatment-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 24px 48px -16px rgba(0,0,0,0.1);
-}
-.jpk-treatment-accent {
-    height: 4px;
-    background: linear-gradient(90deg, #0f7b6e, #3aa395);
-    width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-.jpk-treatment-body {
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-.jpk-treatment-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-.jpk-treatment-icon {
-    width: 48px;
-    height: 48px;
-    background: rgba(15,123,110,0.06);
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.6rem;
-    color: #0f7b6e;
-}
-.jpk-treatment-badge {
-    background: rgba(15,123,110,0.08);
-    color: #0f7b6e;
-    border: 1px solid rgba(15,123,110,0.15);
-    padding: 0.3rem 1rem;
-    border-radius: 50px;
-    font-size: 0.75rem;
-    font-weight: 700;
-}
-.jpk-treatment-title {
-    font-weight: 800;
-    color: #1a2634;
-    font-size: 1.15rem;
-    margin-bottom: 0.5rem;
-}
-.jpk-treatment-desc {
-    color: #6c757d;
-    font-size: 0.9rem;
-    line-height: 1.6;
-    flex-grow: 1;
-    margin-bottom: 1rem;
-}
-.jpk-treatment-highlights {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.8rem;
-    background: #f6f8fa;
-    padding: 0.6rem 1rem;
-    border-radius: 0.75rem;
-    margin-bottom: 1.2rem;
-    font-size: 0.8rem;
-    color: #6c757d;
-}
-.jpk-treatment-highlights span i {
-    color: #0f7b6e;
-    margin-right: 0.3rem;
-}
-.jpk-treatment-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.8rem;
-    border-top: 1px solid #e9edf2;
-}
-
-/* ----- insurance ----- */
-.jpk-insurance-section {
-    padding: 4rem 0;
-    background: #0f7b6e;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-}
-.jpk-insurance-pattern {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="%23ffffff" fill-opacity="0.04"%3E%3Cpath d="M30 0 L60 30 L30 60 L0 30 Z"/%3E%3C/g%3E%3C/svg%3E');
-    pointer-events: none;
-}
-.jpk-insurance-section .container {
-    position: relative;
-    z-index: 2;
-}
-.jpk-insurance-badge {
-    background: #fff;
-    color: #1a2634;
-    padding: 0.3rem 1.2rem;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 0.8rem;
-    display: inline-block;
-    margin-bottom: 0.8rem;
-}
-.jpk-insurance-section h2 {
-    font-weight: 800;
-    font-size: 2.5rem;
-    margin-bottom: 0.8rem;
-}
-.jpk-insurance-section p {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin-bottom: 0;
-}
-
-/* ----- reviews ----- */
-.jpk-reviews-section {
-    padding: 4rem 0;
-    background: #fff;
-    border-top: 1px solid #e9edf2;
-}
-.jpk-review-card {
-    background: #f8faf9;
-    border-radius: 1.25rem;
-    padding: 1.8rem;
-    height: 100%;
-    transition: all 0.3s;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
-}
-.jpk-review-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px -12px rgba(0,0,0,0.06);
-}
-.jpk-review-stars {
-    color: #f59e0b;
-    font-size: 1.1rem;
-    margin-bottom: 0.8rem;
-}
-.jpk-review-text {
-    color: #1a2634;
-    font-size: 1.05rem;
-    font-style: italic;
-    margin-bottom: 0.8rem;
-}
-.jpk-review-author {
-    color: #0f7b6e;
-    font-weight: 700;
-    text-align: right;
-}
-
-/* ----- faq ----- */
-.jpk-faq-section {
-    padding: 4rem 0;
-    background: #f8faf9;
-    border-top: 1px solid #e9edf2;
-}
-.jpk-accordion {
-    border-radius: 1.25rem;
-    overflow: hidden;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.03);
-}
-.jpk-accordion-item {
-    background: #fff;
-    border-bottom: 1px solid #e9edf2;
-}
-.jpk-accordion-item:last-child {
-    border-bottom: none;
-}
-.jpk-accordion-btn {
-    width: 100%;
-    padding: 1.2rem 1.5rem;
-    background: transparent;
-    border: none;
-    font-weight: 700;
-    color: #1a2634;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-.jpk-accordion-btn i {
-    color: #0f7b6e;
-    font-size: 1.2rem;
-}
-.jpk-accordion-btn:hover {
-    background: #f8faf9;
-}
-.jpk-accordion-btn.collapsed .bi-question-circle {
-    color: #0f7b6e;
-}
-.jpk-accordion-collapse {
-    transition: all 0.25s;
-}
-.jpk-accordion-body {
-    padding: 0 1.5rem 1.5rem 1.5rem;
-    color: #6c757d;
-    line-height: 1.7;
-}
-
-/* ----- responsive tweaks ----- */
-@media (max-width: 768px) {
-    .jpk-hero-title { font-size: 2.2rem; }
-    .jpk-hero-section { padding: 2.5rem 0; min-height: auto; }
-    .jpk-counter-number { font-size: 2.2rem; }
-    .jpk-section-header h2 { font-size: 2rem; }
-    .jpk-insurance-section h2 { font-size: 2rem; }
-    .jpk-why-section, .jpk-treatments-section, .jpk-insurance-section,
-    .jpk-reviews-section, .jpk-faq-section { padding: 2.5rem 0; }
-}
-</style>
+<script>
+function toggleFaq(btn) {
+    const answer = btn.nextElementSibling;
+    const isOpen = answer.classList.contains('open');
+    document.querySelectorAll('.faq-a').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.faq-q').forEach(el => el.classList.remove('active'));
+    if (!isOpen) {
+        answer.classList.add('open');
+        btn.classList.add('active');
+    }
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const first = document.querySelector('.faq-q');
+    if (first) { first.classList.add('active'); }
+});
+</script>
 
 <?php include VIEWS_PATH . '/layout/public_footer.php'; ?>
