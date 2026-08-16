@@ -7,7 +7,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card border-0 shadow-sm p-4">
-            <form action="<?= site_url('/admin/reception/billing/pay') ?>" method="POST">
+            <form action="<?= site_url('/reception/billing/pay') ?>" method="POST">
                 <?= csrf_field() ?>
                 <input type="hidden" name="bill_id" value="<?= $bill['id'] ?>">
 
@@ -69,7 +69,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                 </div>
 
                 <div class="text-end pt-3 border-top">
-                    <a href="<?= site_url('/admin/reception/billing') ?>" class="btn btn-outline-secondary btn-sm px-3 me-2">Cancel</a>
+                    <a href="<?= site_url('/reception/billing') ?>" class="btn btn-outline-secondary btn-sm px-3 me-2">Cancel</a>
                     <button type="submit" class="btn btn-success btn-sm px-4 shadow-sm">
                         <i class="bi bi-check-circle-fill me-1"></i> Complete Collection
                     </button>

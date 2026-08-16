@@ -107,29 +107,34 @@ class DoctorController
     /**
      * View Patient Medical History, Timeline, Visits, Prescriptions, Read-Only Bills.
      */
-    public function patientHistory(array $params): void
-    {
-        Permission::checkPortal('doctor');
-        $id = (int)($params['id'] ?? 0);
-        $patient = Patient::find($id);
+     /**
+ * View Patient Medical History, Timeline, Visits, Prescriptions, Read-Only Bills - NO BED
+ */
+public function patientHistory(array $params): void
+{
+    Permission::checkPortal('doctor');
+    $id = (int)($params['id'] ?? 0);
+    $patient = Patient::find($id);
 
-        if (!$patient) {
-            Session::setFlash('error', 'Patient not found.');
-            redirect('/doctor/patients');
-        }
-
-        $timeline = Patient::getTimeline($id);
-        $prescriptions = Prescription::getByPatient($id);
-        $bills = Database::all("SELECT * FROM billing WHERE patient_id = :id ORDER BY id DESC", ['id' => $id]);
-
-        view('admin.doctor.patient_history', [
-            'title' => 'Patient Clinical Timeline - ' . $patient['name'],
-            'patient' => $patient,
-            'timeline' => $timeline,
-            'prescriptions' => $prescriptions,
-            'bills' => $bills
-        ]);
+    if (!$patient) {
+        Session::setFlash('error', 'Patient not found.');
+        redirect('/doctor/patients');
+        return;
     }
+
+    $timeline = Patient::getTimeline($id);
+    $prescriptions = Prescription::getByPatient($id);
+    $bills = Database::all("SELECT * FROM billing WHERE patient_id = :id ORDER BY id DESC", ['id' => $id]);
+
+    view('admin.doctor.patient_history', [
+        'title' => 'Patient Clinical Timeline - ' . $patient['name'],
+        'patient' => $patient,
+        'timeline' => $timeline,
+        'prescriptions' => $prescriptions,
+        'bills' => $bills,
+        'activePage' => 'doctor_patients'
+    ]);
+}
 
     /**
      * OPD Patient Queue view.

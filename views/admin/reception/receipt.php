@@ -8,7 +8,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
     <button onclick="window.print()" class="btn btn-primary btn-sm px-4 shadow-sm">
         <i class="bi bi-printer-fill me-1"></i> Print Receipt
     </button>
-    <a href="<?= site_url('/admin/reception/billing') ?>" class="btn btn-outline-secondary btn-sm px-3 ms-2">
+    <a href="<?= site_url('/reception/billing') ?>" class="btn btn-outline-secondary btn-sm px-3 ms-2">
         Back to Invoices
     </a>
 </div>

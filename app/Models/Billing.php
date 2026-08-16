@@ -14,6 +14,8 @@ class Billing
     public static function createBilling(array $data): ?int
     {
         try {
+            $db = Database::getInstance();
+            
             $sql = "INSERT INTO billing (patient_id, branch_id, type, reference_id, subtotal, discount, tax, gst, total, paid_amount, outstanding, payment_status, payment_method, created_at, updated_at) 
                     VALUES (:patient_id, :branch_id, :type, :reference_id, :subtotal, :discount, :tax, :gst, :total, :paid_amount, :outstanding, :payment_status, :payment_method, NOW(), NOW())";
             
@@ -30,7 +32,7 @@ class Billing
 
             $status = $data['payment_status'] ?? ($outstanding <= 0.00 ? 'paid' : ($paid > 0.00 ? 'partial' : 'unpaid'));
 
-            $success = Database::execute($sql, [
+            $success = $db->execute($sql, [
                 'patient_id' => $data['patient_id'],
                 'branch_id' => $data['branch_id'],
                 'type' => $data['type'],
@@ -46,7 +48,7 @@ class Billing
                 'payment_method' => $data['payment_method'] ?? 'none'
             ]);
             
-            return $success ? (int)Database::lastInsertId() : null;
+            return $success ? (int)$db->lastInsertId() : null;
         } catch (\Throwable $e) {
             Logger::error("Failed to create billing record: " . $e->getMessage());
             return null;
@@ -91,6 +93,7 @@ class Billing
             return false;
         }
 
+        $db = Database::getInstance();
         $total = (float)$bill['total'];
         $paid = (float)$data['paid_amount'];
         $outstanding = $total - $paid;
@@ -108,13 +111,15 @@ class Billing
                     updated_at = NOW() 
                 WHERE id = :id";
         
-        return Database::execute($sql, [
+        $result = $db->execute($sql, [
             'id' => $billId,
             'paid' => $paid,
             'outstanding' => $outstanding,
             'status' => $status,
             'method' => $data['payment_method']
         ]);
+        
+        return $result > 0;
     }
 
     /**
@@ -127,6 +132,7 @@ class Billing
             return false;
         }
 
+        $db = Database::getInstance();
         $paid = (float)$bill['paid_amount'];
         if ($refundAmount > $paid) {
             return false; // Cannot refund more than paid
@@ -141,7 +147,7 @@ class Billing
                     updated_at = NOW()
                 WHERE id = :id";
 
-        return Database::execute($sql, [
+        $result = $db->execute($sql, [
             'ref_amt1' => $refundAmount,
             'ref_amt2' => $refundAmount,
             'ref_amt3' => $refundAmount,
@@ -149,6 +155,8 @@ class Billing
             'reason' => $reason,
             'id' => $billId
         ]);
+        
+        return $result > 0;
     }
 
     /**
@@ -231,6 +239,3 @@ class Billing
         ];
     }
 }
-
-
-

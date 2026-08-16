@@ -858,34 +858,35 @@ class ReceptionController
     /**
      * Discharge Processing Console.
      */
-    public function dischargeIndex(): void
-    {
-        Permission::checkPortal('reception');
-        $user = Session::user();
-        $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
+     /**
+ * Discharge Processing Console.
+ */
+public function dischargeIndex(): void
+{
+    Permission::checkPortal('reception');
+    $user = Session::user();
+    $branchId = $user['branch_id'] ? (int)$user['branch_id'] : null;
 
-        $approvedSql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
-                               u.username as doctor_name, b.bed_number, r.room_number 
-                        FROM ipd_admissions a
-                        JOIN patients p ON a.patient_id = p.id
-                        JOIN users u ON a.doctor_id = u.id
-                        JOIN ipd_beds b ON a.bed_id = b.id
-                        JOIN ipd_rooms r ON b.room_id = r.id
-                        WHERE a.status = 'admitted' AND a.discharge_approval = 'approved'";
-        $params = [];
-        if ($branchId) {
-            $approvedSql .= " AND p.branch_id = ?";
-            $params[] = $branchId;
-        }
-
-        $approvedDischarges = Database::all($approvedSql, $params);
-
-        view('admin.ipd.discharge_list', [
-            'title' => 'Doctor Approved Discharge List',
-            'approved' => $approvedDischarges,
-            'branchId' => $branchId
-        ]);
+    $approvedSql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, 
+                           u.username as doctor_name 
+                    FROM ipd_admissions a
+                    JOIN patients p ON a.patient_id = p.id
+                    JOIN users u ON a.doctor_id = u.id
+                    WHERE a.status = 'admitted' AND a.discharge_approval = 'approved'";
+    $params = [];
+    if ($branchId) {
+        $approvedSql .= " AND p.branch_id = ?";
+        $params[] = $branchId;
     }
+
+    $approvedDischarges = Database::all($approvedSql, $params);
+
+    view('admin.ipd.discharge_list', [
+        'title' => 'Doctor Approved Discharge List',
+        'approved' => $approvedDischarges,
+        'branchId' => $branchId
+    ]);
+}
 
     /**
      * Complete Final Billing and Patient Checkout.

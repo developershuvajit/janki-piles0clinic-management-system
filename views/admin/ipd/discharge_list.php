@@ -19,7 +19,6 @@ include VIEWS_PATH . '/layout/reception_header.php';
                         <th>Admission #</th>
                         <th>Patient Name</th>
                         <th>Attending Doctor</th>
-                        <th>Room / Bed</th>
                         <th>Admission Date</th>
                         <th>Doctor Approval</th>
                         <th class="text-end">Checkout Action</th>
@@ -28,7 +27,7 @@ include VIEWS_PATH . '/layout/reception_header.php';
                 <tbody>
                     <?php if (empty($approved)): ?>
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No doctor-approved discharges awaiting checkout.</td>
+                            <td colspan="6" class="text-center py-4 text-muted">No doctor-approved discharges awaiting checkout.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($approved as $app): ?>
@@ -39,7 +38,6 @@ include VIEWS_PATH . '/layout/reception_header.php';
                                     <div class="small text-muted">Code: <?= esc($app['patient_code']) ?></div>
                                 </td>
                                 <td>Dr. <?= esc($app['doctor_name']) ?></td>
-                                <td><?= esc($app['room_number']) ?> (Bed <?= esc($app['bed_number']) ?>)</td>
                                 <td class="small text-muted"><?= date('d M Y, h:i A', strtotime($app['admission_date'])) ?></td>
                                 <td><span class="badge bg-success px-2.5 py-1"><i class="bi bi-check-circle-fill me-1"></i> Doctor Approved</span></td>
                                 <td class="text-end">

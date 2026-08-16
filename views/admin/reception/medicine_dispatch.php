@@ -41,7 +41,7 @@ include VIEWS_PATH . '/layout/reception_header.php';
                         </td>
                         <td class="small"><?= esc($row['duration']) ?></td>
                         <td class="text-end">
-                            <a href="<?= site_url('/admin/reception/medicine-issue/dispatch/' . $row['id']) ?>" class="btn btn-sm btn-success px-3 py-1 shadow-sm">
+                            <a href="<?= site_url('/reception/medicine-issue/dispatch/' . $row['id']) ?>" class="btn btn-sm btn-success px-3 py-1 shadow-sm">
                                 <i class="bi bi-box-arrow-right me-1"></i> Issue
                             </a>
                         </td>
