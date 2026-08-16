@@ -1,9 +1,13 @@
 <?php
+// ============================================
+// RECEPTION SIDEBAR - FINAL VERSION
+// ============================================
 $user = \App\Helpers\Session::user();
 $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
 $branchId = $user['branch_id'] ?? null;
 $branchName = 'Main Branch';
 
+// Branch Name বের করা
 if ($branchId) {
     $b = \App\Models\Branch::find((int)$branchId);
     if ($b) {
@@ -20,6 +24,10 @@ if ($roleSlug !== 'receptionist') {
     include __DIR__ . '/admin_header.php';
     return;
 }
+
+// Active Page এবং HR Active চেক করা (এই লাইনগুলো খুব গুরুত্বপূর্ণ)
+$currentPage = $activePage ?? '';
+$isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_attendance_report', 'reception_id_cards'], true);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,7 +56,6 @@ if ($roleSlug !== 'receptionist') {
            RECEPTION LAYOUT - FIXED & RESPONSIVE
            ============================================ */
         
-        /* ----- Reset & Base ----- */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body { 
             height: 100%; 
@@ -60,17 +67,13 @@ if ($roleSlug !== 'receptionist') {
             flex-direction: column; 
             min-height: 100vh; 
         }
-        
-        /* ----- Admin Wrapper ----- */
         .admin-wrapper { 
             display: flex; 
             flex: 1; 
             min-height: 100vh; 
         }
         
-        /* ============================================
-           SIDEBAR - FIXED
-           ============================================ */
+        /* Sidebar */
         .sidebar-reception {
             background: #0b1a2b;
             width: 280px;
@@ -93,7 +96,6 @@ if ($roleSlug !== 'receptionist') {
             padding-right: 2px;
         }
         .sidebar-reception .sidebar-scroll::-webkit-scrollbar { width: 3px; }
-        .sidebar-reception .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
         .sidebar-reception .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
         .sidebar-reception .sidebar-footer {
             flex-shrink: 0;
@@ -307,9 +309,7 @@ if ($roleSlug !== 'receptionist') {
             border-color: #ef4444;
         }
 
-        /* ============================================
-           TOP BAR
-           ============================================ */
+        /* Top Bar */
         .admin-topbar-clean {
             background: #fff;
             padding: 0.7rem 1.5rem;
@@ -443,9 +443,7 @@ if ($roleSlug !== 'receptionist') {
             margin-right: 0.3rem;
         }
 
-        /* ============================================
-           MAIN CONTENT
-           ============================================ */
+        /* Main Content */
         .admin-content {
             flex: 1;
             display: flex;
@@ -458,9 +456,7 @@ if ($roleSlug !== 'receptionist') {
             padding: 0 0.5rem 1.5rem 0.5rem;
         }
 
-        /* ============================================
-           FOOTER
-           ============================================ */
+        /* Footer */
         .admin-footer {
             font-size: 0.75rem;
             color: #6b7a8f;
@@ -476,9 +472,7 @@ if ($roleSlug !== 'receptionist') {
             flex-shrink: 0;
         }
 
-        /* ============================================
-           MOBILE RESPONSIVE
-           ============================================ */
+        /* Mobile Responsive */
         .sidebar-toggle-btn {
             display: none;
             background: transparent;
@@ -570,9 +564,7 @@ if ($roleSlug !== 'receptionist') {
             }
         }
 
-        /* ============================================
-           PAGE LOADER
-           ============================================ */
+        /* Page Loader */
         #page-loader {
             position: fixed;
             top: 0;
@@ -608,11 +600,6 @@ if ($roleSlug !== 'receptionist') {
     <!-- Mobile Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-    <!-- Page Loader -->
-    <div id="page-loader">
-        <div class="loader-ring"></div>
-    </div>
-
     <div class="admin-wrapper">
 
         <!-- ========== SIDEBAR ========== -->
@@ -638,7 +625,7 @@ if ($roleSlug !== 'receptionist') {
                 <hr class="sidebar-divider">
 
                 <?php
-                $currentPage = $activePage ?? '';
+                // Active Page & Menu Logic
                 $isOpdActive = in_array($currentPage, ['reception_dashboard', 'reception_queue', 'walk_in'], true);
                 $isPatientActive = in_array($currentPage, ['patients', 'patients_create', 'reception_followups'], true);
                 $isIpdActive = in_array($currentPage, ['reception_ipd', 'reception_ipd_admit', 'reception_ipd_beds'], true);
@@ -729,6 +716,30 @@ if ($roleSlug !== 'receptionist') {
                             </a>
                             <a class="nav-link <?= $currentPage === 'medicines_stock' ? 'active' : '' ?>" href="<?= site_url('/reception/medicines') ?>">
                                 <i class="bi bi-prescription2" style="color:#22c55e;"></i> Medicine Stock View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 🟢 HR & Operations (Reception) - FINAL FIXED VERSION -->
+                <div style="margin-bottom:0.2rem;">
+                    <button class="sidebar-accordion-header <?= $isHrActive ? 'active-header' : '' ?>" type="button" data-bs-toggle="collapse" data-bs-target="#rec-hr" aria-expanded="<?= $isHrActive ? 'true' : 'false' ?>">
+                        <span><i class="bi bi-people-fill" style="color:#3b82f6;margin-right:0.5rem;"></i> HR & Operations</span>
+                        <i class="bi bi-chevron-down chevron-icon"></i>
+                    </button>
+                    <div class="collapse <?= $isHrActive ? 'show' : '' ?>" id="rec-hr">
+                        <div class="sidebar-accordion-body">
+                            <!-- 1. QR Attendance Scan -->
+                            <a class="nav-link <?= $currentPage === 'reception_attendance_scan' ? 'active' : '' ?>" href="<?= site_url('/reception/attendance/scan') ?>">
+                                <i class="bi bi-qr-code-scan" style="color:#f59e0b;"></i> QR Attendance Scan
+                            </a>
+                            <!-- 2. Attendance Report -->
+                            <a class="nav-link <?= $currentPage === 'reception_attendance_report' ? 'active' : '' ?>" href="<?= site_url('/reception/attendance/report') ?>">
+                                <i class="bi bi-graph-up-arrow" style="color:#22c55e;"></i> Attendance Report
+                            </a>
+                            <!-- 3. ID Card Generate -->
+                            <a class="nav-link <?= $currentPage === 'reception_id_cards' ? 'active' : '' ?>" href="<?= site_url('/reception/id-cards') ?>">
+                                <i class="bi bi-card-heading" style="color:#8b5cf6;"></i> ID Card Generate
                             </a>
                         </div>
                     </div>

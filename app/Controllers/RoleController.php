@@ -79,33 +79,43 @@ class RoleController
         }
         
         try {
+            $db = Database::getInstance();
+            $db->beginTransaction();
+            
             // Insert role
-            Database::execute(
+            $db->execute(
                 "INSERT INTO roles (name, slug, description, created_at) VALUES (?, ?, ?, NOW())",
                 [$name, $slug, $description]
             );
             
-            $roleId = Database::lastInsertId();
+            $roleId = $db->lastInsertId();
             
             if ($roleId) {
                 // Insert permissions
                 if (!empty($permissions)) {
                     foreach ($permissions as $permId) {
-                        Database::execute(
+                        $db->execute(
                             "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)",
                             [$roleId, $permId]
                         );
                     }
                 }
                 
+                $db->commit();
+                
                 ActivityLogger::log('Role Created', "New role '{$name}' created with slug '{$slug}'");
                 Session::setFlash('success', 'Role created successfully!');
                 redirect('/admin/roles');
             } else {
+                $db->rollBack();
                 Session::setFlash('error', 'Failed to create role.');
                 redirect('/admin/roles/create');
             }
         } catch (\Throwable $e) {
+            $db = Database::getInstance();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             Session::setFlash('error', 'Error: ' . $e->getMessage());
             redirect('/admin/roles/create');
         }
@@ -113,10 +123,26 @@ class RoleController
 
     /**
      * Show edit role form
+     * FIXED: Handle both int and array parameters
      */
-    public function edit(int $id): void
+    public function edit($id): void
     {
         Permission::check('manage_settings');
+        
+        // Extract ID from array if needed
+        if (is_array($id)) {
+            $id = reset($id);
+            if (is_array($id)) {
+                $id = $_GET['id'] ?? $_POST['id'] ?? 0;
+            }
+        }
+        
+        $id = (int)$id;
+        
+        if ($id <= 0) {
+            Session::setFlash('error', 'Invalid role ID.');
+            redirect('/admin/roles');
+        }
         
         $role = Database::row("SELECT * FROM roles WHERE id = ?", [$id]);
         if (!$role) {
@@ -145,10 +171,26 @@ class RoleController
 
     /**
      * Update role
+     * FIXED: Handle both int and array parameters
      */
-    public function update(int $id): void
+    public function update($id): void
     {
         Permission::check('manage_settings');
+        
+        // Extract ID from array if needed
+        if (is_array($id)) {
+            $id = reset($id);
+            if (is_array($id)) {
+                $id = $_GET['id'] ?? $_POST['id'] ?? 0;
+            }
+        }
+        
+        $id = (int)$id;
+        
+        if ($id <= 0) {
+            Session::setFlash('error', 'Invalid role ID.');
+            redirect('/admin/roles');
+        }
         
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? '')) {
             Session::setFlash('error', 'Security validation failed.');
@@ -165,29 +207,38 @@ class RoleController
         }
         
         try {
+            $db = Database::getInstance();
+            $db->beginTransaction();
+            
             // Update role
-            Database::execute(
+            $db->execute(
                 "UPDATE roles SET name = ?, description = ? WHERE id = ?",
                 [$name, $description, $id]
             );
             
             // Delete old permissions
-            Database::execute("DELETE FROM role_permissions WHERE role_id = ?", [$id]);
+            $db->execute("DELETE FROM role_permissions WHERE role_id = ?", [$id]);
             
             // Insert new permissions
             if (!empty($permissions)) {
                 foreach ($permissions as $permId) {
-                    Database::execute(
+                    $db->execute(
                         "INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)",
                         [$id, $permId]
                     );
                 }
             }
             
+            $db->commit();
+            
             ActivityLogger::log('Role Updated', "Role ID {$id} updated.");
             Session::setFlash('success', 'Role updated successfully!');
             redirect('/admin/roles');
         } catch (\Throwable $e) {
+            $db = Database::getInstance();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             Session::setFlash('error', 'Error: ' . $e->getMessage());
             redirect("/admin/roles/edit/{$id}");
         }
@@ -195,10 +246,26 @@ class RoleController
 
     /**
      * Delete role
+     * FIXED: Handle both int and array parameters
      */
-    public function delete(int $id): void
+    public function delete($id): void
     {
         Permission::check('manage_settings');
+        
+        // Extract ID from array if needed
+        if (is_array($id)) {
+            $id = reset($id);
+            if (is_array($id)) {
+                $id = $_GET['id'] ?? $_POST['id'] ?? 0;
+            }
+        }
+        
+        $id = (int)$id;
+        
+        if ($id <= 0) {
+            Session::setFlash('error', 'Invalid role ID.');
+            redirect('/admin/roles');
+        }
         
         // Prevent deleting default roles
         $defaultRoles = [1, 2, 3, 4];
@@ -215,12 +282,21 @@ class RoleController
         }
         
         try {
-            Database::execute("DELETE FROM role_permissions WHERE role_id = ?", [$id]);
-            Database::execute("DELETE FROM roles WHERE id = ?", [$id]);
+            $db = Database::getInstance();
+            $db->beginTransaction();
+            
+            $db->execute("DELETE FROM role_permissions WHERE role_id = ?", [$id]);
+            $db->execute("DELETE FROM roles WHERE id = ?", [$id]);
+            
+            $db->commit();
             
             ActivityLogger::log('Role Deleted', "Role ID {$id} deleted.");
             Session::setFlash('success', 'Role deleted successfully!');
         } catch (\Throwable $e) {
+            $db = Database::getInstance();
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
             Session::setFlash('error', 'Error: ' . $e->getMessage());
         }
         

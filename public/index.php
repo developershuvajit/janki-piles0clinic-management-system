@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
+ 
 
+// বাকি কোড...
 // ============================================================
 // BOOTSTRAP APPLICATION
 // ============================================================
@@ -138,6 +140,12 @@ $router->get('/admin/qr/generate', 'AttendanceController@generateQR');
 // 13. HR REPORTS
 // ============================================================
 $router->get('/admin/hr/reports', 'AttendanceController@hrReports');
+
+
+$router->get('/reception/attendance/scan', 'AttendanceController@scanAttendance');
+$router->get('/reception/attendance/report', 'AttendanceController@attendanceReport');
+$router->get('/reception/id-cards', 'AttendanceController@idCards');
+$router->post('/reception/id-cards/generate', 'AttendanceController@generateIDCards');
 
 
 
