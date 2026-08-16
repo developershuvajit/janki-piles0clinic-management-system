@@ -10,32 +10,31 @@ if ($roleSlug !== 'receptionist') {
 ?>
             </div><!-- /.admin-content-inner -->
 
-            <!-- ===== RECEPTION FOOTER - STICKY BOTTOM ===== -->
-            <footer class="admin-footer" style="font-size:0.78rem; color:#6b7a8f; padding: 0.8rem 1.8rem; background: #fff; border-top: 1px solid #eef2f6; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-top: auto; flex-shrink: 0;">
+            <!-- ===== RECEPTION FOOTER ===== -->
+            <footer class="admin-footer">
                 <div>
                     &copy; <?= date('Y') ?> <span style="font-weight:600; color:#0b1a2b;">Janki Piles Clinic</span> 
                     <span style="color:#94a3b8;">&mdash;</span> Reception Desk OPD Operations
-                    <span style="margin-left:0.5rem; background:#e6f5ed; color:#0f7b4a; padding:0.1rem 0.6rem; border-radius:40px; font-size:0.6rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem;">
-                        <i class="bi bi-check-circle-fill" style="font-size:0.5rem;"></i> System Online
+                    <span style="margin-left:0.4rem; background:#e6f5ed; color:#0f7b4a; padding:0.05rem 0.5rem; border-radius:40px; font-size:0.55rem; font-weight:600; display:inline-flex; align-items:center; gap:0.2rem;">
+                        <i class="bi bi-check-circle-fill" style="font-size:0.4rem;"></i> System Online
                     </span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                    <span style="display: flex; align-items: center; gap: 0.3rem; font-size:0.7rem;">
-                        <i class="bi bi-hdd-stack text-muted"></i> 
-                        <span class="text-muted">v2.0.1</span>
+                <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+                    <span style="display:flex;align-items:center;gap:0.2rem;font-size:0.65rem;color:#94a3b8;">
+                        <i class="bi bi-hdd-stack"></i> v2.0.1
                     </span>
-                    <span style="display: flex; align-items: center; gap: 0.3rem; font-size:0.7rem;">
-                        <i class="bi bi-clock text-muted"></i> 
+                    <span style="display:flex;align-items:center;gap:0.2rem;font-size:0.65rem;color:#94a3b8;">
+                        <i class="bi bi-clock"></i> 
                         <span id="footer-clock" style="color:#475569;"><?= date('h:i A') ?></span>
                     </span>
-                    <span style="display: flex; align-items: center; gap: 0.3rem; font-size:0.7rem;">
-                        <span style="display:inline-block; width:6px; height:6px; background:#22c55e; border-radius:50%;"></span>
-                        <span style="color:#475569;">RECEPTION</span>
+                    <span style="display:flex;align-items:center;gap:0.2rem;font-size:0.65rem;color:#94a3b8;">
+                        <span style="display:inline-block;width:5px;height:5px;background:#22c55e;border-radius:50%;"></span>
+                        RECEPTION
                     </span>
-                    <a href="<?= site_url('/reception/profile') ?>" style="color:#6b7a8f; text-decoration:none; font-size:0.7rem; transition:0.15s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#6b7a8f'">
+                    <a href="<?= site_url('/reception/profile') ?>" style="color:#94a3b8;text-decoration:none;font-size:0.65rem;transition:0.15s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#94a3b8'">
                         <i class="bi bi-person-gear"></i>
                     </a>
-                    <a href="<?= site_url() ?>" target="_blank" style="color:#6b7a8f; text-decoration:none; font-size:0.7rem; transition:0.15s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#6b7a8f'">
+                    <a href="<?= site_url() ?>" target="_blank" style="color:#94a3b8;text-decoration:none;font-size:0.65rem;transition:0.15s;" onmouseover="this.style.color='#2563eb'" onmouseout="this.style.color='#94a3b8'">
                         <i class="bi bi-box-arrow-up-right"></i>
                     </a>
                 </div>
@@ -67,6 +66,46 @@ if ($roleSlug !== 'receptionist') {
             updateClock();
             setInterval(updateClock, 10000);
         })();
+
+        // ===== SIDEBAR TOGGLE =====
+        function toggleSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+
+        function closeSidebar() {
+            var sidebar = document.getElementById('sidebar');
+            var overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+
+        // Close sidebar on window resize (if becoming desktop)
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 992) {
+                closeSidebar();
+            }
+        });
+
+        // Close sidebar on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeSidebar();
+            }
+        });
+
+        // ===== PAGE LOADER =====
+        window.addEventListener('load', function() {
+            var loader = document.getElementById('page-loader');
+            if (loader) {
+                loader.classList.add('hide');
+                setTimeout(function() {
+                    loader.style.display = 'none';
+                }, 400);
+            }
+        });
     </script>
 </body>
 </html>
