@@ -70,7 +70,8 @@ $settings = \App\Models\Cms::getSettings();
     }
     .jpk-footer .emergency-box:hover {
         background: rgba(5,150,105,0.12);
-        border-color: rgba(5,150,105,0.25);
+        border-color: rgba(5,150,105,0.3);
+        box-shadow: 0 0 0 3px rgba(5,150,105,0.06);
     }
     .jpk-footer .emergency-box .label {
         font-size: 0.6rem;
@@ -183,7 +184,7 @@ $settings = \App\Models\Cms::getSettings();
         background: #059669;
         border-color: #059669;
         color: #fff;
-        transform: translateY(-3px);
+        transform: translateY(-3px) scale(1.05);
         box-shadow: 0 4px 16px rgba(5,150,105,0.25);
     }
 
@@ -233,6 +234,7 @@ $settings = \App\Models\Cms::getSettings();
         transform: scale(1.1) translateY(-4px);
         box-shadow: 0 8px 30px rgba(37, 211, 102, 0.45);
         color: #fff;
+        animation-play-state: paused;
     }
     @keyframes jpk-wa-pulse {
         0%, 100% { transform: scale(1); }
@@ -247,14 +249,18 @@ $settings = \App\Models\Cms::getSettings();
         .jpk-footer .social-icons { justify-content: center; }
         .jpk-whatsapp-float { width: 50px; height: 50px; font-size: 1.5rem; bottom: 20px; right: 20px; }
     }
+
+    @media (prefers-reduced-motion: reduce){
+        .jpk-footer::before, .jpk-whatsapp-float{ animation: none !important; }
+    }
 </style>
 
 <!-- ============================================
      PRE-FOOTER TRUST STRIP
      ============================================ -->
-<section class="py-3 text-white" style="background: #0b1120; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+<section class="py-3 text-white jpk-reveal up" style="background: #0b1120; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
     <div class="container">
-        <div class="row g-2 text-center text-md-start align-items-center">
+        <div class="row g-2 text-center text-md-start align-items-center jpk-stagger">
             <div class="col-md-3">
                 <div class="d-flex align-items-center gap-3 justify-content-center justify-content-md-start">
                     <div style="width:36px;height:36px;border-radius:50%;background:rgba(5,150,105,0.15);display:flex;align-items:center;justify-content:center;color:#059669;font-size:1.1rem;">
@@ -308,7 +314,7 @@ $settings = \App\Models\Cms::getSettings();
      ============================================ -->
 <footer class="jpk-footer">
     <div class="container">
-        <div class="row g-4">
+        <div class="row g-4 jpk-stagger">
             <!-- Column 1: Brand & About -->
             <div class="col-lg-4 col-md-6">
                 <div class="brand-section d-flex align-items-center gap-3 mb-3">
@@ -414,5 +420,131 @@ $settings = \App\Models\Cms::getSettings();
 
 <!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- ============================================
+     JPK PREMIUM ANIMATION ENGINE (vanilla JS)
+     Scroll reveal, stagger, X-parallax, counters,
+     navbar compact state, scroll progress, cursor glow.
+     Respects prefers-reduced-motion.
+     ============================================ -->
+<script>
+(function(){
+    "use strict";
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---------- Scroll reveal + stagger ---------- */
+    var revealEls = document.querySelectorAll('.jpk-reveal, .jpk-stagger, .jpk-trust, .jpk-testimonial-card');
+    if (reduceMotion) {
+        revealEls.forEach(function(el){ el.classList.add('in-view'); });
+    } else if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function(entries){
+            entries.forEach(function(entry){
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                    io.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+        revealEls.forEach(function(el){ io.observe(el); });
+    } else {
+        revealEls.forEach(function(el){ el.classList.add('in-view'); });
+    }
+
+    /* ---------- Counter animation ---------- */
+    var counters = document.querySelectorAll('[data-counter]');
+    function animateCounter(el){
+        var target = parseFloat(el.getAttribute('data-target')) || 0;
+        var suffix = el.getAttribute('data-suffix') || '';
+        var dur = 1400, start = null;
+        function step(ts){
+            if (!start) start = ts;
+            var progress = Math.min((ts - start) / dur, 1);
+            var eased = 1 - Math.pow(1 - progress, 3);
+            var val = Math.floor(eased * target);
+            el.textContent = val.toLocaleString('en-IN') + suffix;
+            if (progress < 1) requestAnimationFrame(step);
+            else el.textContent = target.toLocaleString('en-IN') + suffix;
+        }
+        requestAnimationFrame(step);
+    }
+    if (counters.length){
+        if (reduceMotion || !('IntersectionObserver' in window)) {
+            counters.forEach(function(el){
+                el.textContent = (parseFloat(el.getAttribute('data-target'))||0).toLocaleString('en-IN') + (el.getAttribute('data-suffix')||'');
+            });
+        } else {
+            var counterIO = new IntersectionObserver(function(entries){
+                entries.forEach(function(entry){
+                    if (entry.isIntersecting){
+                        animateCounter(entry.target);
+                        counterIO.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+            counters.forEach(function(el){ counterIO.observe(el); });
+        }
+    }
+
+    /* ---------- Navbar compact-on-scroll ---------- */
+    var navbar = document.getElementById('jpkNavbar');
+    var progressBar = document.getElementById('jpkScrollProgress');
+    function onScroll(){
+        if (navbar){
+            if (window.scrollY > 40) navbar.classList.add('jpk-scrolled');
+            else navbar.classList.remove('jpk-scrolled');
+        }
+        if (progressBar){
+            var doc = document.documentElement;
+            var max = (doc.scrollHeight - doc.clientHeight) || 1;
+            var pct = (window.scrollY / max) * 100;
+            progressBar.style.width = Math.min(pct, 100) + '%';
+        }
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    /* ---------- Subtle X-axis parallax (desktop only) ---------- */
+    var parallaxEls = document.querySelectorAll('.jpk-parallax-x');
+    if (!reduceMotion && parallaxEls.length && window.matchMedia('(min-width: 992px)').matches) {
+        var ticking = false;
+        function updateParallax(){
+            var scrollY = window.scrollY;
+            parallaxEls.forEach(function(el){
+                var speed = parseFloat(el.getAttribute('data-parallax-speed')) || 0.05;
+                var x = Math.max(-30, Math.min(30, scrollY * speed * -1));
+                el.style.transform = 'translate3d(' + x.toFixed(1) + 'px, 0, 0)';
+            });
+            ticking = false;
+        }
+        window.addEventListener('scroll', function(){
+            if (!ticking){
+                requestAnimationFrame(updateParallax);
+                ticking = true;
+            }
+        }, { passive: true });
+        updateParallax();
+    }
+
+    /* ---------- Desktop cursor glow ---------- */
+    var glow = document.getElementById('jpkCursorGlow');
+    if (glow && !reduceMotion && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        var gx = 0, gy = 0, cx = 0, cy = 0, glowActive = false;
+        document.addEventListener('mousemove', function(e){
+            gx = e.clientX; gy = e.clientY;
+            if (!glowActive){ glow.style.opacity = '1'; glowActive = true; }
+        });
+        document.addEventListener('mouseleave', function(){
+            glow.style.opacity = '0'; glowActive = false;
+        });
+        function raf(){
+            cx += (gx - cx) * 0.15;
+            cy += (gy - cy) * 0.15;
+            glow.style.transform = 'translate(' + cx + 'px,' + cy + 'px) translate(-50%,-50%)';
+            requestAnimationFrame(raf);
+        }
+        requestAnimationFrame(raf);
+    }
+})();
+</script>
 </body>
 </html>

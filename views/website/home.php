@@ -22,13 +22,33 @@
         background: radial-gradient(ellipse at 70% 30%, #dcfce7, #f0fdf4, #f8fafc);
         z-index: 0;
         animation: jpk-hero-pulse 8s ease-in-out infinite alternate;
+        opacity:0;
+        animation: jpk-hero-fade-in 1.2s ease forwards, jpk-hero-pulse 8s ease-in-out infinite alternate 1.2s;
     }
+    @keyframes jpk-hero-fade-in{ from{ opacity:0; } to{ opacity:1; } }
     @keyframes jpk-hero-pulse {
         0% { opacity: 0.6; transform: scale(1); }
         100% { opacity: 1; transform: scale(1.02); }
     }
     .jpk-hero-new .container { position: relative; z-index: 1; }
-    
+
+    /* decorative parallax layer (purely visual, no content) */
+    .jpk-hero-deco{ position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+    .jpk-hero-deco span{
+        position:absolute; border-radius:50%;
+        border:1px solid rgba(5,150,105,0.10);
+        opacity:0.5;
+    }
+    .jpk-hero-deco .c1{ width:220px; height:220px; top:-40px; left:8%; }
+    .jpk-hero-deco .c2{ width:120px; height:120px; bottom:10%; left:2%; border-color:rgba(5,150,105,0.16); }
+    .jpk-hero-deco .c3{ width:60px; height:60px; top:20%; right:12%; background:rgba(5,150,105,0.05); border:none; }
+    .jpk-hero-deco .grid{
+        position:absolute; inset:0;
+        background-image:linear-gradient(rgba(5,150,105,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(5,150,105,0.04) 1px, transparent 1px);
+        background-size:42px 42px;
+        mask-image:radial-gradient(ellipse at 70% 30%, black, transparent 70%);
+    }
+
     .jpk-hero-badge {
         display: inline-block;
         background: rgba(255,255,255,0.9);
@@ -125,7 +145,9 @@
         min-height: 320px;
         object-fit: cover;
         border-radius: 14px;
+        transition: transform 0.6s var(--jpk-ease);
     }
+    .jpk-hero-img-box:hover img{ transform:scale(1.03); }
     .jpk-hero-stats {
         position: absolute;
         bottom: 1.2rem;
@@ -180,7 +202,17 @@
         background: #fff;
         padding: 2rem 0;
         border-bottom: 1px solid #eef2f6;
+        position:relative;
     }
+    .jpk-trust .row > div{ position:relative; }
+    .jpk-trust .row > div:not(:last-child)::after{
+        content:'';
+        position:absolute; top:10%; right:0; height:80%; width:1px;
+        background:#eef2f6;
+        transform:scaleY(0);
+        transition:transform .6s var(--jpk-ease);
+    }
+    .jpk-trust.in-view .row > div:not(:last-child)::after{ transform:scaleY(1); }
     .jpk-trust .item { text-align: center; }
     .jpk-trust .item .num {
         font-size: 2rem;
@@ -244,7 +276,7 @@
         transition: all 0.3s;
     }
     .jpk-feature-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-6px);
         box-shadow: 0 12px 40px rgba(0,0,0,0.05);
         border-color: #b8e0cf;
     }
@@ -264,6 +296,7 @@
     .jpk-feature-card:hover .ico {
         background: #059669;
         color: #fff;
+        transform: rotate(-8deg) scale(1.06);
     }
     .jpk-feature-card h5 {
         font-weight: 700;
@@ -299,11 +332,13 @@
         height: 3px;
         background: linear-gradient(90deg, #059669, #0f7b4a);
         opacity: 0;
-        transition: opacity 0.3s;
+        transform:scaleX(0.3);
+        transform-origin:left;
+        transition: opacity 0.3s, transform 0.4s var(--jpk-ease);
     }
-    .jpk-treatment-card:hover::before { opacity: 1; }
+    .jpk-treatment-card:hover::before { opacity: 1; transform:scaleX(1); }
     .jpk-treatment-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-7px);
         box-shadow: 0 12px 40px rgba(0,0,0,0.05);
     }
     .jpk-treatment-card .top {
@@ -327,6 +362,7 @@
     .jpk-treatment-card:hover .top .ico {
         background: #059669;
         color: #fff;
+        transform: rotate(12deg);
     }
     .jpk-treatment-card .top .badge {
         background: rgba(5,150,105,0.08);
@@ -398,8 +434,15 @@
         right: -10%;
         width: 300px;
         height: 300px;
-        background: radial-gradient(circle, rgba(255,255,255,0.03), transparent 70%);
+        background: radial-gradient(circle, rgba(5,150,105,0.10), transparent 70%);
         border-radius: 50%;
+        animation: jpk-hero-pulse 7s ease-in-out infinite alternate;
+    }
+    .jpk-insurance::after{
+        content:'';
+        position:absolute; bottom:-20%; left:-5%; width:220px; height:220px;
+        background:radial-gradient(circle, rgba(255,255,255,0.04), transparent 70%);
+        border-radius:50%;
     }
     .jpk-insurance .container { position: relative; z-index: 1; }
     .jpk-insurance .badge {
@@ -464,9 +507,12 @@
         color: #059669;
         opacity: 0.06;
         font-family: Georgia, serif;
+        transition: transform .5s var(--jpk-ease), opacity .5s;
+        transform: scale(0.5);
     }
+    .jpk-testimonial-card.in-view::before{ transform:scale(1); opacity:0.06; }
     .jpk-testimonial-card:hover {
-        transform: translateY(-4px);
+        transform: translateY(-5px);
         box-shadow: 0 12px 40px rgba(0,0,0,0.05);
     }
     .jpk-testimonial-card .stars {
@@ -475,6 +521,16 @@
         letter-spacing: 2px;
         margin-bottom: 0.5rem;
     }
+    .jpk-testimonial-card .stars i{
+        opacity:0; transform:scale(0.4);
+        transition: opacity .4s var(--jpk-ease), transform .4s var(--jpk-ease);
+    }
+    .jpk-testimonial-card.in-view .stars i{ opacity:1; transform:scale(1); }
+    .jpk-testimonial-card.in-view .stars i:nth-child(1){ transition-delay:0ms; }
+    .jpk-testimonial-card.in-view .stars i:nth-child(2){ transition-delay:60ms; }
+    .jpk-testimonial-card.in-view .stars i:nth-child(3){ transition-delay:120ms; }
+    .jpk-testimonial-card.in-view .stars i:nth-child(4){ transition-delay:180ms; }
+    .jpk-testimonial-card.in-view .stars i:nth-child(5){ transition-delay:240ms; }
     .jpk-testimonial-card .quote {
         color: #1e293b;
         font-size: 0.9rem;
@@ -521,25 +577,29 @@
     .jpk-faq .faq-item .q .icon {
         color: #94a3b8;
         font-size: 0.9rem;
-        transition: transform 0.3s;
+        transition: transform 0.35s var(--jpk-ease);
         flex-shrink: 0;
     }
     .jpk-faq .faq-item .q.active .icon {
         transform: rotate(180deg);
         color: #059669;
     }
+    /* smooth grid-based expand, no display:none jump */
+    .jpk-faq .faq-item .a-wrap{
+        display:grid;
+        grid-template-rows: 0fr;
+        transition: grid-template-rows 0.4s var(--jpk-ease);
+    }
+    .jpk-faq .faq-item .a-wrap.open{ grid-template-rows: 1fr; }
     .jpk-faq .faq-item .a {
-        padding: 0 1.2rem 1rem;
+        overflow: hidden;
+        min-height:0;
+        padding: 0 1.2rem;
         color: #475569;
         font-size: 0.85rem;
         line-height: 1.7;
-        display: none;
     }
-    .jpk-faq .faq-item .a.open { display: block; animation: jpk-fade 0.3s ease; }
-    @keyframes jpk-fade {
-        from { opacity: 0; transform: translateY(-4px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
+    .jpk-faq .faq-item .a-wrap.open .a{ padding: 0 1.2rem 1rem; }
 
     /* ----- Responsive ----- */
     @media (max-width: 992px) {
@@ -580,6 +640,7 @@
         .jpk-treatment-card .actions .btn-sm,
         .jpk-treatment-card .actions .btn-sm-out { font-size: 0.6rem; padding: 0.15rem 0.6rem; }
         .jpk-faq .faq-item .q { font-size: 0.8rem; padding: 0.6rem 1rem; }
+        .jpk-hero-deco{ display:none; }
     }
 </style>
 
@@ -588,19 +649,25 @@
      ============================================ -->
 <section class="jpk-hero-new">
     <div class="bg-animated"></div>
+    <div class="jpk-hero-deco jpk-parallax-x" data-parallax-speed="0.06">
+        <div class="grid"></div>
+        <span class="c1"></span>
+        <span class="c2"></span>
+        <span class="c3"></span>
+    </div>
     <div class="container">
         <div class="row align-items-center g-4">
             <div class="col-lg-6">
-                <div class="jpk-hero-badge">
+                <div class="jpk-hero-badge jpk-reveal up">
                     <i class="bi bi-shield-check"></i> Premier Laser Proctology Center
                 </div>
-                <h1 class="jpk-hero-title">
+                <h1 class="jpk-hero-title jpk-reveal up" style="transition-delay:.1s;">
                     Painless <span class="highlight">German Laser</span> Surgery
                 </h1>
-                <p class="jpk-hero-sub">
+                <p class="jpk-hero-sub jpk-reveal up" style="transition-delay:.2s;">
                     Zero cuts. No stitches. Same-day discharge.
                 </p>
-                <div class="jpk-hero-buttons">
+                <div class="jpk-hero-buttons jpk-reveal up" style="transition-delay:.3s;">
                     <a href="<?= site_url('/appointments/book') ?>" class="jpk-btn-primary">
                         <i class="bi bi-calendar-plus"></i> Book Consultation
                     </a>
@@ -608,20 +675,20 @@
                         <i class="bi bi-telephone-fill"></i> Call Now
                     </a>
                 </div>
-                <div class="jpk-hero-features">
+                <div class="jpk-hero-features jpk-reveal up" style="transition-delay:.4s;">
                     <span><i class="bi bi-check-circle-fill"></i> Cashless TPA</span>
                     <span><i class="bi bi-check-circle-fill"></i> Female Chaperones</span>
                     <span><i class="bi bi-check-circle-fill"></i> 100% Confidential</span>
                 </div>
             </div>
             <div class="col-lg-6">
-                <div class="jpk-hero-img-box">
+                <div class="jpk-hero-img-box jpk-reveal right" style="transition-delay:.2s;">
                     <img src="https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=600&h=420&fit=crop&crop=center&q=80" 
                          alt="Laser Surgery">
                     <div class="jpk-hero-stats">
-                        <div class="stat"><span class="num">15K+</span><span class="lbl">Surgeries</span></div>
-                        <div class="stat"><span class="num">7+</span><span class="lbl">Branches</span></div>
-                        <div class="stat"><span class="num">100%</span><span class="lbl">Cashless</span></div>
+                        <div class="stat"><span class="num" data-counter data-target="15000" data-suffix="+">0</span><span class="lbl">Surgeries</span></div>
+                        <div class="stat"><span class="num" data-counter data-target="7" data-suffix="+">0</span><span class="lbl">Branches</span></div>
+                        <div class="stat"><span class="num" data-counter data-target="100" data-suffix="%">0</span><span class="lbl">Cashless</span></div>
                     </div>
                     <div class="jpk-hero-badge-float">
                         <i class="bi bi-clock"></i> Same-Day Discharge
@@ -635,20 +702,20 @@
 <!-- ============================================
      TRUST BAR
      ============================================ -->
-<section class="jpk-trust">
+<section class="jpk-trust jpk-reveal up">
     <div class="container">
         <div class="row g-2">
             <div class="col-6 col-md-3">
                 <div class="item">
                     <span class="ico"><i class="bi bi-heart-pulse-fill"></i></span>
-                    <span class="num">15,000+</span>
+                    <span class="num" data-counter data-target="15000" data-suffix="+">0</span>
                     <span class="lbl">Successful Surgeries</span>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="item">
                     <span class="ico"><i class="bi bi-building"></i></span>
-                    <span class="num">7+</span>
+                    <span class="num" data-counter data-target="7" data-suffix="+">0</span>
                     <span class="lbl">Clinical Branches</span>
                 </div>
             </div>
@@ -662,7 +729,7 @@
             <div class="col-6 col-md-3">
                 <div class="item">
                     <span class="ico"><i class="bi bi-shield-check"></i></span>
-                    <span class="num">100%</span>
+                    <span class="num" data-counter data-target="100" data-suffix="%">0</span>
                     <span class="lbl">Cashless TPA</span>
                 </div>
             </div>
@@ -675,12 +742,12 @@
      ============================================ -->
 <section class="jpk-section jpk-features">
     <div class="container">
-        <div class="head">
+        <div class="head jpk-reveal up">
             <span class="tag">The Janki Advantage</span>
             <h2>Why Patients Trust Us</h2>
             <p>World-class German laser technology with compassionate care.</p>
         </div>
-        <div class="row g-3">
+        <div class="row g-3 jpk-stagger">
             <div class="col-md-4">
                 <div class="jpk-feature-card">
                     <div class="ico"><i class="bi bi-shield-lock-fill"></i></div>
@@ -711,7 +778,7 @@
      ============================================ -->
 <section class="jpk-section jpk-treatments">
     <div class="container">
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 jpk-reveal up">
             <div class="head text-start" style="max-width:100%;margin:0;">
                 <span class="tag">Our Specialties</span>
                 <h2 style="font-size:1.8rem;">Advanced Laser Procedures</h2>
@@ -720,7 +787,7 @@
                 View All <i class="bi bi-arrow-right ms-1"></i>
             </a>
         </div>
-        <div class="row g-3">
+        <div class="row g-3 jpk-stagger">
             <?php if (empty($treatments)): ?>
                 <div class="text-center py-4 text-muted col-12">No treatments available.</div>
             <?php else: ?>
@@ -764,12 +831,12 @@
 <section class="jpk-insurance">
     <div class="container">
         <div class="row align-items-center g-3">
-            <div class="col-lg-8">
+            <div class="col-lg-8 jpk-reveal up">
                 <span class="badge"><i class="bi bi-shield-check me-1"></i> 100% Cashless TPA</span>
                 <h2>Covered Under Major Health Insurance</h2>
                 <p>Empaneled with Star Health, HDFC ERGO, ICICI Lombard, Niva Bupa, Care Health &amp; all major PSU insurers.</p>
             </div>
-            <div class="col-lg-4 text-lg-end">
+            <div class="col-lg-4 text-lg-end jpk-reveal scale" style="transition-delay:.15s;">
                 <a href="<?= site_url('/insurance') ?>" class="jpk-btn-light">
                     <i class="bi bi-shield-check me-1"></i> Check Eligibility
                 </a>
@@ -783,14 +850,14 @@
      ============================================ -->
 <section class="jpk-section jpk-testimonials">
     <div class="container">
-        <div class="head">
+        <div class="head jpk-reveal up">
             <span class="tag">Patient Feedback</span>
             <h2>Real Recovery Stories</h2>
         </div>
         <div class="row g-3">
             <?php foreach ($testimonials as $t): ?>
                 <div class="col-md-6">
-                    <div class="jpk-testimonial-card">
+                    <div class="jpk-testimonial-card jpk-reveal up">
                         <div class="stars">
                             <?php for($i=1; $i<=5; $i++): ?>
                                 <i class="bi bi-star<?= $i <= $t['rating'] ? '-fill' : '' ?>"></i>
@@ -810,24 +877,24 @@
      ============================================ -->
 <section class="jpk-faq">
     <div class="container" style="max-width:820px;">
-        <div class="head">
+        <div class="head jpk-reveal up">
             <span class="tag">Got Questions?</span>
             <h2>Frequently Asked Questions</h2>
         </div>
         <div class="faq-list">
             <?php foreach ($faqs as $index => $faq): ?>
-                <div class="faq-item">
-                    <button class="q" onclick="toggleFaq(this)">
+                <div class="faq-item jpk-reveal up">
+                    <button class="q <?= $index === 0 ? 'active' : '' ?>" onclick="jpkToggleFaq(this)">
                         <span><i class="bi bi-question-circle text-emerald me-2"></i> <?= esc($faq['q']) ?></span>
                         <span class="icon"><i class="bi bi-chevron-down"></i></span>
                     </button>
-                    <div class="a <?= $index === 0 ? 'open' : '' ?>">
-                        <?= esc($faq['a']) ?>
+                    <div class="a-wrap <?= $index === 0 ? 'open' : '' ?>">
+                        <div class="a"><?= esc($faq['a']) ?></div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-        <div class="text-center mt-3">
+        <div class="text-center mt-3 jpk-reveal up">
             <a href="<?= site_url('/faqs') ?>" class="jpk-btn-outline" style="padding:0.3rem 1.2rem;font-size:0.75rem;">
                 Read All FAQs <i class="bi bi-arrow-right ms-1"></i>
             </a>
@@ -836,20 +903,16 @@
 </section>
 
 <script>
-function toggleFaq(btn) {
-    const answer = btn.nextElementSibling;
-    const isOpen = answer.classList.contains('open');
-    document.querySelectorAll('.faq-a').forEach(el => el.classList.remove('open'));
-    document.querySelectorAll('.faq-q').forEach(el => el.classList.remove('active'));
+function jpkToggleFaq(btn) {
+    const wrap = btn.nextElementSibling;
+    const isOpen = wrap.classList.contains('open');
+    document.querySelectorAll('.jpk-faq .a-wrap').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.jpk-faq .q').forEach(el => el.classList.remove('active'));
     if (!isOpen) {
-        answer.classList.add('open');
+        wrap.classList.add('open');
         btn.classList.add('active');
     }
 }
-document.addEventListener('DOMContentLoaded', function() {
-    const first = document.querySelector('.faq-q');
-    if (first) { first.classList.add('active'); }
-});
 </script>
 
 <?php include VIEWS_PATH . '/layout/public_footer.php'; ?>
