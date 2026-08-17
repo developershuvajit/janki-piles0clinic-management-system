@@ -3,7 +3,7 @@ $activePage = 'employees';
 include VIEWS_PATH . '/layout/admin_header.php'; 
 ?>
 
-<div class="card border-0 shadow-sm p-4">
+<div class="card border-0 shadow-sm p-4 mt-4">
     <form action="<?= site_url('/admin/employees/save') ?>" method="POST" enctype="multipart/form-data" autocomplete="off">
         <?= csrf_field() ?>
 

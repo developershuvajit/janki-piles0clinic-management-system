@@ -974,7 +974,7 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
 
             <!-- Flash Messages -->
             <?php if ($error = \App\Helpers\Session::getFlash('error')): ?>
-                <div class="alert alert-danger alert-dismissible fade show alert-dismiss-flash mb-3" role="alert" style="border-radius:10px;border-left:4px solid #dc3545;margin:0 1.2rem;padding:0.5rem 1rem;">
+                <div class="alert alert-danger alert-dismissible fade show alert-dismiss-flash mb-3 mt-3" role="alert" style="border-radius:10px;border-left:4px solid #dc3545;margin:0 1.2rem;padding:0.5rem 1rem;">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i> <?= esc($error) ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert" style="padding:0.3rem;"></button>
                 </div>
