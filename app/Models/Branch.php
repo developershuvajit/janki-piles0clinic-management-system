@@ -8,11 +8,19 @@ use App\Helpers\Database;
 class Branch
 {
     /**
+     * Get Database instance
+     */
+    private static function getDb(): Database
+    {
+        return Database::getInstance();
+    }
+
+    /**
      * Retrieve all branches.
      */
     public static function all(): array
     {
-        return Database::all("SELECT * FROM branches ORDER BY id DESC");
+        return self::getDb()->all("SELECT * FROM branches ORDER BY id DESC");
     }
 
     /**
@@ -27,7 +35,7 @@ class Branch
             return null;
         }
         
-        return Database::row("SELECT * FROM branches WHERE id = :id LIMIT 1", ['id' => $id]);
+        return self::getDb()->row("SELECT * FROM branches WHERE id = :id LIMIT 1", ['id' => $id]);
     }
 
     /**
@@ -38,7 +46,7 @@ class Branch
         $sql = "INSERT INTO branches (name, logo, address, phone, emergency_number, email, google_map_link, opening_hours, status, created_at, updated_at) 
                 VALUES (:name, :logo, :address, :phone, :emergency_number, :email, :google_map_link, :opening_hours, :status, NOW(), NOW())";
         
-        return Database::execute($sql, [
+        $result = self::getDb()->execute($sql, [
             'name' => $data['name'],
             'logo' => $data['logo'] ?? null,
             'address' => $data['address'],
@@ -49,6 +57,8 @@ class Branch
             'opening_hours' => $data['opening_hours'],
             'status' => $data['status'] ?? 'active'
         ]);
+        
+        return $result > 0;
     }
 
     /**
@@ -69,7 +79,7 @@ class Branch
                     updated_at = NOW() 
                 WHERE id = :id";
         
-        return Database::execute($sql, [
+        $result = self::getDb()->execute($sql, [
             'id' => $id,
             'name' => $data['name'],
             'logo' => $data['logo'] ?? null,
@@ -81,6 +91,8 @@ class Branch
             'opening_hours' => $data['opening_hours'],
             'status' => $data['status'] ?? 'active'
         ]);
+        
+        return $result > 0;
     }
 
     /**
@@ -88,7 +100,8 @@ class Branch
      */
     public static function delete(int $id): bool
     {
-        return Database::execute("DELETE FROM branches WHERE id = :id", ['id' => $id]);
+        $result = self::getDb()->execute("DELETE FROM branches WHERE id = :id", ['id' => $id]);
+        return $result > 0;
     }
 
     /**
@@ -96,14 +109,16 @@ class Branch
      */
     public static function getBranchStats(int $branchId): array
     {
+        $db = self::getDb();
+        
         // 1. Patient Count
-        $patientCount = Database::row(
+        $patientCount = $db->row(
             "SELECT COUNT(*) as count FROM patients WHERE branch_id = :branch_id", 
             ['branch_id' => $branchId]
         )['count'] ?? 0;
         
         // 2. Doctor Count
-        $doctorCount = Database::row(
+        $doctorCount = $db->row(
             "SELECT COUNT(u.id) as count 
              FROM users u 
              JOIN roles r ON u.role_id = r.id 
@@ -112,13 +127,13 @@ class Branch
         )['count'] ?? 0;
         
         // 3. Total Branch Revenue (aggregating paid billing)
-        $revenue = Database::row(
+        $revenue = $db->row(
             "SELECT SUM(paid_amount) as total FROM billing WHERE branch_id = :branch_id AND payment_status = 'paid'", 
             ['branch_id' => $branchId]
         )['total'] ?? 0.00;
 
         // 4. Doctors List for the branch
-        $doctors = Database::all(
+        $doctors = $db->all(
             "SELECT u.id, u.username, u.email, e.photo, e.shift_start, e.shift_end
              FROM users u
              JOIN roles r ON u.role_id = r.id
