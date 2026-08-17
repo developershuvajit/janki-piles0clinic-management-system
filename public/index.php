@@ -53,6 +53,8 @@ $router->get('/admin/dashboard', 'AdminController@dashboard');
 $router->get('/admin/settings', 'AdminController@settings');
 $router->post('/admin/settings/save', 'AdminController@saveSettings');
 $router->get('/admin/logs', 'AdminController@logs');
+$router->get('/admin/profile', 'AdminController@profile');
+$router->post('/admin/profile/update', 'AdminController@updateProfile');
 
 // ============================================================
 // 5. ROLE & PERMISSION MANAGEMENT
