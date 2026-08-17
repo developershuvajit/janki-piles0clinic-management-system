@@ -227,11 +227,40 @@ class Session
 
     /**
      * Set a flash message that expires after the next request.
+     * Auto plays sound notification based on message type.
      */
     public static function setFlash(string $key, string $message): void
     {
         self::start();
         $_SESSION['flash'][$key] = $message;
+        
+        // Store sound notification type for auto-play
+        // Valid types: success, error, warning, info
+        $soundType = match($key) {
+            'success' => 'success',
+            'error', 'danger' => 'error',
+            'warning' => 'warning',
+            default => 'info'
+        };
+        
+        $_SESSION['_sound_notification'] = [
+            'type' => $soundType,
+            'timestamp' => time()
+        ];
+    }
+
+    /**
+     * Get sound notification data and clear it
+     */
+    public static function getSoundNotification(): ?array
+    {
+        self::start();
+        if (isset($_SESSION['_sound_notification'])) {
+            $data = $_SESSION['_sound_notification'];
+            unset($_SESSION['_sound_notification']);
+            return $data;
+        }
+        return null;
     }
 
     /**
@@ -249,12 +278,32 @@ class Session
     }
 
     /**
+     * Get all flash messages and clear them.
+     */
+    public static function getFlashes(): array
+    {
+        self::start();
+        $flashes = $_SESSION['flash'] ?? [];
+        unset($_SESSION['flash']);
+        return $flashes;
+    }
+
+    /**
      * Check if flash message exists.
      */
     public static function hasFlash(string $key): bool
     {
         self::start();
         return isset($_SESSION['flash'][$key]);
+    }
+
+    /**
+     * Check if any flash messages exist.
+     */
+    public static function hasAnyFlash(): bool
+    {
+        self::start();
+        return !empty($_SESSION['flash']);
     }
 
     /**

@@ -37,6 +37,13 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
     <title><?= esc($title ?? 'Reception Desk') ?> — Janki Piles Clinic</title>
     <meta name="robots" content="noindex, nofollow">
 
+    <?php 
+        $sound = \App\Helpers\Session::getSoundNotification(); 
+        if ($sound): 
+    ?>
+    <meta name="sound-notification" content="<?= $sound['type'] ?>">
+    <?php endif; ?>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

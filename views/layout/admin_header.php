@@ -31,6 +31,13 @@ $isBranchAdmin = ($roleSlug === 'branch_admin');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'Admin Panel') ?> — Janki Piles</title>
     <meta name="robots" content="noindex, nofollow">
+    <?php 
+        $sound = \App\Helpers\Session::getSoundNotification(); 
+        if ($sound): 
+    ?>
+    <meta name="sound-notification" content="<?= $sound['type'] ?>">
+    <?php endif; ?>
+
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

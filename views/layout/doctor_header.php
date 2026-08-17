@@ -29,6 +29,13 @@ if ($roleSlug !== 'doctor') {
     <title><?= esc($title ?? 'Doctor Console') ?> — Janki Piles Clinic</title>
     <meta name="robots" content="noindex, nofollow">
 
+    <?php 
+        $sound = \App\Helpers\Session::getSoundNotification(); 
+        if ($sound): 
+    ?>
+    <meta name="sound-notification" content="<?= $sound['type'] ?>">
+    <?php endif; ?>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -290,16 +290,23 @@ public static function getByIds(array $ids, ?int $branchId = null): array
     /**
      * Bind credential document uploads to an employee.
      */
-    public static function addDocument(int $employeeId, string $docName, string $filePath): bool
-    {
-        $sql = "INSERT INTO employee_documents (employee_id, document_name, file_path, uploaded_at) 
-                VALUES (:employee_id, :document_name, :file_path, NOW())";
-        return self::getDb()->execute($sql, [
-            'employee_id' => $employeeId,
-            'document_name' => $docName,
-            'file_path' => $filePath
-        ]);
-    }
+     /**
+ * Bind credential document uploads to an employee.
+ */
+public static function addDocument(int $employeeId, string $docName, string $filePath): bool
+{
+    $sql = "INSERT INTO employee_documents (employee_id, document_name, file_path, uploaded_at) 
+            VALUES (:employee_id, :document_name, :file_path, NOW())";
+    
+    $result = self::getDb()->execute($sql, [
+        'employee_id' => $employeeId,
+        'document_name' => $docName,
+        'file_path' => $filePath
+    ]);
+    
+    // Convert to boolean: true if at least 1 row affected, false otherwise
+    return $result > 0;
+}
 
     /**
      * Retrieve document uploads for an employee.

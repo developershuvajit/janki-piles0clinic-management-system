@@ -13,7 +13,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 
                 <div class="d-flex align-items-center mb-3">
                     <h5 class="fw-bold text-slate mb-0"><i class="bi bi-pencil-square text-success me-2"></i>Update Employee Profile</h5>
-                    <?php if ($employee['photo']): ?>
+                    <?php if (!empty($employee['photo']) && file_exists($employee['photo'])): ?>
                         <img src="<?= site_url($employee['photo']) ?>" alt="Photo" class="ms-auto rounded-circle border" style="width: 45px; height: 45px; object-fit: cover;">
                     <?php endif; ?>
                 </div>
@@ -22,12 +22,12 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <!-- Account Credentials -->
                     <div class="col-md-6">
                         <label for="username" class="form-label small fw-semibold">Console Username <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="username" name="username" value="<?= esc($employee['username']) ?>" required placeholder="e.g. johndoe">
+                        <input type="text" class="form-control form-control-sm" id="username" name="username" value="<?= esc($employee['username'] ?? '') ?>" required placeholder="e.g. johndoe">
                     </div>
                     
                     <div class="col-md-6">
                         <label for="email" class="form-label small fw-semibold">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control form-control-sm" id="email" name="email" value="<?= esc($employee['email']) ?>" required placeholder="e.g. johndoe@clinic.com">
+                        <input type="email" class="form-control form-control-sm" id="email" name="email" value="<?= esc($employee['email'] ?? '') ?>" required placeholder="e.g. johndoe@clinic.com">
                     </div>
                     
                     <div class="col-md-12">
@@ -39,9 +39,10 @@ include VIEWS_PATH . '/layout/admin_header.php';
                     <div class="col-md-6">
                         <label for="role_id" class="form-label small fw-semibold">Employee Designation / Role <span class="text-danger">*</span></label>
                         <select class="form-control form-control-sm form-select" id="role_id" name="role_id" required>
+                            <option value="">Select Designation</option>
                             <?php foreach ($roles as $role): ?>
-                                <?php if ($role['slug'] !== 'super_admin' || (int)$employee['role_id'] === 1): ?>
-                                    <option value="<?= $role['id'] ?>" <?= (int)$employee['role_id'] === (int)$role['id'] ? 'selected' : '' ?>><?= esc($role['name']) ?></option>
+                                <?php if ($role['slug'] !== 'super_admin' || (int)($employee['role_id'] ?? 0) === 1): ?>
+                                    <option value="<?= $role['id'] ?>" <?= (int)($employee['role_id'] ?? 0) === (int)$role['id'] ? 'selected' : '' ?>><?= esc($role['name']) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </select>
@@ -52,7 +53,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                         <select class="form-control form-control-sm form-select" id="branch_id" name="branch_id">
                             <option value="">Headquarters / General Staff</option>
                             <?php foreach ($branches as $branch): ?>
-                                <option value="<?= $branch['id'] ?>" <?= (int)$employee['branch_id'] === (int)$branch['id'] ? 'selected' : '' ?>><?= esc($branch['name']) ?></option>
+                                <option value="<?= $branch['id'] ?>" <?= (int)($employee['branch_id'] ?? 0) === (int)$branch['id'] ? 'selected' : '' ?>><?= esc($branch['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -64,27 +65,28 @@ include VIEWS_PATH . '/layout/admin_header.php';
 
                     <!-- Salary & Shifts -->
                     <div class="col-md-4">
-                        <label for="salary" class="form-label small fw-semibold">Base Monthly Salary (INR)</label>
+                        <label for="salary" class="form-label small fw-semibold">Base Monthly Salary (INR) <span class="text-danger">*</span></label>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light">₹</span>
-                            <input type="number" class="form-control" id="salary" name="salary" step="100.00" value="<?= esc(number_format((float)$employee['salary'], 2, '.', '')) ?>" required placeholder="0.00">
+                            <input type="number" class="form-control" id="salary" name="salary" step="100.00" value="<?= esc($employee['salary'] ?? 0) ?>" required placeholder="0.00">
                         </div>
                     </div>
                     
                     <div class="col-md-4">
-                        <label for="shift_start" class="form-label small fw-semibold">Shift Start Time</label>
-                        <input type="time" class="form-control form-control-sm" id="shift_start" name="shift_start" value="<?= esc(date('H:i', strtotime($employee['shift_start']))) ?>" required>
+                        <label for="shift_start" class="form-label small fw-semibold">Shift Start Time <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control form-control-sm" id="shift_start" name="shift_start" value="<?= esc(!empty($employee['shift_start']) ? date('H:i', strtotime($employee['shift_start'])) : '09:00') ?>" required>
                     </div>
                     
                     <div class="col-md-4">
-                        <label for="shift_end" class="form-label small fw-semibold">Shift End Time</label>
-                        <input type="time" class="form-control form-control-sm" id="shift_end" name="shift_end" value="<?= esc(date('H:i', strtotime($employee['shift_end']))) ?>" required>
+                        <label for="shift_end" class="form-label small fw-semibold">Shift End Time <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control form-control-sm" id="shift_end" name="shift_end" value="<?= esc(!empty($employee['shift_end']) ? date('H:i', strtotime($employee['shift_end'])) : '17:00') ?>" required>
                     </div>
 
                     <!-- Add Documents Upload -->
                     <div class="col-md-12">
                         <label for="documents" class="form-label small fw-semibold">Upload More Verification Documents</label>
                         <input type="file" class="form-control form-control-sm" id="documents" name="documents[]" multiple accept=".pdf,.doc,.docx,image/*">
+                        <div class="form-text x-small text-muted" style="font-size: 0.75rem;">Supported formats: PDF, Word, JPEG, PNG. Max: 5MB per file. Hold Ctrl to upload multiple files.</div>
                     </div>
                 </div>
 
@@ -105,7 +107,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
             <p class="text-muted small">Access or delete academic, contract, and identity document credentials.</p>
             
             <div class="list-group list-group-flush mt-3" style="max-height: 400px; overflow-y: auto;">
-                <?php if (empty($documents)): ?>
+                <?php if (empty($documents) || !is_array($documents)): ?>
                     <div class="text-center py-4 text-muted small">
                         <i class="bi bi-file-earmark-slash d-block fs-3 mb-1"></i>
                         No files uploaded.
@@ -117,7 +119,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
                                 <a href="<?= site_url($doc['file_path']) ?>" class="small fw-semibold text-slate text-decoration-none" target="_blank" title="<?= esc($doc['document_name']) ?>">
                                     <i class="bi bi-file-earmark-arrow-down text-success me-1"></i> <?= esc($doc['document_name']) ?>
                                 </a>
-                                <div class="x-small text-muted" style="font-size: 0.7rem;"><?= esc(date('Y-m-d H:i', strtotime($doc['uploaded_at']))) ?></div>
+                                <div class="x-small text-muted" style="font-size: 0.7rem;"><?= esc(date('Y-m-d H:i', strtotime($doc['uploaded_at'] ?? 'now'))) ?></div>
                             </div>
                             <a href="<?= site_url('/admin/employees/delete-doc/' . $doc['id']) ?>" class="btn btn-sm btn-light border px-2 py-1" onclick="return confirm('Are you sure you want to delete this document?');">
                                 <i class="bi bi-trash-fill text-danger"></i>
