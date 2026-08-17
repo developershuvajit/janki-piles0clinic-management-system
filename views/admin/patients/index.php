@@ -290,7 +290,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 <!-- ============================================
      PAGE HEADER
      ============================================ -->
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 mt-4 mx-4">
     <div>
         <h4 class="fw-bold text-slate mb-1">
             <i class="bi bi-people-fill text-success me-2"></i>

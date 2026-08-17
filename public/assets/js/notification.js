@@ -2,14 +2,25 @@
  * Notification Sound System
  * Works with sub-folder projects like:
  * /2026/clinic/public/
+ *
+ * notification.js:
+ * /assets/js/notification.js
+ *
+ * sound files:
+ * /assets/sound/
  */
 
 (function () {
     'use strict';
 
-    // notification.js is inside /assets/js/
-    // So ../sound/ points to /assets/sound/
-    const SOUND_BASE = new URL('../sound/', document.currentScript?.src || window.location.href);
+    // =========================================================
+    // SOUND PATH
+    // =========================================================
+
+    const SOUND_BASE = new URL(
+        '../sound/',
+        document.currentScript?.src || window.location.href
+    );
 
     const soundMap = {
         success: 'success.mp3',
@@ -19,316 +30,586 @@
         info: 'info.mp3'
     };
 
+
+    // =========================================================
+    // AUDIO STATE
+    // =========================================================
+
     let audioUnlocked = false;
+    let audioContext = null;
     let pendingSound = null;
+    let notificationPlayed = false;
 
 
-    /**
-     * Get sound URL
-     */
+    // =========================================================
+    // GET SOUND URL
+    // =========================================================
+
     function getSoundUrl(type) {
+
         const file = soundMap[type] || soundMap.info;
+
         return new URL(file, SOUND_BASE).href;
     }
 
 
-    /**
-     * Unlock browser audio after user interaction
-     */
-    function unlockAudio() {
-        if (audioUnlocked) return;
+    // =========================================================
+    // GET / CREATE AUDIO CONTEXT
+    // =========================================================
+
+    function getAudioContext() {
+
+        if (audioContext) {
+            return audioContext;
+        }
+
+        const AudioContext =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        if (!AudioContext) {
+            return null;
+        }
 
         try {
-            const AudioContext =
-                window.AudioContext || window.webkitAudioContext;
 
-            if (AudioContext) {
-                const context = new AudioContext();
+            audioContext = new AudioContext();
 
-                if (context.state === 'suspended') {
-                    context.resume().then(function () {
+            return audioContext;
+
+        } catch (error) {
+
+            console.log('AudioContext creation error:', error);
+
+            return null;
+        }
+    }
+
+
+    // =========================================================
+    // UNLOCK AUDIO
+    // =========================================================
+
+    function unlockAudio() {
+
+        if (audioUnlocked) {
+            return;
+        }
+
+        const context = getAudioContext();
+
+        // Browser doesn't support Web Audio
+        if (!context) {
+
+            audioUnlocked = true;
+
+            playPendingSound();
+
+            return;
+        }
+
+        try {
+
+            if (context.state === 'suspended') {
+
+                context.resume()
+                    .then(function () {
+
                         audioUnlocked = true;
+
                         playPendingSound();
+
+                    })
+                    .catch(function (error) {
+
+                        console.log(
+                            'AudioContext resume error:',
+                            error
+                        );
+
                     });
-                } else {
-                    audioUnlocked = true;
-                    playPendingSound();
-                }
+
             } else {
+
                 audioUnlocked = true;
+
                 playPendingSound();
             }
-        } catch (e) {
-            console.log('Audio unlock error:', e);
+
+        } catch (error) {
+
+            console.log(
+                'Audio unlock error:',
+                error
+            );
+
             audioUnlocked = true;
+
             playPendingSound();
         }
     }
 
 
-    /**
-     * Play pending notification
-     */
+    // =========================================================
+    // PLAY PENDING SOUND
+    // =========================================================
+
     function playPendingSound() {
-        if (!pendingSound) return;
 
-        const type = pendingSound;
-        pendingSound = null;
-
-        setTimeout(function () {
-            playNotificationSound(type);
-        }, 100);
-    }
-
-
-    /**
-     * Play notification sound
-     */
-    window.playNotificationSound = function (type = 'info') {
-
-        // Browser has not allowed audio yet
-        if (!audioUnlocked) {
-            pendingSound = type;
-            unlockAudio();
+        if (!pendingSound) {
             return;
         }
 
+        const type = pendingSound;
+
+        pendingSound = null;
+
+        // No artificial delay
+        playNotificationSound(type);
+    }
+
+
+    // =========================================================
+    // MAIN NOTIFICATION SOUND
+    // =========================================================
+
+    window.playNotificationSound = function (type = 'info') {
+
+        type = String(type || 'info').toLowerCase();
+
+        // -----------------------------------------------------
+        // Browser audio not unlocked yet
+        // -----------------------------------------------------
+
+        if (!audioUnlocked) {
+
+            pendingSound = type;
+
+            unlockAudio();
+
+            return;
+        }
+
+
         const soundFile = getSoundUrl(type);
 
-        console.log('Playing notification sound:', soundFile);
+        console.log(
+            'Playing notification sound:',
+            soundFile
+        );
+
+
+        // -----------------------------------------------------
+        // Play MP3
+        // -----------------------------------------------------
 
         try {
-            const audio = new Audio(soundFile);
 
+            const audio = new Audio();
+
+            audio.src = soundFile;
             audio.preload = 'auto';
             audio.volume = 0.6;
 
-            audio.play()
-                .then(function () {
-                    console.log('Notification sound played:', type);
-                })
-                .catch(function (error) {
-                    console.log('MP3 playback blocked:', error);
-                    playWebAudio(type);
-                });
+            // Prevent unnecessary delay
+            audio.currentTime = 0;
+
+            const playPromise = audio.play();
+
+            if (playPromise !== undefined) {
+
+                playPromise
+                    .then(function () {
+
+                        console.log(
+                            'Notification sound played:',
+                            type
+                        );
+
+                    })
+                    .catch(function (error) {
+
+                        console.log(
+                            'MP3 playback blocked:',
+                            error
+                        );
+
+                        playWebAudio(type);
+                    });
+
+            }
 
         } catch (error) {
-            console.log('Audio error:', error);
+
+            console.log(
+                'Audio playback error:',
+                error
+            );
+
             playWebAudio(type);
         }
     };
 
 
-    /**
-     * Web Audio fallback
-     */
+    // =========================================================
+    // WEB AUDIO FALLBACK
+    // =========================================================
+
     function playWebAudio(type) {
 
+        const context = getAudioContext();
+
+        if (!context) {
+            return;
+        }
+
         try {
-            const AudioContext =
-                window.AudioContext || window.webkitAudioContext;
-
-            if (!AudioContext) return;
-
-            const context = new AudioContext();
 
             if (context.state === 'suspended') {
-                context.resume();
+
+                context.resume().catch(function () {});
+
             }
+
+
+            // =================================================
+            // SUCCESS
+            // =================================================
 
             if (type === 'success') {
 
-                const notes = [523.25, 659.25, 783.99];
+                const notes = [
+                    523.25,
+                    659.25,
+                    783.99
+                ];
 
                 notes.forEach(function (freq, i) {
 
-                    const oscillator = context.createOscillator();
-                    const gainNode = context.createGain();
+                    const oscillator =
+                        context.createOscillator();
+
+                    const gainNode =
+                        context.createGain();
 
                     oscillator.connect(gainNode);
                     gainNode.connect(context.destination);
 
-                    const start = context.currentTime + (i * 0.15);
+                    const start =
+                        context.currentTime +
+                        (i * 0.15);
 
                     oscillator.frequency.value = freq;
                     oscillator.type = 'sine';
 
-                    gainNode.gain.setValueAtTime(0.2, start);
+                    gainNode.gain.setValueAtTime(
+                        0.2,
+                        start
+                    );
+
                     gainNode.gain.exponentialRampToValueAtTime(
                         0.01,
                         start + 0.2
                     );
 
                     oscillator.start(start);
-                    oscillator.stop(start + 0.2);
+
+                    oscillator.stop(
+                        start + 0.2
+                    );
                 });
 
-            } else if (type === 'error' || type === 'danger') {
+            }
 
-                const oscillator = context.createOscillator();
-                const gainNode = context.createGain();
+
+            // =================================================
+            // ERROR / DANGER
+            // =================================================
+
+            else if (
+                type === 'error' ||
+                type === 'danger'
+            ) {
+
+                const oscillator =
+                    context.createOscillator();
+
+                const gainNode =
+                    context.createGain();
 
                 oscillator.connect(gainNode);
                 gainNode.connect(context.destination);
 
+                const now =
+                    context.currentTime;
+
                 oscillator.frequency.setValueAtTime(
                     400,
-                    context.currentTime
+                    now
                 );
 
                 oscillator.frequency.exponentialRampToValueAtTime(
                     150,
-                    context.currentTime + 0.3
+                    now + 0.3
                 );
 
                 oscillator.type = 'sawtooth';
 
                 gainNode.gain.setValueAtTime(
                     0.2,
-                    context.currentTime
+                    now
                 );
 
                 gainNode.gain.exponentialRampToValueAtTime(
                     0.01,
-                    context.currentTime + 0.3
+                    now + 0.3
                 );
 
-                oscillator.start(context.currentTime);
-                oscillator.stop(context.currentTime + 0.3);
+                oscillator.start(now);
 
-            } else if (type === 'warning') {
+                oscillator.stop(
+                    now + 0.3
+                );
+            }
+
+
+            // =================================================
+            // WARNING
+            // =================================================
+
+            else if (type === 'warning') {
 
                 [0, 0.2].forEach(function (delay) {
 
-                    const oscillator = context.createOscillator();
-                    const gainNode = context.createGain();
+                    const oscillator =
+                        context.createOscillator();
+
+                    const gainNode =
+                        context.createGain();
 
                     oscillator.connect(gainNode);
                     gainNode.connect(context.destination);
 
-                    const start = context.currentTime + delay;
+                    const start =
+                        context.currentTime +
+                        delay;
 
                     oscillator.frequency.value = 800;
+
                     oscillator.type = 'square';
 
-                    gainNode.gain.setValueAtTime(0.15, start);
-                    gainNode.gain.setValueAtTime(0, start + 0.15);
+                    gainNode.gain.setValueAtTime(
+                        0.15,
+                        start
+                    );
+
+                    gainNode.gain.setValueAtTime(
+                        0,
+                        start + 0.15
+                    );
 
                     oscillator.start(start);
-                    oscillator.stop(start + 0.15);
+
+                    oscillator.stop(
+                        start + 0.15
+                    );
                 });
 
-            } else {
+            }
 
-                const oscillator = context.createOscillator();
-                const gainNode = context.createGain();
+
+            // =================================================
+            // INFO
+            // =================================================
+
+            else {
+
+                const oscillator =
+                    context.createOscillator();
+
+                const gainNode =
+                    context.createGain();
 
                 oscillator.connect(gainNode);
                 gainNode.connect(context.destination);
 
+                const now =
+                    context.currentTime;
+
                 oscillator.frequency.value = 600;
+
                 oscillator.type = 'sine';
 
                 gainNode.gain.setValueAtTime(
                     0.15,
-                    context.currentTime
+                    now
                 );
 
                 gainNode.gain.exponentialRampToValueAtTime(
                     0.01,
-                    context.currentTime + 0.15
+                    now + 0.15
                 );
 
-                oscillator.start(context.currentTime);
-                oscillator.stop(context.currentTime + 0.15);
+                oscillator.start(now);
+
+                oscillator.stop(
+                    now + 0.15
+                );
             }
 
         } catch (error) {
-            console.log('Web Audio error:', error);
+
+            console.log(
+                'Web Audio error:',
+                error
+            );
         }
     }
 
 
-    /**
-     * Detect flash notification
-     */
+    // =========================================================
+    // DETECT NOTIFICATION
+    // =========================================================
+
     function autoPlayNotificationSound() {
 
-        console.log('Checking notification...');
+        console.log(
+            'Checking notification...'
+        );
 
-        // Meta notification
+
+        // =====================================================
+        // META NOTIFICATION
+        // =====================================================
+
         const soundMeta =
-            document.querySelector('meta[name="sound-notification"]');
+            document.querySelector(
+                'meta[name="sound-notification"]'
+            );
 
         if (soundMeta) {
 
             const type =
-                soundMeta.getAttribute('content') || 'info';
+                soundMeta.getAttribute('content') ||
+                'info';
 
-            console.log('Sound notification:', type);
+            console.log(
+                'Sound notification:',
+                type
+            );
 
-            pendingSound = type;
-
-            // Try immediately
-            setTimeout(function () {
-                playNotificationSound(type);
-            }, 300);
+            triggerNotificationSound(type);
 
             return;
         }
 
 
-        // Flash messages
+        // =====================================================
+        // FLASH MESSAGE
+        // =====================================================
+
         const flashContainer =
-            document.querySelector('.flash-messages');
+            document.querySelector(
+                '.flash-messages'
+            );
 
         if (!flashContainer) {
-            console.log('No flash message found.');
+
+            console.log(
+                'No flash message found.'
+            );
+
             return;
         }
+
 
         const alerts =
-            flashContainer.querySelectorAll('.alert');
+            flashContainer.querySelectorAll(
+                '.alert'
+            );
 
         if (!alerts.length) {
-            console.log('No alerts found.');
+
+            console.log(
+                'No alerts found.'
+            );
+
             return;
         }
+
 
         const firstAlert = alerts[0];
 
         let type = 'info';
 
-        if (firstAlert.classList.contains('alert-success')) {
+
+        if (
+            firstAlert.classList.contains(
+                'alert-success'
+            )
+        ) {
+
             type = 'success';
 
-        } else if (
-            firstAlert.classList.contains('alert-danger') ||
-            firstAlert.classList.contains('alert-error')
+        }
+
+        else if (
+            firstAlert.classList.contains(
+                'alert-danger'
+            ) ||
+            firstAlert.classList.contains(
+                'alert-error'
+            )
         ) {
+
             type = 'error';
 
-        } else if (
-            firstAlert.classList.contains('alert-warning')
+        }
+
+        else if (
+            firstAlert.classList.contains(
+                'alert-warning'
+            )
         ) {
+
             type = 'warning';
         }
 
-        console.log('Detected notification:', type);
 
-        pendingSound = type;
+        console.log(
+            'Detected notification:',
+            type
+        );
 
-        setTimeout(function () {
-            playNotificationSound(type);
-        }, 300);
+
+        triggerNotificationSound(type);
     }
 
 
-    /**
-     * Browser audio unlock
-     *
-     * First click / touch / key press enables audio.
-     */
+    // =========================================================
+    // TRIGGER SOUND
+    // =========================================================
+
+    function triggerNotificationSound(type) {
+
+        // Prevent duplicate sound
+        if (notificationPlayed) {
+            return;
+        }
+
+        notificationPlayed = true;
+
+        pendingSound = type;
+
+        // Play immediately
+        playNotificationSound(type);
+    }
+
+
+    // =========================================================
+    // BROWSER AUDIO UNLOCK
+    // =========================================================
+
     function setupAudioUnlock() {
 
         const events = [
@@ -337,12 +618,15 @@
             'keydown'
         ];
 
+
         events.forEach(function (eventName) {
 
             document.addEventListener(
                 eventName,
                 function () {
+
                     unlockAudio();
+
                 },
                 {
                     once: true,
@@ -354,17 +638,25 @@
     }
 
 
-    /**
-     * Initialize
-     */
-    document.addEventListener('DOMContentLoaded', function () {
+    // =========================================================
+    // INITIALIZE
+    // =========================================================
 
-        console.log('Notification script loaded!');
+    document.addEventListener(
+        'DOMContentLoaded',
+        function () {
 
-        setupAudioUnlock();
+            console.log(
+                'Notification script loaded!'
+            );
 
-        autoPlayNotificationSound();
+            // Setup browser audio permission
+            setupAudioUnlock();
 
-    });
+            // Detect and play notification immediately
+            autoPlayNotificationSound();
+
+        }
+    );
 
 })();
