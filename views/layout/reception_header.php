@@ -687,12 +687,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                             <a class="nav-link <?= $currentPage === 'reception_ipd' ? 'active' : '' ?>" href="<?= site_url('/reception/ipd') ?>">
                                 <i class="bi bi-building-fill-add"></i> Inpatient Admissions
                             </a>
-                            <a class="nav-link <?= $currentPage === 'reception_ipd_admit' ? 'active' : '' ?>" href="<?= site_url('/reception/ipd/admit') ?>">
-                                <i class="bi bi-journal-plus" style="color:#ec4899;"></i> Patient Bed Admission
-                            </a>
-                            <a class="nav-link <?= $currentPage === 'reception_ipd_beds' ? 'active' : '' ?>" href="<?= site_url('/reception/ipd/beds') ?>">
-                                <i class="bi bi-diagram-3-fill" style="color:#f59e0b;"></i> Bed / Room Allocation
-                            </a>
+                          
                         </div>
                     </div>
                 </div>
@@ -759,9 +754,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                             <a class="nav-link <?= $currentPage === 'reception_communication' ? 'active' : '' ?>" href="<?= site_url('/reception/communication') ?>">
                                 <i class="bi bi-whatsapp" style="color:#25D366;"></i> Communication Center
                             </a>
-                            <a class="nav-link <?= $currentPage === 'reception_attendance' ? 'active' : '' ?>" href="<?= site_url('/reception/attendance') ?>">
-                                <i class="bi bi-clock-history" style="color:#8b5cf6;"></i> Staff Attendance Roster
-                            </a>
+                        
                         </div>
                     </div>
                 </div>

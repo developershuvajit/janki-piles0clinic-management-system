@@ -89,12 +89,12 @@ $router->get('/branch/settings/{id}', 'BranchController@settings');
 // ============================================================
 // 8. USER MANAGEMENT
 // ============================================================
-$router->get('/admin/users', 'UserController@index');
-$router->get('/admin/users/create', 'UserController@create');
-$router->post('/admin/users/save', 'UserController@store');
-$router->get('/admin/users/edit/{id}', 'UserController@edit');
-$router->post('/admin/users/update/{id}', 'UserController@update');
-$router->get('/admin/users/delete/{id}', 'UserController@delete');
+// $router->get('/admin/users', 'UserController@index');
+// $router->get('/admin/users/create', 'UserController@create');
+// $router->post('/admin/users/save', 'UserController@store');
+// $router->get('/admin/users/edit/{id}', 'UserController@edit');
+// $router->post('/admin/users/update/{id}', 'UserController@update');
+// $router->get('/admin/users/delete/{id}', 'UserController@delete');
 
 // ============================================================
 // 9. EMPLOYEE MANAGEMENT

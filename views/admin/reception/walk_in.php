@@ -4,7 +4,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 ?>
 
 <!-- Walk-In Booking Form Card -->
-<div class="card border-0 shadow-sm p-4" style="max-width: 600px; margin: 0 auto;">
+<div class="card border-0 shadow-sm p-4 mt-4"  style="max-width: 600px; margin: 0 auto;">
     <form action="<?= site_url('/admin/reception/walk-in/save') ?>" method="POST">
         <?= csrf_field() ?>
 
