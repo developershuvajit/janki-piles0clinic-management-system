@@ -701,8 +701,8 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                     <div class="collapse <?= $isBillingActive ? 'show' : '' ?>" id="rec-billing">
                         <div class="sidebar-accordion-body">
                             <a class="nav-link <?= $currentPage === 'billing' ? 'active' : '' ?>" href="<?= site_url('/reception/billing') ?>">
-                                <i class="bi bi-cash-register"></i> Cashier Billing & Receipts
-                            </a>
+    <i class="bi bi-receipt"></i> Cashier Billing & Receipts
+</a>
                             <a class="nav-link <?= $currentPage === 'discharge' ? 'active' : '' ?>" href="<?= site_url('/reception/discharge') ?>">
                                 <i class="bi bi-box-arrow-right" style="color:#ef4444;"></i> Discharge Checkout
                             </a>
