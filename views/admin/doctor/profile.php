@@ -3,7 +3,7 @@ $activePage = 'doctor_profile';
 include VIEWS_PATH . '/layout/doctor_header.php'; 
 ?>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 mx-4 mt-4">
     <div>
         <h4 class="fw-bold text-slate mb-1">Doctor Profile & Availability Schedule</h4>
         <p class="text-muted small mb-0">Manage your clinical qualifications, experience, and consultation hours</p>

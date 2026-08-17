@@ -723,9 +723,7 @@ if ($roleSlug !== 'doctor') {
                             <a class="nav-link <?= $currentPage === 'doctor_billing' ? 'active' : '' ?>" href="<?= site_url('/doctor/billing-summary') ?>">
                                 <i class="bi bi-receipt-cutoff" style="color:#8b5cf6;"></i> Patient Bill Summaries
                             </a>
-                            <a class="nav-link <?= $currentPage === 'ai_assist' ? 'active' : '' ?>" href="<?= site_url('/doctor/ai-assist') ?>">
-                                <i class="bi bi-robot" style="color:#06b6d4;"></i> AI Symptom Assistant
-                            </a>
+                            
                         </div>
                     </div>
                 </div>
