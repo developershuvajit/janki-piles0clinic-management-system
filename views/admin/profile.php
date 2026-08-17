@@ -89,6 +89,9 @@ if ($userRole === 'receptionist') {
                 <form action="<?= site_url(($userRole === 'receptionist' ? '/reception' : '/admin') . '/profile/update') ?>" method="POST">
                     <?= csrf_field() ?>
 
+                    <input type="hidden" name="username" value="<?= esc($user['username']) ?>">
+    <input type="hidden" name="email" value="<?= esc($user['email']) ?>">
+
                     <!-- Username -->
                     <div class="mb-3">
                         <label class="form-label"><i class="bi bi-person me-1"></i> Username</label>

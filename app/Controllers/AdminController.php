@@ -423,107 +423,88 @@ class AdminController
     /**
      * Show user profile page.
      */
+     
+
     public function profile(): void
-    {
-        $user = Session::user();
-        $userId = (int)($user['id'] ?? 0);
-        
-        if (!$userId) {
-            Session::setFlash('error', 'User not found.');
-            redirect('/admin/dashboard');
-        }
-        
-        $db = Database::getInstance();
-        $userData = $db->getRow("SELECT * FROM users WHERE id = ?", [$userId]);
-        
-        // ব্রাঞ্চের নাম বের করি
-        $branchName = '';
-        if (!empty($userData['branch_id'])) {
-            $branchInfo = $db->getOne("SELECT name FROM branches WHERE id = ?", [$userData['branch_id']]);
-            $branchName = $branchInfo ? $branchInfo : '';
-        }
-        
-        // রোলের নাম বের করি
-        $roleName = '';
-        if (!empty($userData['role_id'])) {
-            $roleInfo = $db->getOne("SELECT name FROM roles WHERE id = ?", [$userData['role_id']]);
-            $roleName = $roleInfo ? $roleInfo : '';
-        }
-        
-        view('admin.profile', [
-            'title' => 'My Profile',
-            'user' => $userData,
-            'branchName' => $branchName,
-            'roleName' => $roleName
-        ]);
+        {
+            $user = Session::user();
+            $userId = (int)($user['id'] ?? 0);
+            
+            if (!$userId) {
+                Session::setFlash('error', 'User not found.');
+                redirect('/admin/dashboard');
+            }
+            
+            $db = Database::getInstance();
+            $userData = $db->getRow("SELECT * FROM users WHERE id = ?", [$userId]);
+            
+            // ব্রাঞ্চের নাম বের করি
+            $branchName = '';
+            if (!empty($userData['branch_id'])) {
+                $branchInfo = $db->getOne("SELECT name FROM branches WHERE id = ?", [$userData['branch_id']]);
+                $branchName = $branchInfo ? $branchInfo : '';
+            }
+            
+            // রোলের নাম বের করি
+            $roleName = '';
+            if (!empty($userData['role_id'])) {
+                $roleInfo = $db->getOne("SELECT name FROM roles WHERE id = ?", [$userData['role_id']]);
+                $roleName = $roleInfo ? $roleInfo : '';
+            }
+            
+            view('admin.profile', [
+                'title' => 'My Profile',
+                'user' => $userData,
+                'branchName' => $branchName,
+                'roleName' => $roleName
+            ]);
     }
 
-    /**
-     * Update user profile.
-     */
+/**
+ * Update Profile / Change Password.
+ */
+    
+
     public function updateProfile(): void
-    {
-        if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
-            Session::setFlash('error', 'Security token validation expired. Please try again.');
-            redirect('/admin/profile');
-        }
-        
-        $user = Session::user();
-        $userId = (int)($user['id'] ?? 0);
-        
-        if (!$userId) {
-            Session::setFlash('error', 'User not found.');
-            redirect('/admin/dashboard');
-        }
-        
-        $db = Database::getInstance();
-        $username = Security::sanitize($_POST['username'] ?? '');
-        $email = Security::sanitize($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
-        
-        if (empty($username) || empty($email)) {
-            Session::setFlash('error', 'Username and email are required.');
-            redirect('/admin/profile');
-        }
-        
-        // ইমেইল ইউনিক চেক
-        $existing = $db->getOne(
-            "SELECT id FROM users WHERE email = ? AND id != ?",
-            [$email, $userId]
-        );
-        if ($existing) {
-            Session::setFlash('error', 'Email already in use by another user.');
-            redirect('/admin/profile');
-        }
-        
-        // আপডেট ক্যোয়ারী
-        if (!empty($password) && strlen($password) >= 8) {
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $db->execute(
-                "UPDATE users SET username = ?, email = ?, password = ? WHERE id = ?",
-                [$username, $email, $hashedPassword, $userId]
-            );
-        } else {
-            $db->execute(
-                "UPDATE users SET username = ?, email = ? WHERE id = ?",
-                [$username, $email, $userId]
-            );
-        }
-        
-        // সেশন আপডেট
-        $_SESSION['username'] = $username;
-        $_SESSION['email'] = $email;
-        
-        ActivityLogger::log(
-            'Profile Update',
-            "User {$username} updated their profile.",
-            $userId,
-            $user['branch_id'] ?? null
-        );
-        
-        Session::setFlash('success', 'Profile updated successfully.');
+{
+    $userId = (int)Session::get('user_id');
+
+    if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
+        Session::setFlash('error', 'Security validation failed.');
         redirect('/admin/profile');
     }
+
+    $password = $_POST['password'] ?? '';
+    $confirm = $_POST['password_confirm'] ?? '';
+
+    if (!empty($password)) {
+        if (strlen($password) < 8) {
+            Session::setFlash('error', 'New password must be at least 8 characters long.');
+            redirect('/admin/profile');
+        }
+        if ($password !== $confirm) {
+            Session::setFlash('error', 'Passwords do not match.');
+            redirect('/admin/profile');
+        }
+
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        
+        $db = Database::getInstance();
+        // এখানে 'password_hash' ব্যবহার করুন, 'password' না
+        $db->execute("UPDATE users SET password_hash = ? WHERE id = ?", [$hash, $userId]);
+        
+        ActivityLogger::log('Password Updated', "User ID {$userId} updated their password.");
+        Session::setFlash('success', 'Password updated successfully.');
+    } else {
+        Session::setFlash('info', 'No changes were made to password.');
+    }
+
+    redirect('/admin/profile');
+}
+
+
+
+
 
     /**
      * Get branch-wise data helper method.
