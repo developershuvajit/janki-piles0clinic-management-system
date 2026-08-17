@@ -45,7 +45,7 @@ if ($roleSlug !== 'receptionist') {
 
     <!-- Bootstrap 5 Bundle JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?= site_url('/assets/js/notification.js') ?>"></script>
+    <script src="<?= asset('js/notification.js') ?>"></script>
 
 
     <!-- Application JS -->
