@@ -47,7 +47,7 @@ class AuthController
         $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
         $rateLimitKey = 'login_' . hash('sha256', $ip);
         
-        if (Security::rateLimit($rateLimitKey, 1, 60)) {
+        if (Security::rateLimit($rateLimitKey, 5, 60)) {
             $this->handleError('Too many login attempts. Please wait 1 minutes.', $isAjax);
             return;
         }
