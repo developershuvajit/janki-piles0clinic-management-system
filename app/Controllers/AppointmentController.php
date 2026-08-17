@@ -38,12 +38,18 @@ class AppointmentController
      */
     public function index(): void
     {
-        Permission::check('manage_appointments');
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        
+        if (!in_array($roleSlug, ['super_admin', 'admin', 'receptionist'])) {
+            Permission::check('manage_appointments');
+        }
         
         $filter = $this->getBranchFilter();
         $branchId = $filter['hasFilter'] ? $filter['branchId'] : null;
         
         $appointments = Appointment::all($branchId);
+        
         view('admin.appointments.index', [
             'title' => 'Scheduled Appointments',
             'appointments' => $appointments,
@@ -52,11 +58,16 @@ class AppointmentController
     }
 
     /**
-     * Show Pending Online Bookings for Admin Approval.
+     * Show Pending Online Bookings for Approval.
      */
     public function pendingList(): void
     {
-        Permission::check('manage_appointments');
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        
+        if (!in_array($roleSlug, ['super_admin', 'admin', 'receptionist'])) {
+            Permission::check('manage_appointments');
+        }
         
         $filter = $this->getBranchFilter();
         
@@ -78,6 +89,7 @@ class AppointmentController
         $sql .= " ORDER BY a.date ASC, a.time_slot ASC";
         
         $appointments = Database::all($sql, $params);
+        
         view('admin.appointments.pending', [
             'title' => 'Pending Online Approvals',
             'appointments' => $appointments,
@@ -90,23 +102,48 @@ class AppointmentController
      */
     public function approve(array $params): void
     {
-        Permission::check('manage_appointments');
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        
+        if (!in_array($roleSlug, ['super_admin', 'admin', 'receptionist'])) {
+            Permission::check('manage_appointments');
+        }
+        
         $id = (int)($params['id'] ?? 0);
         $appt = Appointment::find($id);
 
         if (!$appt) {
             Session::setFlash('error', 'Appointment not found.');
-            redirect('/admin/appointments/pending');
+            if ($roleSlug === 'receptionist') {
+                redirect('/reception/appointments/pending');
+            } else {
+                redirect('/admin/appointments/pending');
+            }
+            return;
+        }
+
+        // Receptionist check - শুধু নিজের branch এর appointment approve করতে পারে
+        if ($roleSlug === 'receptionist') {
+            $userBranchId = $user['branch_id'] ?? null;
+            if ($userBranchId && $appt['branch_id'] != $userBranchId) {
+                Session::setFlash('error', 'You can only approve appointments from your branch.');
+                redirect('/reception/appointments/pending');
+                return;
+            }
         }
 
         if (Appointment::updateStatus($id, 'approved')) {
             ActivityLogger::log('Appointment Approved', "Approved appointment token #{$appt['token_number']} for patient {$appt['patient_name']}");
-            Session::setFlash('success', 'Appointment successfully approved.');
+            Session::setFlash('success', '✅ Appointment approved successfully.');
         } else {
             Session::setFlash('error', 'Unable to approve appointment.');
         }
 
-        redirect('/admin/appointments/pending');
+        if ($roleSlug === 'receptionist') {
+            redirect('/reception/appointments/pending');
+        } else {
+            redirect('/admin/appointments/pending');
+        }
     }
 
     /**
@@ -114,89 +151,155 @@ class AppointmentController
      */
     public function cancel(array $params): void
     {
-        Permission::check('manage_appointments');
+        $user = Session::user();
+        $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
+        
+        if (!in_array($roleSlug, ['super_admin', 'admin', 'receptionist'])) {
+            Permission::check('manage_appointments');
+        }
+        
         $id = (int)($params['id'] ?? 0);
         $appt = Appointment::find($id);
 
         if (!$appt) {
             Session::setFlash('error', 'Appointment not found.');
-            redirect('/admin/appointments');
+            if ($roleSlug === 'receptionist') {
+                redirect('/reception/appointments');
+            } else {
+                redirect('/admin/appointments');
+            }
+            return;
+        }
+
+        // Receptionist check - শুধু নিজের branch এর appointment cancel করতে পারে
+        if ($roleSlug === 'receptionist') {
+            $userBranchId = $user['branch_id'] ?? null;
+            if ($userBranchId && $appt['branch_id'] != $userBranchId) {
+                Session::setFlash('error', 'You can only cancel appointments from your branch.');
+                redirect('/reception/appointments');
+                return;
+            }
         }
 
         if (Appointment::updateStatus($id, 'cancelled')) {
             ActivityLogger::log('Appointment Cancellation', "Cancelled appointment token #{$appt['token_number']} for patient {$appt['patient_name']}");
-            Session::setFlash('success', 'Appointment successfully cancelled.');
+            Session::setFlash('success', '✅ Appointment cancelled successfully.');
         } else {
             Session::setFlash('error', 'Unable to cancel appointment.');
         }
 
-        redirect('/admin/appointments');
+        if ($roleSlug === 'receptionist') {
+            redirect('/reception/appointments');
+        } else {
+            redirect('/admin/appointments');
+        }
     }
 
     /**
      * Show Doctor Schedule Configuration panel.
      */
-    public function schedule(): void
-    {
-        if (!Session::isLoggedIn()) {
-            redirect('/login');
-        }
+     /**
+ * Show Doctor Schedule Configuration panel.
+ */
+public function schedule(): void
+{
+    if (!Session::isLoggedIn()) {
+        redirect('/login');
+    }
 
-        $user = Session::user();
-        $userId = (int)($user['id'] ?? 0);
-        $role = Session::get('role');
-        $roleSlug = Session::get('role_slug') ?? '';
-        
+    $user = Session::user();
+    $userId = (int)($user['id'] ?? 0);
+    $roleSlug = Session::get('role_slug') ?? '';
+    $branchId = $user['branch_id'] ?? null;
+    
+    $doctorId = $userId;
+    $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
+    $isReceptionist = ($roleSlug === 'receptionist');
+    
+    // Super Admin বা Receptionist ডাক্তার সিলেক্ট করতে পারে
+    if (($isSuperAdmin || $isReceptionist) && !empty($_GET['doctor_id'])) {
+        $doctorId = (int)$_GET['doctor_id'];
+    }
+    
+    // If doctor role, they can only see their own schedule
+    if ($roleSlug === 'doctor') {
         $doctorId = $userId;
-        $isSuperAdmin = ($roleSlug === 'super_admin' || $roleSlug === 'admin');
-        
-        // Super Admin can select any doctor
-        if ($isSuperAdmin && !empty($_GET['doctor_id'])) {
-            $doctorId = (int)$_GET['doctor_id'];
-        }
-        
-        // If not super admin, they can only see their own schedule
-        if (!$isSuperAdmin) {
-            $doctorId = $userId;
-        }
+    }
 
-        $doctor = Database::row("SELECT id, username, branch_id FROM users WHERE id = :id", ['id' => $doctorId]);
-        if (!$doctor) {
-            Session::setFlash('error', 'Doctor not found.');
+    $doctor = Database::row("SELECT id, username, branch_id FROM users WHERE id = :id", ['id' => $doctorId]);
+    if (!$doctor) {
+        Session::setFlash('error', 'Doctor not found.');
+        if ($isReceptionist) {
+            redirect('/reception/dashboard');
+        } else {
             redirect('/admin/dashboard');
         }
-
-        // Get schedules for the selected doctor
-        $schedules = Database::all("SELECT * FROM doctor_schedules WHERE doctor_id = :id ORDER BY 
-            FIELD(day_of_week, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')", 
-            ['id' => $doctorId]
-        );
-        
-        // Get all doctors for dropdown (only for super admin)
-        $doctors = [];
-        if ($isSuperAdmin) {
-            $doctors = Database::all(
-                "SELECT u.id, u.username, u.branch_id, b.name as branch_name 
-                 FROM users u
-                 JOIN roles r ON u.role_id = r.id 
-                 LEFT JOIN branches b ON u.branch_id = b.id
-                 WHERE r.slug = 'doctor' AND u.status = 'active'
-                 ORDER BY u.username ASC"
-            );
-        } else {
-            // For doctor role, just show themselves
-            $doctors = [$doctor];
-        }
-
-        view('admin.appointments.schedule', [
-            'title' => 'Configure Shift Schedules',
-            'schedules' => $schedules,
-            'selected_doctor' => $doctor,
-            'doctors' => $doctors,
-            'isSuperAdmin' => $isSuperAdmin,
-            'activePage' => 'appointments'
-        ]);
+        return;
     }
+
+    // Receptionist check - শুধু নিজের branch এর ডাক্তার দেখতে পারে
+    if ($isReceptionist && $branchId && $doctor['branch_id'] != $branchId) {
+        Session::setFlash('error', 'You can only view schedules for doctors in your branch.');
+        $firstDoctor = Database::row(
+            "SELECT id FROM users WHERE branch_id = :branch_id AND status = 'active' AND role_id IN (SELECT id FROM roles WHERE slug = 'doctor') LIMIT 1",
+            ['branch_id' => $branchId]
+        );
+        if ($firstDoctor) {
+            redirect('/reception/appointments/schedule?doctor_id=' . $firstDoctor['id']);
+        } else {
+            redirect('/reception/dashboard');
+        }
+        return;
+    }
+
+    // Get schedules for the selected doctor
+    $schedules = Database::all("SELECT * FROM doctor_schedules WHERE doctor_id = :id ORDER BY 
+        FIELD(day_of_week, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday')", 
+        ['id' => $doctorId]
+    );
+    
+    // Get all doctors for dropdown
+    $doctors = [];
+    
+    // Super Admin - সব ডাক্তার দেখাবে
+    if ($isSuperAdmin) {
+        $doctors = Database::all(
+            "SELECT u.id, u.username, u.branch_id, b.name as branch_name 
+             FROM users u
+             JOIN roles r ON u.role_id = r.id 
+             LEFT JOIN branches b ON u.branch_id = b.id
+             WHERE r.slug = 'doctor' AND u.status = 'active'
+             ORDER BY u.username ASC"
+        );
+    } 
+    // Receptionist - শুধু নিজের branch এর ডাক্তার দেখাবে
+    else if ($isReceptionist) {
+        $doctors = Database::all(
+            "SELECT u.id, u.username, u.branch_id, b.name as branch_name 
+             FROM users u
+             JOIN roles r ON u.role_id = r.id 
+             LEFT JOIN branches b ON u.branch_id = b.id
+             WHERE r.slug = 'doctor' AND u.status = 'active' AND u.branch_id = :branch_id
+             ORDER BY u.username ASC",
+            ['branch_id' => $branchId]
+        );
+    } 
+    // Doctor - শুধু নিজেকে দেখাবে
+    else {
+        $doctors = [$doctor];
+    }
+
+    // সবাই একই view ব্যবহার করবে (admin.appointments.schedule)
+    view('admin.appointments.schedule', [
+        'title' => $isReceptionist ? 'Manage Doctor Schedules' : 'Configure Shift Schedules',
+        'schedules' => $schedules,
+        'selected_doctor' => $doctor,
+        'doctors' => $doctors,
+        'isSuperAdmin' => $isSuperAdmin,
+        'isReceptionist' => $isReceptionist,
+        'activePage' => 'appointments'
+    ]);
+}
 
     /**
      * Save doctor schedule configurations.
@@ -207,6 +310,10 @@ class AppointmentController
             redirect('/login');
         }
 
+        $user = Session::user();
+        $roleSlug = Session::get('role_slug') ?? '';
+        $branchId = $user['branch_id'] ?? null;
+
         if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? null)) {
             Session::setFlash('error', 'Security token expired.');
             redirect('/admin/appointments/schedule');
@@ -216,6 +323,22 @@ class AppointmentController
         if ($doctorId === 0) {
             Session::setFlash('error', 'Invalid doctor selection.');
             redirect('/admin/appointments/schedule');
+        }
+
+        // Check if doctor exists
+        $doctor = Database::row("SELECT id, branch_id FROM users WHERE id = :id AND status = 'active'", ['id' => $doctorId]);
+        if (!$doctor) {
+            Session::setFlash('error', 'Doctor not found.');
+            redirect('/admin/appointments/schedule');
+        }
+
+        // Receptionist check - শুধু নিজের branch এর ডাক্তারের schedule করতে পারে
+        if ($roleSlug === 'receptionist') {
+            if ($branchId && $doctor['branch_id'] != $branchId) {
+                Session::setFlash('error', 'You can only manage schedules for doctors in your branch.');
+                redirect('/reception/appointments');
+                return;
+            }
         }
 
         $data = [
@@ -236,7 +359,6 @@ class AppointmentController
         // Check if doctor_schedules table exists
         $tableCheck = Database::row("SHOW TABLES LIKE 'doctor_schedules'");
         if (!$tableCheck) {
-            // Create the table if it doesn't exist
             Database::exec("
                 CREATE TABLE IF NOT EXISTS doctor_schedules (
                     id INT PRIMARY KEY AUTO_INCREMENT,

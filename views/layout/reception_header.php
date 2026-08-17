@@ -31,17 +31,18 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'Reception Desk') ?> — Janki Piles Clinic</title>
     <meta name="robots" content="noindex, nofollow">
 
-    <?php 
-        $sound = \App\Helpers\Session::getSoundNotification(); 
-        if ($sound): 
+    <?php
+    $sound = \App\Helpers\Session::getSoundNotification();
+    if ($sound):
     ?>
-    <meta name="sound-notification" content="<?= $sound['type'] ?>">
+        <meta name="sound-notification" content="<?= $sound['type'] ?>">
     <?php endif; ?>
 
     <!-- Google Fonts -->
@@ -62,24 +63,32 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
         /* ============================================
            RECEPTION LAYOUT - FIXED & RESPONSIVE
            ============================================ */
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { 
-            height: 100%; 
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
             font-family: 'Inter', 'Plus Jakarta Sans', sans-serif;
             background: #f5f9fc;
         }
-        body { 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh; 
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        .admin-wrapper { 
-            display: flex; 
-            flex: 1; 
-            min-height: 100vh; 
+
+        .admin-wrapper {
+            display: flex;
+            flex: 1;
+            min-height: 100vh;
         }
-        
+
         /* Sidebar */
         .sidebar-reception {
             background: #0b1a2b;
@@ -92,25 +101,34 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             top: 0;
             height: 100vh;
             overflow: hidden;
-            border-right: 1px solid rgba(255,255,255,0.06);
+            border-right: 1px solid rgba(255, 255, 255, 0.06);
             flex-shrink: 0;
             transition: transform 0.3s ease;
             z-index: 1040;
         }
+
         .sidebar-reception .sidebar-scroll {
             flex: 1;
             overflow-y: auto;
             padding-right: 2px;
         }
-        .sidebar-reception .sidebar-scroll::-webkit-scrollbar { width: 3px; }
-        .sidebar-reception .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+        .sidebar-reception .sidebar-scroll::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .sidebar-reception .sidebar-scroll::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
         .sidebar-reception .sidebar-footer {
             flex-shrink: 0;
             padding-top: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.06);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
             margin-top: 0.5rem;
         }
-        
+
         /* Sidebar Brand */
         .sidebar-reception .sidebar-brand {
             display: flex;
@@ -120,6 +138,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             margin-bottom: 1.2rem;
             padding: 0.2rem 0.3rem;
         }
+
         .sidebar-reception .sidebar-brand-icon {
             width: 44px;
             height: 44px;
@@ -132,13 +151,18 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             flex-shrink: 0;
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
         }
+
         .sidebar-reception .sidebar-brand-name {
             font-size: 1.2rem;
             font-weight: 700;
             color: #fff;
             letter-spacing: -0.3px;
         }
-        .sidebar-reception .sidebar-brand-name span { color: #3b82f6; }
+
+        .sidebar-reception .sidebar-brand-name span {
+            color: #3b82f6;
+        }
+
         .sidebar-reception .sidebar-brand-sub {
             font-size: 0.55rem;
             color: #94a3b8;
@@ -146,21 +170,22 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             text-transform: uppercase;
             margin-top: -2px;
         }
-        
+
         /* Sidebar Divider */
         .sidebar-reception .sidebar-divider {
-            border-color: rgba(255,255,255,0.06);
+            border-color: rgba(255, 255, 255, 0.06);
             margin: 0.6rem 0 0.8rem 0;
         }
-        
+
         /* Branch Badge */
         .sidebar-branch-badge {
             padding: 0.5rem 0.8rem;
             border-radius: 10px;
-            background: rgba(59,130,246,0.12);
-            border: 1px solid rgba(59,130,246,0.2);
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.2);
             margin-bottom: 1rem;
         }
+
         .sidebar-branch-badge .label {
             font-size: 0.6rem;
             color: #60a5fa;
@@ -168,6 +193,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .sidebar-branch-badge .branch {
             font-weight: 600;
             color: #fff;
@@ -176,7 +202,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        
+
         /* Accordion */
         .sidebar-reception .sidebar-accordion-header {
             width: 100%;
@@ -193,28 +219,33 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             cursor: pointer;
             transition: all 0.15s;
         }
+
         .sidebar-reception .sidebar-accordion-header:hover {
-            background: rgba(255,255,255,0.04);
+            background: rgba(255, 255, 255, 0.04);
             color: #e2e8f0;
         }
+
         .sidebar-reception .sidebar-accordion-header.active-header {
-            background: rgba(59,130,246,0.12);
+            background: rgba(59, 130, 246, 0.12);
             color: #60a5fa;
         }
+
         .sidebar-reception .sidebar-accordion-header .chevron-icon {
             font-size: 0.7rem;
             transition: transform 0.2s;
         }
+
         .sidebar-reception .sidebar-accordion-header[aria-expanded="true"] .chevron-icon {
             transform: rotate(180deg);
         }
+
         .sidebar-reception .sidebar-accordion-body {
             padding: 0.2rem 0.5rem 0.2rem 0;
             display: flex;
             flex-direction: column;
             gap: 0.05rem;
         }
-        
+
         /* Nav Links */
         .sidebar-reception .nav-link {
             display: flex;
@@ -229,22 +260,25 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             background: transparent;
             font-weight: 400;
         }
+
         .sidebar-reception .nav-link:hover {
-            background: rgba(59,130,246,0.08);
+            background: rgba(59, 130, 246, 0.08);
             color: #e2e8f0;
         }
+
         .sidebar-reception .nav-link.active {
-            background: rgba(59,130,246,0.12);
+            background: rgba(59, 130, 246, 0.12);
             color: #60a5fa;
             font-weight: 500;
         }
+
         .sidebar-reception .nav-link i {
             font-size: 0.95rem;
             width: 1.2rem;
             text-align: center;
             flex-shrink: 0;
         }
-        
+
         /* Sidebar User */
         .sidebar-reception .sidebar-user {
             display: flex;
@@ -253,6 +287,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             padding: 0.3rem 0.3rem 0.3rem 0;
             margin-bottom: 0.8rem;
         }
+
         .sidebar-reception .sidebar-user .avatar {
             width: 38px;
             height: 38px;
@@ -266,6 +301,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             font-size: 0.75rem;
             flex-shrink: 0;
         }
+
         .sidebar-reception .sidebar-user .name {
             font-weight: 600;
             color: #fff;
@@ -274,6 +310,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .sidebar-reception .sidebar-user .role {
             display: flex;
             align-items: center;
@@ -281,6 +318,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             font-size: 0.6rem;
             color: #60a5fa;
         }
+
         .sidebar-reception .sidebar-user .role .dot {
             display: inline-block;
             width: 6px;
@@ -288,20 +326,21 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             background: #22c55e;
             border-radius: 50%;
         }
+
         .sidebar-reception .sidebar-user .branch-label {
             font-size: 0.55rem;
             color: #94a3b8;
             margin-top: 1px;
         }
-        
+
         /* Logout Button */
         .sidebar-reception .btn-logout {
             border-radius: 10px;
             font-size: 0.75rem;
             padding: 0.4rem;
-            border-color: rgba(239,68,68,0.25);
+            border-color: rgba(239, 68, 68, 0.25);
             color: #ef4444;
-            background: rgba(239,68,68,0.05);
+            background: rgba(239, 68, 68, 0.05);
             transition: all 0.15s;
             text-decoration: none;
             display: flex;
@@ -309,10 +348,11 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             justify-content: center;
             gap: 0.4rem;
             width: 100%;
-            border: 1px solid rgba(239,68,68,0.2);
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
+
         .sidebar-reception .btn-logout:hover {
-            background: rgba(239,68,68,0.12);
+            background: rgba(239, 68, 68, 0.12);
             border-color: #ef4444;
         }
 
@@ -327,32 +367,37 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             flex-wrap: wrap;
             gap: 0.6rem;
         }
+
         .admin-topbar-clean .page-title h5 {
             font-weight: 700;
             color: #0b1a2b;
             margin: 0;
             font-size: 1.05rem;
         }
+
         .admin-topbar-clean .page-title .breadcrumb {
             font-size: 0.7rem;
             margin: 0;
             padding: 0;
             background: transparent;
         }
+
         .admin-topbar-clean .page-title .breadcrumb-item a {
             color: #6b7a8f;
             text-decoration: none;
         }
+
         .admin-topbar-clean .page-title .breadcrumb-item.active {
             color: #0b1a2b;
         }
+
         .admin-topbar-clean .topbar-actions {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             flex-wrap: wrap;
         }
-        
+
         /* Buttons */
         .btn-soft-clean {
             border-radius: 40px;
@@ -367,10 +412,12 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             gap: 0.3rem;
             text-decoration: none;
         }
+
         .btn-soft-clean:hover {
             background: #f5f7fa;
             border-color: #cbd5e1;
         }
+
         .btn-primary-clean {
             border-radius: 40px;
             padding: 0.25rem 1rem;
@@ -384,11 +431,12 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             gap: 0.3rem;
             text-decoration: none;
         }
+
         .btn-primary-clean:hover {
             background: #1d4ed8;
             color: #fff;
         }
-        
+
         /* Badges */
         .badge-clean {
             padding: 0.2rem 0.8rem;
@@ -402,17 +450,19 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             align-items: center;
             gap: 0.3rem;
         }
+
         .badge-clean-primary {
             background: #e6f0ff;
             color: #1a6bc4;
             border-color: #d0e2ff;
         }
+
         .badge-clean-success {
             background: #e6f5ed;
             color: #0b6e44;
             border-color: #b8e0cf;
         }
-        
+
         /* User Avatar */
         .user-avatar-sm {
             width: 28px;
@@ -426,24 +476,27 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             background: #2563eb;
             color: #fff;
         }
-        
+
         /* Dropdown */
         .dropdown-menu-clean {
             border-radius: 12px;
             border: none;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
             padding: 0.3rem;
             min-width: 190px;
         }
+
         .dropdown-menu-clean .dropdown-item {
             font-size: 0.78rem;
             border-radius: 8px;
             padding: 0.35rem 0.7rem;
             color: #1e293b;
         }
+
         .dropdown-menu-clean .dropdown-item:hover {
             background: #f5f7fa;
         }
+
         .dropdown-menu-clean .dropdown-item i {
             width: 1.2rem;
             text-align: center;
@@ -458,6 +511,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             min-height: 100vh;
             overflow-x: hidden;
         }
+
         .admin-content-inner {
             flex: 1;
             padding: 0 0.5rem 1.5rem 0.5rem;
@@ -489,6 +543,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             padding: 0.2rem 0.5rem;
             cursor: pointer;
         }
+
         .sidebar-overlay {
             display: none;
             position: fixed;
@@ -496,7 +551,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4);
             z-index: 1039;
         }
 
@@ -504,6 +559,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             .sidebar-toggle-btn {
                 display: block;
             }
+
             .sidebar-reception {
                 position: fixed;
                 top: 0;
@@ -516,27 +572,34 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                 transition: transform 0.3s ease;
                 border-radius: 0;
             }
+
             .sidebar-reception.open {
                 transform: translateX(0);
             }
+
             .sidebar-overlay.active {
                 display: block;
             }
+
             .admin-topbar-clean {
                 padding: 0.5rem 1rem;
             }
+
             .admin-topbar-clean .page-title h5 {
                 font-size: 0.95rem;
             }
+
             .admin-topbar-clean .topbar-actions .d-none-mobile {
                 display: none !important;
             }
+
             .admin-footer {
                 padding: 0.5rem 1rem;
                 flex-direction: column;
                 text-align: center;
             }
-            .admin-footer > div:last-child {
+
+            .admin-footer>div:last-child {
                 justify-content: center;
             }
         }
@@ -545,26 +608,32 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             .admin-topbar-clean .page-title h5 {
                 font-size: 0.85rem;
             }
+
             .btn-primary-clean {
                 font-size: 0.65rem;
                 padding: 0.15rem 0.6rem;
             }
+
             .btn-soft-clean {
                 font-size: 0.65rem;
                 padding: 0.15rem 0.6rem;
             }
+
             .badge-clean {
                 font-size: 0.5rem;
                 padding: 0.1rem 0.5rem;
             }
+
             .user-avatar-sm {
                 width: 24px;
                 height: 24px;
                 font-size: 0.55rem;
             }
+
             .admin-content-inner {
                 padding: 0 0.3rem 1rem 0.3rem;
             }
+
             .admin-footer {
                 font-size: 0.65rem;
                 padding: 0.4rem 0.8rem;
@@ -585,10 +654,12 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             z-index: 9999;
             transition: opacity 0.3s ease;
         }
+
         #page-loader.hide {
             opacity: 0;
             pointer-events: none;
         }
+
         .loader-ring {
             width: 48px;
             height: 48px;
@@ -597,11 +668,15 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
+
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
+
 <body>
 
     <!-- Mobile Sidebar Overlay -->
@@ -652,6 +727,12 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                             <a class="nav-link <?= $currentPage === 'reception_dashboard' ? 'active' : '' ?>" href="<?= site_url('/reception') ?>">
                                 <i class="bi bi-grid-1x2"></i> Desk Dashboard
                             </a>
+                            <a class="nav-link <?= $currentPage === 'appointments' ? 'active' : '' ?>" href="<?= site_url('/reception/appointments') ?>">
+                                <i class="bi bi-calendar-check" style="color:#8b5cf6;"></i> All Appointments
+                            </a>
+                            <a class="nav-link <?= $currentPage === 'appointments_schedule' ? 'active' : '' ?>" href="<?= site_url('/reception/appointments/schedule') ?>">
+    <i class="bi bi-calendar-event" style="color:#10b981;"></i> Doctor Schedule
+</a>
                             <a class="nav-link <?= $currentPage === 'reception_queue' ? 'active' : '' ?>" href="<?= site_url('/reception/queues') ?>">
                                 <i class="bi bi-list-ol"></i> Token Queue & Appointments
                             </a>
@@ -661,6 +742,9 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                         </div>
                     </div>
                 </div>
+
+                <!-- 1. OPD Operations -->
+
 
                 <!-- 2. Patient Management -->
                 <div style="margin-bottom:0.2rem;">
@@ -694,7 +778,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                             <a class="nav-link <?= $currentPage === 'reception_ipd' ? 'active' : '' ?>" href="<?= site_url('/reception/ipd') ?>">
                                 <i class="bi bi-building-fill-add"></i> Inpatient Admissions
                             </a>
-                          
+
                         </div>
                     </div>
                 </div>
@@ -708,8 +792,8 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                     <div class="collapse <?= $isBillingActive ? 'show' : '' ?>" id="rec-billing">
                         <div class="sidebar-accordion-body">
                             <a class="nav-link <?= $currentPage === 'billing' ? 'active' : '' ?>" href="<?= site_url('/reception/billing') ?>">
-    <i class="bi bi-receipt"></i> Cashier Billing & Receipts
-</a>
+                                <i class="bi bi-receipt"></i> Cashier Billing & Receipts
+                            </a>
                             <a class="nav-link <?= $currentPage === 'discharge' ? 'active' : '' ?>" href="<?= site_url('/reception/discharge') ?>">
                                 <i class="bi bi-box-arrow-right" style="color:#ef4444;"></i> Discharge Checkout
                             </a>
@@ -761,7 +845,7 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                             <a class="nav-link <?= $currentPage === 'reception_communication' ? 'active' : '' ?>" href="<?= site_url('/reception/communication') ?>">
                                 <i class="bi bi-whatsapp" style="color:#25D366;"></i> Communication Center
                             </a>
-                        
+
                         </div>
                     </div>
                 </div>
@@ -851,7 +935,9 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                             <li><a class="dropdown-item" href="<?= site_url('/reception/patients/create') ?>"><i class="bi bi-person-plus text-success"></i> New Patient</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('/reception/walk-in') ?>"><i class="bi bi-person-walking text-primary"></i> Walk-in OPD</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('/reception/ipd/admit') ?>"><i class="bi bi-hospital text-warning"></i> Admit IPD</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li><a class="dropdown-item" href="<?= site_url('/reception/billing') ?>"><i class="bi bi-receipt text-info"></i> Create Bill</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('/reception/medicine-issue') ?>"><i class="bi bi-capsule text-danger"></i> Issue Medicine</a></li>
                         </ul>
@@ -866,7 +952,9 @@ $isHrActive = in_array($currentPage, ['reception_attendance_scan', 'reception_at
                         <ul class="dropdown-menu dropdown-menu-clean">
                             <li><a class="dropdown-item" href="<?= site_url('/reception/profile') ?>"><i class="bi bi-person-circle"></i> My Profile</a></li>
                             <li><a class="dropdown-item" href="<?= site_url('/reception/reports') ?>"><i class="bi bi-graph-up"></i> Reports</a></li>
-                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
                             <li><a class="dropdown-item text-danger" href="<?= site_url('/logout') ?>"><i class="bi bi-box-arrow-right"></i> Sign Out</a></li>
                         </ul>
                     </div>

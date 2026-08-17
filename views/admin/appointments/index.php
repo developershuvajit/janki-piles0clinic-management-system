@@ -1,6 +1,6 @@
 <?php 
 $activePage = 'appointments';
-include VIEWS_PATH . '/layout/admin_header.php'; 
+include VIEWS_PATH . '/layout/reception_header.php'; 
 ?>
 
 <!-- ============================================
@@ -15,12 +15,12 @@ include VIEWS_PATH . '/layout/admin_header.php';
     <div class="datatable-header">
         <h5>Appointment List <small><?= count($appointments ?? []) ?> booked</small></h5>
         <div>
-            <a href="<?= site_url('/admin/appointments/pending') ?>" class="btn-register me-2" style="background: #f59e0b; border-color: #f59e0b;">
-                <i class="bi bi-clock-history me-1"></i> Pending
-            </a>
+            
+            <!-- ===== SCHEDULE BUTTON ADDED ===== -->
             <a href="<?= site_url('/admin/appointments/schedule') ?>" class="btn-register" style="background: #10b981; border-color: #10b981;">
                 <i class="bi bi-calendar-event me-1"></i> Schedule
             </a>
+            <!-- ================================ -->
         </div>
     </div>
 
@@ -83,8 +83,21 @@ include VIEWS_PATH . '/layout/admin_header.php';
                             </td>
                             <td>
                                 <div class="action-group">
-                                    <?php if (($ap['status'] ?? '') === 'approved'): ?>
-                                        <a href="<?= site_url('/admin/appointments/cancel/' . $ap['id']) ?>" 
+                                    <?php if (($ap['status'] ?? '') === 'pending'): ?>
+                                        <a href="<?= site_url('/reception/appointments/approve/' . $ap['id']) ?>" 
+                                           class="btn-action" style="color:#10b981;"
+                                           onclick="return confirm('Approve this appointment?');" 
+                                           title="Approve">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                        </a>
+                                        <a href="<?= site_url('/reception/appointments/cancel/' . $ap['id']) ?>" 
+                                           class="btn-action delete" 
+                                           onclick="return confirm('Cancel this appointment?');" 
+                                           title="Cancel">
+                                            <i class="bi bi-x-circle-fill"></i>
+                                        </a>
+                                    <?php elseif (($ap['status'] ?? '') === 'approved'): ?>
+                                        <a href="<?= site_url('/reception/appointments/cancel/' . $ap['id']) ?>" 
                                            class="btn-action delete" 
                                            onclick="return confirm('Are you sure you want to cancel this appointment?');" 
                                            title="Cancel">
@@ -138,4 +151,4 @@ $(document).ready(function() {
 });
 </script>
 
-<?php include VIEWS_PATH . '/layout/admin_footer.php'; ?>
+<?php include VIEWS_PATH . '/layout/reception_footer.php'; ?>

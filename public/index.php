@@ -316,6 +316,18 @@ $router->get('/reception/attendance', 'ReceptionController@attendanceIndex');
 $router->post('/reception/attendance/save', 'ReceptionController@markAttendance');
 $router->get('/reception/search', 'ReceptionController@globalSearchAjax');
 
+
+
+$router->get('/reception/appointments', 'AppointmentController@index');
+$router->get('/reception/appointments/pending', 'AppointmentController@pendingList');
+$router->get('/reception/appointments/approve/{id}', 'AppointmentController@approve');
+$router->get('/reception/appointments/cancel/{id}', 'AppointmentController@cancel');
+$router->get('/reception/appointments/schedule', 'AppointmentController@schedule');
+$router->post('/reception/appointments/schedule/save', 'AppointmentController@saveSchedule');
+
+
+
+
 // ============================================================
 // 25. DOCTOR PORTAL (DOCTOR ONLY)
 // ============================================================

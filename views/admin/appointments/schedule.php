@@ -1,27 +1,42 @@
 <?php 
 $activePage = 'appointments';
-include VIEWS_PATH . '/layout/admin_header.php'; 
-$userRole = \App\Helpers\Session::get('role');
+$userRole = \App\Helpers\Session::get('role_slug') ?? '';
+$isReceptionist = ($userRole === 'receptionist');
+$isSuperAdmin = ($userRole === 'super_admin' || $userRole === 'admin');
+
+// Receptionist হলে admin_header এর পরিবর্তে reception_header ব্যবহার করবে
+if ($isReceptionist) {
+    include VIEWS_PATH . '/layout/reception_header.php'; 
+} else {
+    include VIEWS_PATH . '/layout/admin_header.php'; 
+}
 ?>
 
-<div class="row">
+<div class="row mt-4">
     <!-- Schedule Planner Form -->
     <div class="col-lg-5 mb-4">
         <div class="card border-0 shadow-sm p-4">
-            <h5 class="fw-bold text-slate mb-3"><i class="bi bi-calendar-range text-success me-2"></i>Configure Shift Slots</h5>
+            <h5 class="fw-bold text-slate mb-3">
+                <i class="bi bi-calendar-range text-success me-2"></i>
+                <?= $isReceptionist ? 'Manage Shift Schedules' : 'Configure Shift Slots' ?>
+            </h5>
             
-            <?php if ($userRole === 'super_admin' || $userRole === 'admin'): ?>
-                <!-- Doctor Selection Filter -->
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold">Select Practitioner / Doctor</label>
-                    <select class="form-control form-control-sm form-select" onchange="window.location.href='<?= site_url('/admin/appointments/schedule?doctor_id=') ?>' + this.value">
-                        <?php foreach ($doctors as $doc): ?>
-                            <option value="<?= $doc['id'] ?>" <?= (int)$selected_doctor['id'] === (int)$doc['id'] ? 'selected' : '' ?>>Dr. <?= esc($doc['username']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-            <?php endif; ?>
+            <!-- Doctor Selection Filter - সবার জন্য visible -->
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Select Practitioner / Doctor</label>
+                <select class="form-control form-control-sm form-select" onchange="window.location.href='<?= site_url('/admin/appointments/schedule?doctor_id=') ?>' + this.value">
+                    <?php foreach ($doctors as $doc): ?>
+                        <option value="<?= $doc['id'] ?>" <?= (int)$selected_doctor['id'] === (int)$doc['id'] ? 'selected' : '' ?>>
+                            Dr. <?= esc($doc['username']) ?>
+                            <?php if (!empty($doc['branch_name'])): ?>
+                                (<?= esc($doc['branch_name']) ?>)
+                            <?php endif; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
 
+            <!-- Receptionist: শুধু নিজের branch এর ডাক্তারদের schedule করতে পারে -->
             <form action="<?= site_url('/admin/appointments/schedule/save') ?>" method="POST">
                 <?= csrf_field() ?>
                 <input type="hidden" name="doctor_id" value="<?= $selected_doctor['id'] ?>">
@@ -86,7 +101,10 @@ $userRole = \App\Helpers\Session::get('role');
     <!-- Configured Shifts List -->
     <div class="col-lg-7 mb-4">
         <div class="card border-0 shadow-sm p-4">
-            <h5 class="fw-bold text-slate mb-3"><i class="bi bi-list-stars text-success me-2"></i>Active Schedules for Dr. <?= esc($selected_doctor['username']) ?></h5>
+            <h5 class="fw-bold text-slate mb-3">
+                <i class="bi bi-list-stars text-success me-2"></i>
+                Active Schedules for Dr. <?= esc($selected_doctor['username']) ?>
+            </h5>
             
             <div class="table-responsive border-0 shadow-none">
                 <table class="table table-hover align-middle mb-0">
@@ -102,7 +120,10 @@ $userRole = \App\Helpers\Session::get('role');
                     <tbody>
                         <?php if (empty($schedules)): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No shifts configured yet.</td>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+                                    No shifts configured for this doctor yet.
+                                </td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($schedules as $sch): ?>
@@ -126,4 +147,10 @@ $userRole = \App\Helpers\Session::get('role');
     </div>
 </div>
 
-<?php include VIEWS_PATH . '/layout/admin_footer.php'; ?>
+<?php 
+if ($isReceptionist) {
+    include VIEWS_PATH . '/layout/reception_footer.php'; 
+} else {
+    include VIEWS_PATH . '/layout/admin_footer.php'; 
+}
+?>
