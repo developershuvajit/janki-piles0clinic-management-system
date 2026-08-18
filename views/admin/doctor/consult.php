@@ -3,47 +3,9 @@ $activePage = 'doctor_dashboard';
 include VIEWS_PATH . '/layout/doctor_header.php'; 
 ?>
 
-<div class="row">
-    <!-- Left Column: Patient Profile & Timeline History -->
-    <div class="col-lg-5 mb-4">
-        <!-- Demographics -->
-        <div class="card border-0 shadow-sm p-4 mb-4">
-            <h6 class="fw-bold text-slate mb-3"><i class="bi bi-person-card text-success me-2"></i>Patient Clinical Chart</h6>
-            
-            <?php if (!empty($patient['allergies'])): ?>
-                <div class="alert alert-danger p-2.5 small mb-3 border-start border-4 border-danger rounded-3">
-                    <strong><i class="bi bi-exclamation-triangle-fill"></i> ALLERGIES:</strong> <?= esc($patient['allergies']) ?>
-                </div>
-            <?php endif; ?>
-
-            <ul class="list-group list-group-flush mb-0" style="font-size: 0.8rem;">
-                <li class="list-group-item px-0 py-2"><strong>Name:</strong> <?= esc($patient['name']) ?> (<?= esc($patient['patient_id']) ?>)</li>
-                <li class="list-group-item px-0 py-2"><strong>Age/Gender:</strong> <?= esc(date('Y') - date('Y', strtotime($patient['dob']))) ?> Yrs &bull; <?= esc(ucfirst($patient['gender'])) ?></li>
-                <li class="list-group-item px-0 py-2"><strong>Blood Group:</strong> <?= esc($patient['blood_group'] ?: 'Unknown') ?></li>
-                <li class="list-group-item px-0 py-2"><strong>History:</strong> <?= esc($patient['medical_history'] ?: 'None recorded') ?></li>
-            </ul>
-        </div>
-
-        <!-- Visit Feed -->
-        <div class="card border-0 shadow-sm p-4" style="max-height: 450px; overflow-y: auto;">
-            <h6 class="fw-bold text-slate mb-3"><i class="bi bi-clock-history text-success me-2"></i>Visit History Timeline</h6>
-            <?php if (empty($timeline)): ?>
-                <span class="text-muted small">No previous visits recorded.</span>
-            <?php else: ?>
-                <div class="position-relative ps-3 border-start border-light ms-1" style="font-size: 0.8rem;">
-                    <?php foreach ($timeline as $item): ?>
-                        <div class="mb-3">
-                            <div class="fw-bold text-slate"><?= esc($item['title']) ?></div>
-                            <div class="text-muted x-small"><?= esc($item['date_display']) ?></div>
-                            <div class="text-muted mt-1" style="white-space: pre-line; font-size: 0.75rem;"><?= esc($item['detail']) ?></div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Right Column: Consultation Worksheet & Prescriptions Form -->
+<div class="row mt-4">
+    <!-- #region -->
+     <!-- Right Column: Consultation Worksheet & Prescriptions Form -->
     <div class="col-lg-7 mb-4">
         <div class="card border-0 shadow-sm p-4 h-100">
             <form action="<?= site_url('/doctor/opd/consult/save') ?>" method="POST" id="consultation-form">
@@ -122,6 +84,48 @@ include VIEWS_PATH . '/layout/doctor_header.php';
             </form>
         </div>
     </div>
+
+
+    <!-- Left Column: Patient Profile & Timeline History -->
+    <div class="col-lg-5 mb-4">
+        <!-- Demographics -->
+        <div class="card border-0 shadow-sm p-4 mb-4">
+            <h6 class="fw-bold text-slate mb-3"><i class="bi bi-person-card text-success me-2"></i>Patient Clinical Chart</h6>
+            
+            <?php if (!empty($patient['allergies'])): ?>
+                <div class="alert alert-danger p-2.5 small mb-3 border-start border-4 border-danger rounded-3">
+                    <strong><i class="bi bi-exclamation-triangle-fill"></i> ALLERGIES:</strong> <?= esc($patient['allergies']) ?>
+                </div>
+            <?php endif; ?>
+
+            <ul class="list-group list-group-flush mb-0" style="font-size: 0.8rem;">
+                <li class="list-group-item px-0 py-2"><strong>Name:</strong> <?= esc($patient['name']) ?> (<?= esc($patient['patient_id']) ?>)</li>
+                <li class="list-group-item px-0 py-2"><strong>Age/Gender:</strong> <?= esc(date('Y') - date('Y', strtotime($patient['dob']))) ?> Yrs &bull; <?= esc(ucfirst($patient['gender'])) ?></li>
+                <li class="list-group-item px-0 py-2"><strong>Blood Group:</strong> <?= esc($patient['blood_group'] ?: 'Unknown') ?></li>
+                <li class="list-group-item px-0 py-2"><strong>History:</strong> <?= esc($patient['medical_history'] ?: 'None recorded') ?></li>
+            </ul>
+        </div>
+
+        <!-- Visit Feed -->
+        <div class="card border-0 shadow-sm p-4" style="max-height: 450px; overflow-y: auto;">
+            <h6 class="fw-bold text-slate mb-3"><i class="bi bi-clock-history text-success me-2"></i>Visit History Timeline</h6>
+            <?php if (empty($timeline)): ?>
+                <span class="text-muted small">No previous visits recorded.</span>
+            <?php else: ?>
+                <div class="position-relative ps-3 border-start border-light ms-1" style="font-size: 0.8rem;">
+                    <?php foreach ($timeline as $item): ?>
+                        <div class="mb-3">
+                            <div class="fw-bold text-slate"><?= esc($item['title']) ?></div>
+                            <div class="text-muted x-small"><?= esc($item['date_display']) ?></div>
+                            <div class="text-muted mt-1" style="white-space: pre-line; font-size: 0.75rem;"><?= esc($item['detail']) ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    
 </div>
 
 <!-- JS dynamic medicine row builder & AI Assist -->

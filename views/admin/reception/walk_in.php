@@ -5,7 +5,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 
 <!-- Walk-In Booking Form Card -->
 <div class="card border-0 shadow-sm p-4 mt-4"  style="max-width: 600px; margin: 0 auto;">
-    <form action="<?= site_url('/admin/reception/walk-in/save') ?>" method="POST">
+    <form action="<?= site_url('/reception/walk-in/save') ?>" method="POST">
         <?= csrf_field() ?>
 
         <h5 class="fw-bold text-slate mb-3"><i class="bi bi-person-workspace text-success me-2"></i>Register Walk-In Appointment</h5>

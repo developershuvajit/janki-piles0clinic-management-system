@@ -92,9 +92,28 @@ class BillingController
         include VIEWS_PATH . '/admin/billing/refund.php';
     }
 
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Settle refund.
      */
+
     public function processRefund()
     {
         Permission::check('manage_reception_dashboard');

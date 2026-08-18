@@ -4,7 +4,7 @@ include VIEWS_PATH . '/layout/admin_header.php';
 ?>
 
 <!-- Payment Sheet Container -->
-<div class="row justify-content-center">
+<div class="row justify-content-center mt-4">
     <div class="col-md-6">
         <div class="card border-0 shadow-sm p-4">
             <form action="<?= site_url('/reception/billing/pay') ?>" method="POST">

@@ -1,4 +1,7 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $user = \App\Helpers\Session::user();
 $roleSlug = $user['role_slug'] ?? $user['role'] ?? '';
 $branchId = $user['branch_id'] ?? null;
@@ -637,10 +640,7 @@ if ($roleSlug !== 'doctor') {
     <!-- Mobile Sidebar Overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
-    <!-- Page Loader -->
-    <div id="page-loader">
-        <div class="loader-ring"></div>
-    </div>
+  
 
     <div class="admin-wrapper">
 

@@ -57,19 +57,32 @@ class Ipd
     /**
      * Find admission by ID
      */
-    public static function findAdmission(int $id): ?array
-    {
-        $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone, 
-                       p.dob, p.gender, p.blood_group, p.allergies, p.address, 
-                       u.username as doctor_name, b.name as branch_name 
-                FROM ipd_admissions a
-                JOIN patients p ON a.patient_id = p.id
-                JOIN users u ON a.doctor_id = u.id
-                LEFT JOIN branches b ON a.branch_id = b.id
-                WHERE a.id = ? LIMIT 1";
-        return Database::row($sql, [$id]);
-    }
 
+    /**
+ * Find admission by ID
+ */
+public static function findAdmission(int $id): ?array
+{
+    $sql = "SELECT a.*, p.name as patient_name, p.patient_id as patient_code, p.phone as patient_phone, 
+                   p.dob, p.gender, p.blood_group, p.allergies, p.address, 
+                   u.username as doctor_name, b.name as branch_name 
+            FROM ipd_admissions a
+            JOIN patients p ON a.patient_id = p.id
+            JOIN users u ON a.doctor_id = u.id
+            LEFT JOIN branches b ON a.branch_id = b.id
+            WHERE a.id = ? LIMIT 1";
+    
+    $result = Database::row($sql, [$id]);
+    
+    // Log for debugging
+    error_log("findAdmission result: " . print_r($result, true));
+    
+    return $result;
+}
+
+
+
+     
     /**
      * Admit a patient into IPD
      */
@@ -79,23 +92,18 @@ class Ipd
             error_log("=== IPD::admit START ===");
             error_log("Data: " . print_r($data, true));
 
-            // Validate patient
             $patient = Database::row("SELECT id FROM patients WHERE id = ?", [$data['patient_id']]);
             if (!$patient) {
                 error_log("Patient not found: " . $data['patient_id']);
                 return null;
             }
-            error_log("Patient validated: ID " . $data['patient_id']);
 
-            // Validate doctor
             $doctor = Database::row("SELECT id FROM users WHERE id = ?", [$data['doctor_id']]);
             if (!$doctor) {
                 error_log("Doctor not found: " . $data['doctor_id']);
                 return null;
             }
-            error_log("Doctor validated: ID " . $data['doctor_id']);
 
-            // Format date
             if (!empty($data['admission_date'])) {
                 $data['admission_date'] = str_replace('T', ' ', $data['admission_date']);
                 if (strlen($data['admission_date']) === 16) {
@@ -119,31 +127,18 @@ class Ipd
                 $data['diagnosis']
             ];
 
-            error_log("SQL: " . $sql);
-            error_log("Params: " . print_r($params, true));
-
-            // Execute
             $result = Database::exec($sql, $params);
-            error_log("Database::exec result (rows affected): " . $result);
-
-            // Get last insert ID
             $insertId = Database::lastInsertId();
-            error_log("Last Insert ID: " . var_export($insertId, true));
 
             if ($insertId && (int)$insertId > 0) {
-                error_log("SUCCESS! Returning ID: " . $insertId);
                 return (int)$insertId;
             }
             
-            error_log("FAILED! insertId is: " . var_export($insertId, true));
             return null;
             
         } catch (\Throwable $e) {
             error_log("!!! IPD::admit EXCEPTION !!!");
             error_log("Message: " . $e->getMessage());
-            error_log("File: " . $e->getFile());
-            error_log("Line: " . $e->getLine());
-            error_log("Trace: " . $e->getTraceAsString());
             return null;
         }
     }
@@ -166,11 +161,9 @@ class Ipd
             
             $dischargeDate = date('Y-m-d H:i:s');
             
-            // 1. Update status
             $stmt = $pdo->prepare("UPDATE ipd_admissions SET status = 'discharged', discharge_date = ? WHERE id = ?");
             $stmt->execute([$dischargeDate, $admissionId]);
 
-            // 2. Calculate stay cost
             $admitTime = strtotime($admission['admission_date']);
             $dischargeTime = strtotime($dischargeDate);
             $secondsDiff = $dischargeTime - $admitTime;
@@ -182,18 +175,15 @@ class Ipd
             $pricePerDay = 500.00;
             $roomRent = $days * $pricePerDay;
 
-            // 3. Get procedure costs
             $procSumRow = Database::row(
                 "SELECT COALESCE(SUM(cost), 0) as total FROM ipd_procedures WHERE ipd_admission_id = ? AND status = 'completed'",
                 [$admissionId]
             );
             $procCost = (float)($procSumRow['total'] ?? 0.00);
 
-            // 4. Calculate total
             $subtotal = $roomRent + $procCost;
             $total = $subtotal - $discount + $tax;
 
-            // 5. Get branch
             $branchId = (int)($admission['branch_id'] ?? 0);
             $validBranch = Database::row("SELECT id FROM branches WHERE id = ?", [$branchId]);
             if (!$validBranch) {
@@ -201,7 +191,6 @@ class Ipd
                 $branchId = $firstBranch ? (int)$firstBranch['id'] : 1;
             }
 
-            // 6. Create invoice
             $billSql = "INSERT INTO billing (patient_id, branch_id, type, reference_id, subtotal, discount, tax, total, paid_amount, payment_status, payment_method, created_at, updated_at) 
                         VALUES (?, ?, 'ipd', ?, ?, ?, ?, ?, 0.00, 'unpaid', 'none', NOW(), NOW())";
             
@@ -222,13 +211,12 @@ class Ipd
         } catch (\Throwable $e) {
             $pdo->rollBack();
             error_log("Discharge ERROR: " . $e->getMessage());
-            Logger::error("Failed discharging IPD patient: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Add nursing log
+     * Add nursing log - FIXED: ipd_admission_id ব্যবহার করুন
      */
     public static function addNursingLog(int $admissionId, array $data): bool
     {
@@ -240,18 +228,17 @@ class Ipd
                 $data['temp'] ?? null,
                 $data['bp'] ?? null,
                 $data['pulse'] ?? null,
-                $data['notes']
+                $data['notes'] ?? ''
             ]);
             return $result > 0;
         } catch (\Throwable $e) {
             error_log("addNursingLog ERROR: " . $e->getMessage());
-            Logger::error("Failed to add nursing log: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Get nursing logs
+     * Get nursing logs - FIXED: ipd_admission_id ব্যবহার করুন
      */
     public static function getNursingLogs(int $admissionId): array
     {
@@ -259,7 +246,7 @@ class Ipd
     }
 
     /**
-     * Add procedure
+     * Add procedure - FIXED: ipd_admission_id ব্যবহার করুন
      */
     public static function addProcedure(int $admissionId, array $data): bool
     {
@@ -275,20 +262,33 @@ class Ipd
             return $result > 0;
         } catch (\Throwable $e) {
             error_log("addProcedure ERROR: " . $e->getMessage());
-            Logger::error("Failed to add procedure: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Get procedures list
+     * Get procedures list - FIXED: ipd_admission_id ব্যবহার করুন
      */
-    public static function getProcedures(int $admissionId): array
-    {
-        $sql = "SELECT p.*, u.username as doctor_name 
-                FROM ipd_procedures p 
-                JOIN users u ON p.doctor_id = u.id 
-                WHERE p.ipd_admission_id = ? ORDER BY p.created_at DESC";
-        return Database::all($sql, [$admissionId]);
-    }
+
+    /**
+ * Get procedures list
+ */
+public static function getProcedures(int $admissionId): array
+{
+    $sql = "SELECT p.*, u.username as doctor_name 
+            FROM ipd_procedures p 
+            JOIN users u ON p.doctor_id = u.id 
+            WHERE p.ipd_admission_id = ? ORDER BY p.created_at DESC";
+    
+    $result = Database::all($sql, [$admissionId]);
+    
+    // Log for debugging
+    error_log("getProcedures count: " . count($result));
+    
+    return $result;
+}
+
+
+
+     
 }

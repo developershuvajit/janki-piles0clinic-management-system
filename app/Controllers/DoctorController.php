@@ -375,38 +375,59 @@ public function ipdIndex(): void
        /**
  * Procedure & Surgery Notes Form - NO BED
  */
-public function procedureNotesForm(array $params): void
+
+  /**
+ * Procedure & Surgery Notes Form - NO BED
+ */
+    public function procedureNotesForm(array $params): void
 {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+    
     Permission::checkPortal('doctor');
     $id = (int)($params['id'] ?? 0);
+    
+    // Debug - দেখুন ID আসছে কিনা
+    echo "<!-- ID received: " . $id . " -->\n";
+    
     $admission = Ipd::findAdmission($id);
-
+    
+    // Debug - দেখুন admission ডেটা আসছে কিনা
+    echo "<!-- Admission data: " . print_r($admission, true) . " -->\n";
+    
     if (!$admission) {
         Session::setFlash('error', 'Admission record not found.');
         redirect('/doctor/ipd');
         return;
     }
-
-    // Ensure all required fields exist
-    $admission['doctor_name'] = $admission['doctor_name'] ?? 'Unknown';
-    $admission['patient_name'] = $admission['patient_name'] ?? 'Unknown';
-    $admission['patient_code'] = $admission['patient_code'] ?? 'N/A';
-    $admission['branch_name'] = $admission['branch_name'] ?? 'Main Branch';
-    $admission['diagnosis'] = $admission['diagnosis'] ?? 'N/A';
-
+    
+    // Debug - admission['id'] চেক করুন
+    echo "<!-- Admission ID: " . ($admission['id'] ?? 'NOT SET') . " -->\n";
+    
+    if ((int)$admission['doctor_id'] !== (int)Session::get('user_id')) {
+        Session::setFlash('error', 'Unauthorized access.');
+        redirect('/doctor/ipd');
+        return;
+    }
+    
     $procedures = Ipd::getProcedures($id);
     
-    // Get logged-in user
+    // Debug
+    echo "<!-- Procedures count: " . count($procedures) . " -->\n";
+    
     $user = Session::user();
-
+    
     view('admin.doctor.ipd_procedure_notes', [
-        'title' => 'Procedure & Surgery Notes - ' . $admission['patient_name'],
+        'title' => 'Procedure & Surgery Notes - ' . ($admission['patient_name'] ?? 'Patient'),
         'admission' => $admission,
         'procedures' => $procedures,
         'user' => $user,
         'activePage' => 'doctor_ipd'
     ]);
 }
+
+
+     
     /**
      * Save Procedure / Surgery Note.
      */
