@@ -201,7 +201,7 @@ include VIEWS_PATH . '/layout/doctor_header.php';
                         </td>
                         <td>
                             <?php if ($status !== 'completed'): ?>
-                                <a href="<?= site_url('/doctor/consult/' . ($q['id'] ?? 0)) ?>" class="btn-soft btn-soft-primary" style="font-size:.7rem;padding:.15rem .7rem;">
+                                <a href="<?= site_url('/doctor/opd/consult/' . ($q['id'] ?? 0)) ?>" class="btn-soft btn-soft-primary" style="font-size:.7rem;padding:.15rem .7rem;">
                                     <i class="bi bi-activity me-1"></i> Consult
                                 </a>
                             <?php else: ?>
