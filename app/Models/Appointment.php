@@ -48,56 +48,98 @@ class Appointment
     /**
      * Create appointment, calculating daily sequential token number automatically.
      */
+
     public static function create(array $data): ?int
-    {
-        try {
-            // Calculate next sequential token for the doctor on that date
-            $tokenRow = Database::row(
-                "SELECT COALESCE(MAX(token_number), 0) + 1 as next_token 
-                 FROM appointments 
-                 WHERE doctor_id = :doctor_id AND date = :date",
-                [
-                    'doctor_id' => $data['doctor_id'],
-                    'date' => $data['date']
-                ]
-            );
-            $token = (int)($tokenRow['next_token'] ?? 1);
+{
+    try {
+        error_log("=== Appointment::create START ===");
+        error_log("Data: " . print_r($data, true));
 
-            $sql = "INSERT INTO appointments (
-                        patient_id, doctor_id, branch_id, date, time_slot, 
-                        status, type, token_number, queue_status, created_at, updated_at
-                    ) VALUES (
-                        :patient_id, :doctor_id, :branch_id, :date, :time_slot,
-                        :status, :type, :token_number, :queue_status, NOW(), NOW()
-                    )";
-            
-            // Execute the query - don't check return value
-            Database::exec($sql, [
-                'patient_id' => $data['patient_id'],
-                'doctor_id' => $data['doctor_id'],
-                'branch_id' => $data['branch_id'],
-                'date' => $data['date'],
-                'time_slot' => $data['time_slot'],
-                'status' => $data['status'] ?? 'pending',
-                'type' => $data['type'] ?? 'walk-in',
-                'token_number' => $token,
-                'queue_status' => $data['queue_status'] ?? 'waiting'
-            ]);
+        $doctorId = (int)$data['doctor_id'];
+        $date = $data['date'];
+        
+        // =========================================================
+        // SCHEDULE LIMIT CHECK - সম্পূর্ণ সরিয়ে দিন
+        // =========================================================
+        // NO LIMIT CHECK - সব সময় appointment তৈরি হবে
+        
+        // Generate daily token
+        $tokenRow = Database::row(
+            "SELECT COALESCE(MAX(token_number), 0) + 1 AS next_token 
+             FROM appointments 
+             WHERE doctor_id = :doctor_id AND date = :date",
+            ['doctor_id' => $doctorId, 'date' => $date]
+        );
 
-            // Get the inserted ID directly from lastInsertId()
-            $insertId = Database::lastInsertId();
-            
-            if ($insertId > 0) {
-                return (int)$insertId;
-            }
-            
-            return null;
-            
-        } catch (\Throwable $e) {
-            error_log("Appointment::create error: " . $e->getMessage());
-            return null;
+        $token = (int)($tokenRow['next_token'] ?? 1);
+        error_log("Generated Token: " . $token);
+
+        $sql = "INSERT INTO appointments (
+                    patient_id, doctor_id, branch_id, date, time_slot, 
+                    status, type, token_number, queue_status, created_at, updated_at
+                ) VALUES (
+                    :patient_id, :doctor_id, :branch_id, :date, :time_slot,
+                    :status, :type, :token_number, :queue_status, NOW(), NOW()
+                )";
+
+        $params = [
+            'patient_id'   => (int)$data['patient_id'],
+            'doctor_id'    => (int)$data['doctor_id'],
+            'branch_id'    => $data['branch_id'] !== null ? (int)$data['branch_id'] : null,
+            'date'         => $data['date'],
+            'time_slot'    => $data['time_slot'],
+            'status'       => $data['status'] ?? 'pending',
+            'type'         => $data['type'] ?? 'walk-in',
+            'token_number' => $token,
+            'queue_status' => $data['queue_status'] ?? 'waiting'
+        ];
+
+        error_log("Insert Params: " . print_r($params, true));
+
+        Database::exec($sql, $params);
+
+        $insertId = (int)Database::lastInsertId();
+        error_log("lastInsertId: " . $insertId);
+
+        if ($insertId > 0) {
+            error_log("✅ Appointment created successfully. ID: " . $insertId . " | Token: " . $token);
+            return $insertId;
         }
+
+        // Fallback: find the created appointment
+        $created = Database::row(
+            "SELECT id FROM appointments 
+             WHERE patient_id = :patient_id 
+               AND doctor_id = :doctor_id 
+               AND date = :date 
+               AND time_slot = :time_slot 
+               AND token_number = :token 
+             ORDER BY id DESC LIMIT 1",
+            [
+                'patient_id' => (int)$data['patient_id'],
+                'doctor_id'  => (int)$data['doctor_id'],
+                'date'       => $data['date'],
+                'time_slot'  => $data['time_slot'],
+                'token'      => $token
+            ]
+        );
+
+        if ($created && !empty($created['id'])) {
+            $fallbackId = (int)$created['id'];
+            error_log("✅ Appointment found using fallback ID: " . $fallbackId);
+            return $fallbackId;
+        }
+
+        error_log("❌ INSERT completed but appointment ID could not be resolved.");
+        return null;
+
+    } catch (\Throwable $e) {
+        error_log("❌ Appointment::create ERROR: " . $e->getMessage());
+        error_log("Trace: " . $e->getTraceAsString());
+        return null;
     }
+}
+    
 
     /**
      * Update an appointment record.
